@@ -1,0 +1,23 @@
+Name:                streams-simple
+Version:             0.1
+License:             BSD3
+--License-file:        LICENSE
+Category:            Data
+Build-type:          Simple
+Cabal-version:       >=1.2
+
+Library
+  hs-source-dirs:    src
+
+  Exposed-modules:   System.IO.Streams,
+                     System.IO.Streams.Attoparsec,
+                     System.IO.Streams.Blaze
+
+  Other-modules:     System.IO.Streams.Internal
+
+  Build-depends:     base          >= 4     && <5,
+                     attoparsec    >= 0.10  && <0.11,
+                     blaze-builder >= 0.3.1 && <0.4,
+                     bytestring    >= 0.9.2 && <0.10,
+                     contravariant >= 0.2   && <0.3
+

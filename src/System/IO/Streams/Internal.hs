@@ -1,51 +1,25 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings          #-}
 
-module Types where
+module System.IO.Streams.Internal where
 
 ------------------------------------------------------------------------------
 import           Control.Concurrent
 import           Control.Monad
 import           Data.Functor.Contravariant
+import           Data.IORef
 import           Data.Monoid
 import           Prelude hiding (read)
 
 
 ------------------------------------------------------------------------------
-data Chunk c = Chunk c | EOF
-  deriving (Show)
-
-instance Functor Chunk where
-    fmap _ EOF       = EOF
-    fmap f (Chunk c) = Chunk (f c)
-
-
-------------------------------------------------------------------------------
-chunkToMaybe :: Chunk a -> Maybe a
-chunkToMaybe (Chunk c) = Just c
-chunkToMaybe EOF       = Nothing
-
-
-------------------------------------------------------------------------------
-maybeToChunk :: Maybe a -> Chunk a
-maybeToChunk (Just c) = Chunk c
-maybeToChunk Nothing  = EOF
-
-
-------------------------------------------------------------------------------
-unchunk :: b -> (a -> b) -> Chunk a -> b
-unchunk b _ EOF       = b
-unchunk _ f (Chunk c) = f c
-
-
-------------------------------------------------------------------------------
 data Source c = Source {
-      produce :: IO (Source c, Chunk c)
+      produce :: IO (Source c, Maybe c)
     }
 
 
 data Sink c = Sink {
-      consume :: Chunk c -> IO (Sink c)
+      consume :: Maybe c -> IO (Sink c)
     }
 
 
@@ -54,14 +28,15 @@ instance Functor Source where
     fmap f (Source p) = Source $ do
                               (q, c) <- p
                               return (fmap f q, fmap f c)
+    {-# INLINE fmap #-}
 
 
 ------------------------------------------------------------------------------
 instance Contravariant Sink where
     contramap f (Sink p) = Sink $ \c -> do
-                                    q <- p $ fmap f c
-                                    return $ contramap f q
-
+                                q <- p $ fmap f c
+                                return $ contramap f q
+    {-# INLINE contramap #-}
 
 ------------------------------------------------------------------------------
 instance Monoid (Source c) where
@@ -69,70 +44,95 @@ instance Monoid (Source c) where
 
     p `mappend` q = Source $ do
                         (p', c) <- produce p
-                        unchunk (produce q)
+                        maybe (produce q)
                               (const $ return (p' `mappend` q, c))
                               c
 
 ------------------------------------------------------------------------------
 nullSource :: Source c
-nullSource = Source $ return (nullSource, EOF)
+nullSource = Source $ return (nullSource, Nothing)
 
 nullSink :: Sink c
 nullSink = Sink $ const $ return nullSink
 
 
 ------------------------------------------------------------------------------
-produceList :: [c] -> IO (InputStream c)
-produceList = sourceToStream . f
+fromList :: [c] -> IO (InputStream c)
+fromList = sourceToStream . f
   where
-    f []     = Source $ return (nullSource, EOF)
-    f (x:xs) = Source $ return (f xs, Chunk x)
-
+    f []     = Source $ return (nullSource, Nothing)
+    f (x:xs) = Source $ return (f xs, Just x)
+{-# INLINE fromList #-}
 
 ------------------------------------------------------------------------------
-listSink :: IO (OutputStream c, IO [c])
-listSink = do
+listOutputStream :: IO (OutputStream c, IO [c])
+listOutputStream = do
     r <- newMVar id
     c <- sinkToStream $ consumer r
     return (c, flush r)
 
   where
-    consumer r = Sink $ unchunk (return nullSink)
-                                  (\c -> do
-                                       modifyMVar_ r $ \dl -> return (dl . (c:))
-                                       return $ consumer r)
+    consumer r = Sink $ maybe (return nullSink)
+                              (\c -> do
+                                   modifyMVar_ r $ \dl -> return (dl . (c:))
+                                   return $ consumer r)
 
     flush r = modifyMVar r $ \dl -> return (id, dl [])
+{-# INLINE listOutputStream #-}
 
 
 ------------------------------------------------------------------------------
-newtype InputStream  c = IS (MVar (Source c))
-newtype OutputStream c = OS (MVar (Sink   c))
+toList :: InputStream a -> IO [a]
+toList is = do
+    (os, grab) <- listOutputStream
+    connect is os >> grab
+{-# INLINE toList #-}
+
+
+------------------------------------------------------------------------------
+-- newtype InputStream  c = IS (MVar (Source c))
+-- newtype OutputStream c = OS (MVar (Sink   c))
+
+-- TODO(gdc): IORef obviously faster here, but lose thread safety. Decide what
+-- to do based on benchmark data.
+
+newtype InputStream  c = IS (IORef (Source c))
+newtype OutputStream c = OS (IORef (Sink   c))
 
 
 ------------------------------------------------------------------------------
 read :: InputStream c -> IO (Maybe c)
-read (IS mv) = modifyMVar mv (liftM (fmap chunkToMaybe) . produce)
+read (IS ref) = do
+    m      <- readIORef ref
+    (m',x) <- produce m
+    writeIORef ref m'
+    return x
+{-# INLINE read #-}
 
 
 ------------------------------------------------------------------------------
 unRead :: c -> InputStream c -> IO ()
-unRead c (IS mv) = modifyMVar_ mv f
+unRead c (IS ref) = readIORef ref >>= f >>= writeIORef ref
   where
-    f p = return $ Source $ return (p, Chunk c)
+    f p = return $ Source $ return (p, Just c)
+{-# INLINE unRead #-}
 
 
 ------------------------------------------------------------------------------
 write :: Maybe c -> OutputStream c -> IO ()
-write c (OS mv) = modifyMVar_ mv (($ maybeToChunk c) . consume)
+write c (OS ref) = readIORef ref >>= (($ c) . consume) >>= writeIORef ref
+{-# INLINE write #-}
 
 
 ------------------------------------------------------------------------------
 sourceToStream :: Source a -> IO (InputStream a)
-sourceToStream = liftM IS . newMVar
+sourceToStream = liftM IS . newIORef
+{-# INLINE sourceToStream #-}
+
 
 sinkToStream :: Sink a -> IO (OutputStream a)
-sinkToStream = liftM OS . newMVar
+sinkToStream = liftM OS . newIORef
+{-# INLINE sinkToStream #-}
 
 
 ------------------------------------------------------------------------------
@@ -144,4 +144,21 @@ connect p q = loop
         maybe (write Nothing q)
               (const $ write m q >> loop)
               m
+{-# INLINE connect #-}
 
+------------------------------------------------------------------------------
+makeInputStream :: IO (Maybe a) -> IO (InputStream a)
+makeInputStream m = sourceToStream s
+  where
+    s = Source $ do
+        x <- m
+        return (s, x)
+{-# INLINE makeInputStream #-}
+
+
+------------------------------------------------------------------------------
+makeOutputStream :: (Maybe a -> IO ()) -> IO (OutputStream a)
+makeOutputStream f = sinkToStream s
+  where
+    s = Sink (\x -> f x >> return s)
+{-# INLINE makeOutputStream #-}

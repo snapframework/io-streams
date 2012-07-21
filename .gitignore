@@ -1,0 +1,14 @@
+*~
+cabal-dev
+dist/
+*.tix
+.hpc
+*.prof
+*.hi
+*.o
+*.swp
+#*#
+.#*
+.DS_Store
+**/.DS_Store
+docs/templates/out
