@@ -39,7 +39,7 @@ withFileAsInputStream :: FilePath
                       -> (InputStream ByteString -> IO ())
                       -> IO ()
 withFileAsInputStream fp m =
-    withFile fp ReadMode ((m =<<) . handleToInputStream)
+    withBinaryFile fp ReadMode ((m =<<) . handleToInputStream)
 
 
 ------------------------------------------------------------------------------
@@ -48,4 +48,4 @@ withFileAsOutputStream :: FilePath
                        -> (OutputStream ByteString -> IO ())
                        -> IO ()
 withFileAsOutputStream fp mode m =
-    withFile fp mode ((m =<<) . handleToOutputStream)
+    withBinaryFile fp mode ((m =<<) . handleToOutputStream)
