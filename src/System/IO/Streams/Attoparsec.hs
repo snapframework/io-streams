@@ -9,10 +9,9 @@ import Data.ByteString.Char8            (ByteString)
 import Data.Maybe
 import Data.Typeable
 import Prelude                          hiding (read)
-import System.IO.Streams.Internal
 ------------------------------------------------------------------------------
-import Control.Applicative
-import Data.List
+import System.IO.Streams.Internal
+import System.IO.Streams.List
 
 ------------------------------------------------------------------------------
 data ParseException = ParseException String
@@ -45,19 +44,3 @@ parseFromStream parser is = do
     go r@(Fail x _ _) = unRead x is >> err r
     go (Done x r)     = unRead x is >> return r
     go r              = read is >>= maybe (finish r) (go . feed r)
-
-
-------------------------------------------------------------------------------
-example :: IO ([ByteString], [ByteString])
-example = do
-    is <- fromList $
-          intersperse " " ["the", "quick", "brown", "fox", "jumped", "over"]
-
-    xs <- parseFromStream parser is
-    ys <- toList is
-    return (xs, ys)
-
-  where
-    ps     = string "the" <|> string "quick" <|> string "brown"
-    parser = many (ps <* char ' ')
-

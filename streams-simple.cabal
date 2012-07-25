@@ -11,7 +11,12 @@ Library
 
   Exposed-modules:   System.IO.Streams,
                      System.IO.Streams.Attoparsec,
-                     System.IO.Streams.Blaze
+                     System.IO.Streams.Blaze,
+                     System.IO.Streams.ByteString,
+                     System.IO.Streams.Combinators,
+                     System.IO.Streams.Handle,
+                     System.IO.Streams.List
+
 
   Other-modules:     System.IO.Streams.Internal
 

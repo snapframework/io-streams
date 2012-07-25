@@ -10,10 +10,24 @@ module System.IO.Streams
  , connect
  , makeInputStream
  , makeOutputStream
- , fromList
- , listOutputStream
- , toList
+ , lockingInputStream
+ , lockingOutputStream
+
+ , module System.IO.Streams.Blaze
+ , module System.IO.Streams.ByteString
+ , module System.IO.Streams.Combinators
+ , module System.IO.Streams.Handle
+ , module System.IO.Streams.List
  ) where
 
+------------------------------------------------------------------------------
 import           Prelude hiding (read)
+
+------------------------------------------------------------------------------
 import           System.IO.Streams.Internal
+
+import           System.IO.Streams.Blaze
+import           System.IO.Streams.ByteString
+import           System.IO.Streams.Combinators
+import           System.IO.Streams.Handle
+import           System.IO.Streams.List

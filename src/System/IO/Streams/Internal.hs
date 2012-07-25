@@ -57,44 +57,19 @@ nullSink = Sink $ const $ return nullSink
 
 
 ------------------------------------------------------------------------------
-fromList :: [c] -> IO (InputStream c)
-fromList = sourceToStream . f
-  where
-    f []     = Source $ return (nullSource, Nothing)
-    f (x:xs) = Source $ return (f xs, Just x)
-{-# INLINE fromList #-}
+-- A modifyIORef takes about 35ns to run on my Macbook, and the equivalent
+-- readIORef/writeIORef pair takes 6ns.
+--
+-- Given that we'll be composing these, we'll give up thread safety in order to
+-- gain a 6x performance improvement. If you want thread-safe access to a
+-- stream, you can use lockingInputStream or lockingOutputStream.
 
-------------------------------------------------------------------------------
-listOutputStream :: IO (OutputStream c, IO [c])
-listOutputStream = do
-    r <- newMVar id
-    c <- sinkToStream $ consumer r
-    return (c, flush r)
-
-  where
-    consumer r = Sink $ maybe (return nullSink)
-                              (\c -> do
-                                   modifyMVar_ r $ \dl -> return (dl . (c:))
-                                   return $ consumer r)
-
-    flush r = modifyMVar r $ \dl -> return (id, dl [])
-{-# INLINE listOutputStream #-}
-
-
-------------------------------------------------------------------------------
-toList :: InputStream a -> IO [a]
-toList is = do
-    (os, grab) <- listOutputStream
-    connect is os >> grab
-{-# INLINE toList #-}
-
-
-------------------------------------------------------------------------------
--- newtype InputStream  c = IS (MVar (Source c))
--- newtype OutputStream c = OS (MVar (Sink   c))
+--newtype InputStream  c = IS (MVar (Source c))
+--newtype OutputStream c = OS (MVar (Sink   c))
 
 -- TODO(gdc): IORef obviously faster here, but lose thread safety. Decide what
--- to do based on benchmark data.
+-- to do based on benchmark data. If MVar is not appreciably slower, it should
+-- be wiser to go with that.
 
 newtype InputStream  c = IS (IORef (Source c))
 newtype OutputStream c = OS (IORef (Sink   c))
@@ -162,3 +137,25 @@ makeOutputStream f = sinkToStream s
   where
     s = Sink (\x -> f x >> return s)
 {-# INLINE makeOutputStream #-}
+
+
+------------------------------------------------------------------------------
+lockingInputStream :: InputStream a -> IO (InputStream a)
+lockingInputStream s = do
+    mv <- newMVar ()
+    makeInputStream $ f mv
+
+  where
+    f mv = withMVar mv $ const $ read s
+{-# INLINE lockingInputStream #-}
+
+
+------------------------------------------------------------------------------
+lockingOutputStream :: OutputStream a -> IO (OutputStream a)
+lockingOutputStream s = do
+    mv <- newMVar ()
+    makeOutputStream $ f mv
+
+  where
+    f mv x = withMVar mv $ const $ write x s
+{-# INLINE lockingOutputStream #-}
