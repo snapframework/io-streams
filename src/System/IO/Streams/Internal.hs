@@ -55,6 +55,9 @@ nullSource = Source $ return (nullSource, Nothing)
 nullSink :: Sink c
 nullSink = Sink $ const $ return nullSink
 
+singletonSource :: c -> Source c
+singletonSource c = Source (return (nullSource, Just c))
+
 
 ------------------------------------------------------------------------------
 -- A modifyIORef takes about 35ns to run on my Macbook, and the equivalent

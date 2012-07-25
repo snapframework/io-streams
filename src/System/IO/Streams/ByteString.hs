@@ -1,6 +1,13 @@
 {-# LANGUAGE BangPatterns #-}
 
-module System.IO.Streams.ByteString where
+module System.IO.Streams.ByteString
+ ( countInput
+ , countOutput
+ , readNoMoreThan
+ , writeNoMoreThan
+ , MatchInfo(..)
+ , boyerMooreHorspool
+ ) where
 
 ------------------------------------------------------------------------------
 import           Data.ByteString               (ByteString)
@@ -10,6 +17,7 @@ import           Prelude                       hiding (read)
 ------------------------------------------------------------------------------
 import           System.IO.Streams.Combinators
 import           System.IO.Streams.Internal
+import           System.IO.Streams.Internal.BoyerMooreHorspool
 
 
 ------------------------------------------------------------------------------
