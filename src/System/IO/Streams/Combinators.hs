@@ -1,18 +1,26 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns       #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 
 module System.IO.Streams.Combinators
  ( inputFoldM
  , outputFoldM
  , mapM
  , contramapM
+ , RateTooSlowException
+ , killIfTooSlow
  ) where
 
 ------------------------------------------------------------------------------
-import Control.Monad              (liftM)
-import Data.IORef
-import Prelude                    hiding (mapM, read)
+import           Control.Exception
+import           Control.Monad              (liftM, when)
+import qualified Data.ByteString.Char8      as S
+import           Data.ByteString.Char8      (ByteString)
+import           Data.IORef
+import           Data.Time.Clock.POSIX      (getPOSIXTime)
+import           Data.Typeable
+import           Prelude                    hiding (mapM, read)
 ------------------------------------------------------------------------------
-import System.IO.Streams.Internal
+import           System.IO.Streams.Internal
 
 
 ------------------------------------------------------------------------------
@@ -80,3 +88,56 @@ contramapM f s = makeOutputStream g
     g (Just x) = do
         !y <- f x
         write (Just y) s
+
+
+------------------------------------------------------------------------------
+getTime :: IO Double
+getTime = realToFrac `fmap` getPOSIXTime
+
+
+------------------------------------------------------------------------------
+data RateTooSlowException = RateTooSlowException deriving (Typeable)
+instance Show RateTooSlowException where
+    show RateTooSlowException = "Input rate too slow"
+instance Exception RateTooSlowException
+
+
+------------------------------------------------------------------------------
+-- | Rate-limit an input stream. If the input stream does not produce input
+-- faster than the given rate, reading from the wrapped stream will throw a
+-- 'RateTooSlowException'.
+killIfTooSlow
+    :: IO ()                   -- ^ action to bump timeout
+    -> Double                  -- ^ minimum data rate, in bytes per second
+    -> Int                     -- ^ amount of time to wait before data rate
+                               --   calculation takes effect
+    -> InputStream ByteString  -- ^ input stream
+    -> IO (InputStream ByteString)
+killIfTooSlow !bump !minRate !minSeconds' !stream = do
+    !_        <- bump
+    startTime <- getTime
+
+    sourceToStream $ source startTime 0
+
+  where
+    minSeconds = fromIntegral minSeconds'
+
+    source !startTime = proc
+      where
+        proc !nb = Source $ do
+          mb <- read stream
+          maybe (return (nullSource, Nothing))
+                (\s -> do
+                   let slen = S.length s
+                   now <- getTime
+                   let !delta = now - startTime
+                   let !newBytes = nb + slen
+                   when (delta > minSeconds + 1 &&
+                         fromIntegral newBytes /
+                            (delta-minSeconds) < minRate) $
+                       throwIO RateTooSlowException
+
+                   -- otherwise, bump the timeout and return the input
+                   !_ <- bump
+                   return (proc newBytes, Just s))
+                mb
