@@ -6,6 +6,7 @@ module System.IO.Streams.Combinators
  , outputFoldM
  , mapM
  , contramapM
+ , skipToEof
  ) where
 
 ------------------------------------------------------------------------------
@@ -81,3 +82,11 @@ contramapM f s = makeOutputStream g
     g (Just x) = do
         !y <- f x
         write (Just y) s
+
+
+------------------------------------------------------------------------------
+skipToEof :: InputStream a -> IO ()
+skipToEof str = go
+  where
+    go = read str >>= maybe (return ()) (const go)
+{-# INLINE skipToEof #-}
