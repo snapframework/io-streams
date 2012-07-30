@@ -52,7 +52,6 @@ matches !needle !nstart !nend' !haystack !hstart !hend' =
 
 
 ------------------------------------------------------------------------------
-------------------------------------------------------------------------------
 boyerMooreHorspool :: ByteString
                    -> InputStream ByteString
                    -> IO (InputStream MatchInfo)

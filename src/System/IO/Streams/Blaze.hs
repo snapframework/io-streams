@@ -5,15 +5,15 @@
 
 module System.IO.Streams.Blaze where
 
-import           Blaze.ByteString.Builder
-import           Data.List
 ------------------------------------------------------------------------------
+import           Blaze.ByteString.Builder
 import           Blaze.ByteString.Builder.Internal
 import           Blaze.ByteString.Builder.Internal.Types
 import           Blaze.ByteString.Builder.Internal.Buffer
 import           Control.Monad
 import           Data.ByteString.Char8 (ByteString)
 import qualified Data.ByteString.Char8 as S
+import           Data.List
 ------------------------------------------------------------------------------
 import           System.IO.Streams.Internal
 import           System.IO.Streams.List
