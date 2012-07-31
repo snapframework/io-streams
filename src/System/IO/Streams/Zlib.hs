@@ -7,7 +7,6 @@ module System.IO.Streams.Zlib
  , compress
  , compressBuilder
  , decompress
- , BufferMode(..)
  ) where
 
 ------------------------------------------------------------------------------
@@ -19,16 +18,10 @@ import           Control.Applicative        ((<$>))
 import           Control.Monad              (join)
 import qualified Data.ByteString            as S
 import           Data.ByteString            (ByteString)
-import           Data.Monoid
 import           Prelude                    hiding (read)
 ------------------------------------------------------------------------------
 import           System.IO.Streams.Blaze
 import           System.IO.Streams.Internal
-
-
-------------------------------------------------------------------------------
-data BufferMode = Buffered | Unbuffered
-  deriving (Show, Read, Eq, Enum, Ord)
 
 
 ------------------------------------------------------------------------------
@@ -67,52 +60,45 @@ inflate input state = makeInputStream stream
 
 
 ------------------------------------------------------------------------------
-deflateBuilder :: BufferMode
-               -> OutputStream Builder
+deflateBuilder :: OutputStream Builder
                -> Deflate
                -> IO (OutputStream Builder)
-deflateBuilder bufferMode stream state = do
+deflateBuilder stream state = do
     zippedStr <- makeOutputStream bytestringStream >>=
-                 \x -> deflate bufferMode x state
+                 \x -> deflate x state
 
     -- we can use unsafeBuilderStream here because zlib is going to consume the
     -- stream
     unsafeBuilderStream (allocBuffer defaultBufferSize) zippedStr
 
   where
-    bytestringStream | bufferMode == Unbuffered = noBufferStream
-                     | otherwise                = bufferStream
+    bytestringStream x = write (fmap cvt x) stream
 
-    noBufferStream x     = write (fmap ((`mappend` flush) . fromByteString) x)
-                                 stream
-    bufferStream   x     = write (fmap fromByteString x) stream
+    cvt s | S.null s  = flush
+          | otherwise = fromByteString s
 
 
 ------------------------------------------------------------------------------
 gzipBuilder :: CompressionLevel
-            -> BufferMode
             -> OutputStream Builder
             -> IO (OutputStream Builder)
-gzipBuilder level bufferMode output =
-    initDeflate (clamp level) gzipBits >>= deflateBuilder bufferMode output
+gzipBuilder level output =
+    initDeflate (clamp level) gzipBits >>= deflateBuilder output
 
 
 ------------------------------------------------------------------------------
 compressBuilder :: CompressionLevel
-                -> BufferMode
                 -> OutputStream Builder
                 -> IO (OutputStream Builder)
-compressBuilder level bufferMode output =
-    initDeflate (clamp level) compressBits >>=
-    deflateBuilder bufferMode output
+compressBuilder level output =
+    initDeflate (clamp level) compressBits >>= deflateBuilder output
 
 
 ------------------------------------------------------------------------------
-deflate :: BufferMode
-        -> OutputStream ByteString
+deflate :: OutputStream ByteString
         -> Deflate
         -> IO (OutputStream ByteString)
-deflate bufferMode output state = makeOutputStream stream
+deflate output state = makeOutputStream stream
   where
     stream Nothing = do
         m <- maybe Nothing maybeNonempty <$>
@@ -122,18 +108,13 @@ deflate bufferMode output state = makeOutputStream stream
               (const $ write m output >> write Nothing output)
               m
 
-    stream (Just s)
-        | bufferMode == Buffered = do
-              m <- join (feedDeflate state s)
-              maybe (return ())
-                    (const $ write m output)
-                    m
-
-        | otherwise = do
-              m <- maybe Nothing maybeNonempty <$> join (feedDeflate state s)
-              n <- maybe (flushDeflate state) (return . Just) m
-
-              maybe (return ()) (const $ write n output) n
+    stream (Just s) = do
+        -- Empty string means flush
+        if S.null s
+          then flushDeflate state >>= maybe (return ()) (flip write output . Just)
+          else join (feedDeflate state s) >>=
+               maybe (return ())
+                     (flip write output . Just)
 
 
 ------------------------------------------------------------------------------
@@ -148,17 +129,14 @@ clamp (CompressionLevel x) = min 9 (max x 0)
 
 ------------------------------------------------------------------------------
 gzip :: CompressionLevel
-     -> BufferMode
      -> OutputStream ByteString
      -> IO (OutputStream ByteString)
-gzip level bufferMode output = initDeflate (clamp level) gzipBits >>=
-                               deflate bufferMode output
+gzip level output = initDeflate (clamp level) gzipBits >>= deflate output
 
 
 ------------------------------------------------------------------------------
 compress :: CompressionLevel
-         -> BufferMode
          -> OutputStream ByteString
          -> IO (OutputStream ByteString)
-compress level bufferMode output = initDeflate (clamp level) compressBits >>=
-                                   deflate bufferMode output
+compress level output = initDeflate (clamp level) compressBits >>=
+                        deflate output

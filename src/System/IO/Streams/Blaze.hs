@@ -10,13 +10,9 @@ import           Blaze.ByteString.Builder
 import           Blaze.ByteString.Builder.Internal
 import           Blaze.ByteString.Builder.Internal.Types
 import           Blaze.ByteString.Builder.Internal.Buffer
-import           Control.Monad
 import           Data.ByteString.Char8 (ByteString)
-import qualified Data.ByteString.Char8 as S
-import           Data.List
 ------------------------------------------------------------------------------
 import           System.IO.Streams.Internal
-import           System.IO.Streams.List
 
 
 ------------------------------------------------------------------------------
@@ -32,6 +28,8 @@ unsafeBuilderStream = builderStreamWith . reuseBufferStrategy
 
 
 ------------------------------------------------------------------------------
+-- Note: will not yield empty string unless it wants downstream to flush.
+--
 builderStreamWith :: BufferAllocStrategy
                   -> OutputStream ByteString
                   -> IO (OutputStream Builder)
@@ -78,12 +76,13 @@ builderStreamWith (ioBuf0, nextBuf) os = do
                 Nothing -> return ()
                 x       -> write x os
 
-              when (not $ S.null bs) $ write (Just bs) os
+              -- empty string here means flush
+              write (Just bs) os
 
               ioBuf' <- nextBuf 1 buf'
               feed bStep' ioBuf'
 
-
+{-
 ------------------------------------------------------------------------------
 example :: IO [ByteString]
 example = do
@@ -111,3 +110,4 @@ example2 = do
     os <- builderStream os0
 
     connect is os >> grab
+-}
