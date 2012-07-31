@@ -8,6 +8,7 @@ module System.IO.Streams
  , unRead
  , write
  , connect
+ , connectWithoutEof
  , makeInputStream
  , makeOutputStream
  , lockingInputStream

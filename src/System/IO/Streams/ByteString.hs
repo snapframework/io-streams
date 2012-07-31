@@ -60,13 +60,16 @@ readNoMoreThan k0 src = sourceToStream $ source k0
         Source $ read src >>= maybe (return (nullSource, Nothing)) chunk
 
       where
+        fromBS s | S.null s  = Nothing
+                 | otherwise = Just s
+
         chunk s = let l  = toEnum $ S.length s
                       k' = k - l
-                  in if k' < 0
+                  in if k' <=  0
                        then let (a,b) = S.splitAt (fromEnum k) s
                             in do
                                 unRead b src
-                                return (nullSource, Just a)
+                                return (nullSource, fromBS a)
                        else return (source k', Just s)
 
 

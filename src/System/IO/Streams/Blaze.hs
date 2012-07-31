@@ -3,7 +3,11 @@
 
 -- Based on Simon's blaze-bytestring-enumerator code. TODO(gdc) properly credit
 
-module System.IO.Streams.Blaze where
+module System.IO.Streams.Blaze
+ ( builderStream
+ , unsafeBuilderStream
+ , builderStreamWith
+ ) where
 
 ------------------------------------------------------------------------------
 import           Blaze.ByteString.Builder
@@ -49,7 +53,7 @@ builderStreamWith (ioBuf0, nextBuf) os = do
         chunk c = feed (unBuilder c (buildStep finalStep)) ioBuf
 
 
-    finalStep !(BufRange pf _) = return $ Done pf ()
+    finalStep !(BufRange pf _) = return $! Done pf $! ()
 
     feed bStep ioBuf = do
         !buf   <- ioBuf
@@ -65,15 +69,14 @@ builderStreamWith (ioBuf0, nextBuf) os = do
                       ioBuf' <- nextBuf minSize buf'
                       feed bStep' ioBuf'
 
-              case unsafeFreezeNonEmptyBuffer buf' of
-                Nothing -> cont
-                x       -> write x os >> cont
+              write (Just $! unsafeFreezeBuffer buf') os
+              cont
 
           InsertByteString op' bs bStep' -> do
               let buf' = updateEndOfSlice buf op'
 
               case unsafeFreezeNonEmptyBuffer buf' of
-                Nothing -> return ()
+                Nothing -> return $! ()
                 x       -> write x os
 
               -- empty string here means flush

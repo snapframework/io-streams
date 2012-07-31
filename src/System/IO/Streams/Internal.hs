@@ -124,6 +124,18 @@ connect p q = loop
               m
 {-# INLINE connect #-}
 
+
+------------------------------------------------------------------------------
+connectWithoutEof :: InputStream a -> OutputStream a -> IO ()
+connectWithoutEof p q = loop
+  where
+    loop = do
+        m <- read p
+        maybe (return ())
+              (const $ write m q >> loop)
+              m
+{-# INLINE connectWithoutEof #-}
+
 ------------------------------------------------------------------------------
 makeInputStream :: IO (Maybe a) -> IO (InputStream a)
 makeInputStream m = sourceToStream s
