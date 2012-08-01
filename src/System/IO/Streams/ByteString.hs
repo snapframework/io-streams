@@ -114,9 +114,16 @@ writeNoMoreThan k0 str = sinkToStream $ sink k0
         g mb@(Just x) = let l  = toEnum $ S.length x
                             k' = k - l
                         in if k' < 0
-                             then let a = S.take (fromEnum k) x
-                                  in write (Just a) str >> return nullSink
+                             then do
+                                 let a = S.take (fromEnum k) x
+                                 when (not $ S.null a) $ write (Just a) str
+                                 return nullStr
                              else write mb str >> return (sink k')
+
+    nullStr = Sink h
+
+    h Nothing = write Nothing str >> return nullSink
+    h _       = return nullSink
 
 
 
@@ -133,8 +140,8 @@ instance Exception RateTooSlowException
 
 
 ------------------------------------------------------------------------------
--- | Rate-limit an input stream. If the input stream does not produce input
--- faster than the given rate, reading from the wrapped stream will throw a
+-- | Rate-limit an input stream. If the input stream is not read from faster
+-- than the given rate, reading from the wrapped stream will throw a
 -- 'RateTooSlowException'.
 killIfTooSlow
     :: IO ()                   -- ^ action to bump timeout

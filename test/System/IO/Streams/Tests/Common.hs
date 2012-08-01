@@ -44,12 +44,12 @@ forceSameType _ a = a
 
 ------------------------------------------------------------------------------
 -- | Kill the false negative on derived show instances.
-coverShowInstance :: (Monad m, Show a) => a -> m ()
-coverShowInstance x = a `deepseq` b `deepseq` c `deepseq` return ()
+coverShowInstance :: (MonadIO m, Show a) => a -> m ()
+coverShowInstance x = liftIO (a >> b >> c)
   where
-    a = showsPrec 0 x ""
-    b = show x
-    c = showList [x] ""
+    a = eatException $ evaluate $ showsPrec 0 x ""
+    b = eatException $ evaluate $ show x
+    c = eatException $ evaluate $ showList [x] ""
 
 
 ------------------------------------------------------------------------------
