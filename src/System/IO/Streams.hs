@@ -4,11 +4,15 @@
 module System.IO.Streams
  ( InputStream
  , OutputStream
+ , nullInput
+ , nullOutput
  , read
  , unRead
  , write
  , connect
+ , connectTo
  , connectWithoutEof
+ , connectToWithoutEof
  , makeInputStream
  , makeOutputStream
  , lockingInputStream

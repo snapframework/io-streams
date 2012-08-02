@@ -126,15 +126,31 @@ connect p q = loop
 
 
 ------------------------------------------------------------------------------
+-- | The 'connectTo' function is just @'flip' 'connect'@.
+--
+-- Useful for writing expressions like @fromList [1,2,3] >>= connectTo foo@.
+--
+connectTo :: OutputStream a -> InputStream a -> IO ()
+connectTo = flip connect
+
+
+------------------------------------------------------------------------------
+-- Fixme: this function name sucks.
 connectWithoutEof :: InputStream a -> OutputStream a -> IO ()
 connectWithoutEof p q = loop
   where
     loop = do
         m <- read p
-        maybe (return ())
+        maybe (return $! ())
               (const $ write m q >> loop)
               m
 {-# INLINE connectWithoutEof #-}
+
+
+------------------------------------------------------------------------------
+connectToWithoutEof :: OutputStream a -> InputStream a -> IO ()
+connectToWithoutEof = flip connectWithoutEof
+
 
 ------------------------------------------------------------------------------
 makeInputStream :: IO (Maybe a) -> IO (InputStream a)
@@ -157,7 +173,7 @@ makeOutputStream f = sinkToStream s
 ------------------------------------------------------------------------------
 lockingInputStream :: InputStream a -> IO (InputStream a)
 lockingInputStream s = do
-    mv <- newMVar ()
+    mv <- newMVar $! ()
     makeInputStream $ f mv
 
   where
@@ -168,9 +184,19 @@ lockingInputStream s = do
 ------------------------------------------------------------------------------
 lockingOutputStream :: OutputStream a -> IO (OutputStream a)
 lockingOutputStream s = do
-    mv <- newMVar ()
+    mv <- newMVar $! ()
     makeOutputStream $ f mv
 
   where
     f mv x = withMVar mv $ const $ write x s
 {-# INLINE lockingOutputStream #-}
+
+
+------------------------------------------------------------------------------
+nullInput :: IO (InputStream a)
+nullInput = sourceToStream nullSource
+
+
+------------------------------------------------------------------------------
+nullOutput :: IO (OutputStream a)
+nullOutput = sinkToStream nullSink

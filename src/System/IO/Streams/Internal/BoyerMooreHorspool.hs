@@ -27,7 +27,7 @@ debug _ = return ()
 
 data MatchInfo = Match !ByteString
                | NoMatch !ByteString
-  deriving (Show)
+  deriving (Show, Eq)
 
 
 matches :: ByteString     -- ^ needle

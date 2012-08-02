@@ -1,6 +1,7 @@
 *~
 cabal-dev
 dist/
+tmp/
 *.tix
 .hpc
 *.prof

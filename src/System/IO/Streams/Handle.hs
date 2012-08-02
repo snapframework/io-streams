@@ -30,14 +30,14 @@ handleToInputStream h = makeInputStream f
 handleToOutputStream :: Handle -> IO (OutputStream ByteString)
 handleToOutputStream h = makeOutputStream f
   where
-    f Nothing  = return ()
+    f Nothing  = return $! ()
     f (Just x) = S.hPut h x
 
 
 ------------------------------------------------------------------------------
 withFileAsInputStream :: FilePath
-                      -> (InputStream ByteString -> IO ())
-                      -> IO ()
+                      -> (InputStream ByteString -> IO a)
+                      -> IO a
 withFileAsInputStream fp m =
     withBinaryFile fp ReadMode ((m =<<) . handleToInputStream)
 
@@ -45,7 +45,7 @@ withFileAsInputStream fp m =
 ------------------------------------------------------------------------------
 withFileAsOutputStream :: FilePath
                        -> IOMode
-                       -> (OutputStream ByteString -> IO ())
-                       -> IO ()
+                       -> (OutputStream ByteString -> IO a)
+                       -> IO a
 withFileAsOutputStream fp mode m =
     withBinaryFile fp mode ((m =<<) . handleToOutputStream)

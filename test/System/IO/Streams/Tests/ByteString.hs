@@ -32,6 +32,7 @@ tests = [ testCountInput
         , testWriteNoMoreThan
         , testKillIfTooSlow
         , testTrivials
+        , testBoyerMoore
         ]
 
 
@@ -221,9 +222,110 @@ testKillIfTooSlow = testCase "bytestring/killIfTooSlow" $ do
 
 
 ------------------------------------------------------------------------------
+testBoyerMoore :: Test
+testBoyerMoore = testProperty "bytestring/boyerMoore" $
+                 monadicIO $ forAllM arbitrary prop
+  where
+    prop :: (ByteString, [ByteString]) -> PropertyM IO ()
+    prop (needle, haystack') = do
+        let lneedle   = L.fromChunks [needle]
+        let lhaystack = L.fromChunks haystack'
+
+        pre ((not $ S.null needle) &&
+             (not $ L.null lhaystack) &&
+             (not $ S.isInfixOf needle $ S.concat haystack'))
+
+
+        (lhay, toklist0) <- insertNeedle lneedle lhaystack
+        let stream  = L.toChunks $ L.concat [lneedle, lhay]
+        let toklist = (Match needle) : toklist0
+
+        -- there should be exactly three matches
+        out <- liftQ (fromList stream >>= boyerMooreHorspool needle >>= toList)
+
+        let nMatches = length $ filter isMatch out
+
+        let out' = concatAdj Nothing id out
+
+        when (nMatches /= 3 || out' /= toklist) $ liftQ $ do
+            putStrLn "got wrong output!!"
+            putStrLn "needle:\n"
+            putStrLn $ show lneedle
+            putStrLn "\nhaystack:\n"
+            mapM_ (putStrLn . show) stream
+            putStrLn "\noutput stream:"
+            mapM_ (putStrLn . show) out
+            putStrLn "\noutput stream (minified):"
+            mapM_ (putStrLn . show) out'
+            putStrLn "\nexpected output:"
+            mapM_ (putStrLn . show) toklist
+            putStrLn ""
+
+        liftQ $ do
+            assertEqual "boyer-moore matches" 3 nMatches
+            assertEqual "boyer-moore output" toklist out'
+
+
+    isMatch (Match _) = True
+    isMatch _         = False
+
+    concatAdj :: Maybe MatchInfo
+              -> ([MatchInfo] -> [MatchInfo])
+              -> [MatchInfo]
+              -> [MatchInfo]
+    concatAdj pre dl []     = dl $ maybe [] (:[]) pre
+    concatAdj pre dl (x:xs) =
+        maybe (concatAdj (Just x) dl xs)
+              (\p -> maybe (concatAdj (Just x) (dl . (p:)) xs)
+                           (\x' -> concatAdj (Just x') dl xs)
+                           (merge p x))
+              pre
+
+      where
+        merge (NoMatch x) y
+            | S.null x  = Just y
+            | otherwise = case y of
+                            NoMatch x' -> Just $ NoMatch $ x `mappend` x'
+                            _          -> Nothing
+
+        merge (Match _) _ = Nothing
+
+    insertNeedle lneedle lhaystack = do
+        idxL  <- pick $ choose (0, lenL-1)
+        idxN  <- pick $ choose (0, lenN-1)
+        idxN2 <- pick $ choose (0, lenN-1)
+        let (l1, l2) = L.splitAt (toEnum idxL) lhaystack
+        let (n1, n2) = L.splitAt (toEnum idxN) lneedle
+        let (n3, n4) = L.splitAt (toEnum idxN2) lneedle
+
+        let out1 = L.concat [ l1, n1, n2, l2, n3, n4 ]
+
+        let res = concatAdj Nothing id
+                      [ NoMatch $ strict l1
+                      , Match   $ strict lneedle
+                      , NoMatch $ strict l2
+                      , Match   $ strict lneedle
+                      ]
+
+        return (out1, res)
+
+      where
+        nonEmpty (Match _)   = True
+        nonEmpty (NoMatch x) = not $ S.null x
+
+        strict = S.concat . L.toChunks
+
+        lenN = fromEnum $ L.length lneedle
+        lenL = fromEnum $ L.length lhaystack
+
+
+------------------------------------------------------------------------------
 testTrivials :: Test
 testTrivials = testCase "bytestring/testTrivials" $ do
     coverTypeableInstance (undefined :: TooManyBytesReadException)
     coverShowInstance     (undefined :: TooManyBytesReadException)
     coverTypeableInstance (undefined :: RateTooSlowException)
     coverShowInstance     (undefined :: RateTooSlowException)
+
+    coverShowInstance $ Match ""
+    coverShowInstance $ NoMatch ""
