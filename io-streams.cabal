@@ -47,7 +47,9 @@ Test-suite testsuite
                      System.IO.Streams.Tests.ByteString,
                      System.IO.Streams.Tests.Combinators,
                      System.IO.Streams.Tests.Common,
-                     System.IO.Streams.Tests.Internal
+                     System.IO.Streams.Tests.Internal,
+                     System.IO.Streams.Tests.Zlib
+
 
   ghc-options:       -O2 -Wall -fhpc -fwarn-tabs -funbox-strict-fields -threaded
                      -fno-warn-unused-do-bind
@@ -69,5 +71,6 @@ Test-suite testsuite
                      QuickCheck                 >= 2.3.0.2  && <3,
                      test-framework             >= 0.6      && <0.7,
                      test-framework-hunit       >= 0.2.7    && <0.3,
-                     test-framework-quickcheck2 >= 0.2.12.1 && <0.3
+                     test-framework-quickcheck2 >= 0.2.12.1 && <0.3,
+                     zlib                       >= 0.5      && <0.6
 

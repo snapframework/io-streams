@@ -70,3 +70,6 @@ testCoverLockingStream = testCase "internal/coverLockingStreams" $ do
     xs <- grab
 
     assertEqual "lockingStreams" [1,2,3] xs
+
+    write Nothing os
+    write Nothing os

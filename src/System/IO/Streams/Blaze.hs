@@ -14,7 +14,9 @@ import           Blaze.ByteString.Builder
 import           Blaze.ByteString.Builder.Internal
 import           Blaze.ByteString.Builder.Internal.Types
 import           Blaze.ByteString.Builder.Internal.Buffer
+import           Control.Monad
 import           Data.ByteString.Char8 (ByteString)
+import qualified Data.ByteString.Char8 as S
 ------------------------------------------------------------------------------
 import           System.IO.Streams.Internal
 
@@ -45,8 +47,10 @@ builderStreamWith (ioBuf0, nextBuf) os = do
         eof = do
             buf <- ioBuf
             case unsafeFreezeNonEmptyBuffer buf of
-              Nothing -> write Nothing os
-              x       -> write x os >> write Nothing os
+              Nothing    -> write Nothing os
+              x@(Just s) -> do
+                  when (not $ S.null s) $ write x os
+                  write Nothing os
 
             return nullSink
 
@@ -79,7 +83,7 @@ builderStreamWith (ioBuf0, nextBuf) os = do
                 Nothing -> return $! ()
                 x       -> write x os
 
-              -- empty string here means flush
+              -- empty string here notifies downstream of flush
               write (Just bs) os
 
               ioBuf' <- nextBuf 1 buf'

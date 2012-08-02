@@ -13,8 +13,8 @@ import           Data.Monoid
 import           Prelude hiding (read)
 import           System.IO.Streams
 import           Test.Framework
-import           Test.Framework.Providers.QuickCheck2
 import           Test.Framework.Providers.HUnit
+import           Test.Framework.Providers.QuickCheck2
 import           Test.QuickCheck hiding (output)
 import           Test.QuickCheck.Monadic
 import           Test.HUnit hiding (Test)
@@ -326,6 +326,8 @@ testTrivials = testCase "bytestring/testTrivials" $ do
     coverShowInstance     (undefined :: TooManyBytesReadException)
     coverTypeableInstance (undefined :: RateTooSlowException)
     coverShowInstance     (undefined :: RateTooSlowException)
+
+    coverEqInstance $ Match ""
 
     coverShowInstance $ Match ""
     coverShowInstance $ NoMatch ""

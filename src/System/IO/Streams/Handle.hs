@@ -31,7 +31,9 @@ handleToOutputStream :: Handle -> IO (OutputStream ByteString)
 handleToOutputStream h = makeOutputStream f
   where
     f Nothing  = return $! ()
-    f (Just x) = S.hPut h x
+    f (Just x) = if S.null x
+                   then hFlush h
+                   else S.hPut h x
 
 
 ------------------------------------------------------------------------------

@@ -19,6 +19,9 @@ System.IO.Streams.Tests.Blaze
 System.IO.Streams.Tests.ByteString
 System.IO.Streams.Tests.Combinators
 System.IO.Streams.Tests.Common
+System.IO.Streams.Tests.Handle
+System.IO.Streams.Tests.Internal
+System.IO.Streams.Tests.Zlib
 '
 
 EXCL=""

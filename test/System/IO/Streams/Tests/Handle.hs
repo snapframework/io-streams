@@ -35,7 +35,7 @@ testFiles = testCase "handle/files" $ do
 
     tst = do
         withFileAsOutputStream fn WriteMode $ \os -> do
-            let l = intersperse " " ["the", "quick", "brown", "fox"]
+            let l = "" : (intersperse " " ["the", "quick", "brown", "fox"])
             fromList l >>= connectTo os
 
         l <- liftM S.concat $ withFileAsInputStream fn toList

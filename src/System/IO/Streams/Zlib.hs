@@ -7,6 +7,8 @@ module System.IO.Streams.Zlib
  , compress
  , compressBuilder
  , decompress
+ , CompressionLevel(..)
+ , defaultCompressionLevel
  ) where
 
 ------------------------------------------------------------------------------
@@ -111,7 +113,10 @@ deflate output state = makeOutputStream stream
     stream (Just s) = do
         -- Empty string means flush
         if S.null s
-          then flushDeflate state >>= maybe (return ()) (flip write output . Just)
+          then do
+              flushDeflate state >>= maybe (return ()) (flip write output . Just)
+              write (Just S.empty) output
+
           else join (feedDeflate state s) >>=
                maybe (return ())
                      (flip write output . Just)
@@ -119,7 +124,12 @@ deflate output state = makeOutputStream stream
 
 ------------------------------------------------------------------------------
 newtype CompressionLevel = CompressionLevel Int
-  deriving (Read, Show, Num)
+  deriving (Read, Eq, Show, Num)
+
+
+------------------------------------------------------------------------------
+defaultCompressionLevel :: CompressionLevel
+defaultCompressionLevel = CompressionLevel 5
 
 
 ------------------------------------------------------------------------------
