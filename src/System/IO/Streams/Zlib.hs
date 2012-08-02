@@ -16,8 +16,7 @@ import           Blaze.ByteString.Builder
 import           Blaze.ByteString.Builder.Internal
 import           Blaze.ByteString.Builder.Internal.Buffer
 import           Codec.Zlib
-import           Control.Applicative        ((<$>))
-import           Control.Monad              (join)
+import           Control.Monad              (liftM)
 import qualified Data.ByteString            as S
 import           Data.ByteString            (ByteString)
 import           Prelude                    hiding (read)
@@ -47,18 +46,27 @@ decompress input = initInflate compressBits >>= inflate input
 
 
 ------------------------------------------------------------------------------
-maybeNonempty :: ByteString -> Maybe ByteString
-maybeNonempty s = if S.null s then Nothing else Just s
-
-
-------------------------------------------------------------------------------
 inflate :: InputStream ByteString -> Inflate -> IO (InputStream ByteString)
-inflate input state = makeInputStream stream
+inflate input state = sourceToStream source
   where
-    stream = maybeNonempty <$> go
+    source  = Source $ read input >>= maybe eof chunk
+    eof     = do
+        x <- finishInflate state
+        if (not $ S.null x)
+          then return (nullSource, Just x)
+          else return (nullSource, Nothing)
+
+    chunk s =
+        if S.null s
+          then do
+              out <- liftM Just $ flushInflate state
+              return (source, out)
+          else feedInflate state s >>= popAll
+
+    popAll popper = go
       where
-        go      = read input >>= maybe (finishInflate state) chunk
-        chunk s = join (feedInflate state s) >>= maybe go return
+        go = popper >>= maybe (produce source)
+                              (\s -> return (Source go, Just s))
 
 
 ------------------------------------------------------------------------------
@@ -102,24 +110,21 @@ deflate :: OutputStream ByteString
         -> IO (OutputStream ByteString)
 deflate output state = makeOutputStream stream
   where
-    stream Nothing = do
-        m <- maybe Nothing maybeNonempty <$>
-             finishDeflate state
-
-        maybe (write Nothing output)
-              (const $ write m output >> write Nothing output)
-              m
+    stream Nothing = popAll (finishDeflate state) >> write Nothing output
 
     stream (Just s) = do
         -- Empty string means flush
         if S.null s
           then do
-              flushDeflate state >>= maybe (return ()) (flip write output . Just)
+              popAll (flushDeflate state)
               write (Just S.empty) output
 
-          else join (feedDeflate state s) >>=
-               maybe (return ())
-                     (flip write output . Just)
+          else feedDeflate state s >>= popAll
+
+
+    popAll popper = go
+      where
+        go = popper >>= maybe (return ()) (\s -> write (Just s) output >> go)
 
 
 ------------------------------------------------------------------------------
