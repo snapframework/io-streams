@@ -11,7 +11,6 @@ import Data.Typeable
 import Prelude                          hiding (read)
 ------------------------------------------------------------------------------
 import System.IO.Streams.Internal
-import System.IO.Streams.List
 
 ------------------------------------------------------------------------------
 data ParseException = ParseException String
