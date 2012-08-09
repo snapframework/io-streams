@@ -1,6 +1,7 @@
 module System.IO.Streams.List
  ( fromList
  , toList
+ , writeList
  , listOutputStream
  ) where
 
@@ -40,5 +41,11 @@ toList is = do
     (os, grab) <- listOutputStream
     connect is os >> grab
 {-# INLINE toList #-}
+
+
+------------------------------------------------------------------------------
+writeList :: [a] -> OutputStream a -> IO ()
+writeList xs os = mapM_ (flip write os . Just) xs
+{-# INLINE writeList #-}
 
 

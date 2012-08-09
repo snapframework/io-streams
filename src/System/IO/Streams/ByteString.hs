@@ -2,7 +2,8 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 
 module System.IO.Streams.ByteString
- ( countInput
+ ( writeLazyByteString
+ , countInput
  , countOutput
  , readNoMoreThan
  , TooManyBytesReadException
@@ -19,6 +20,7 @@ import           Control.Exception
 import           Control.Monad                                 (when)
 import           Data.ByteString                               (ByteString)
 import qualified Data.ByteString.Char8                         as S
+import qualified Data.ByteString.Lazy.Char8                    as L
 import           Data.Int
 import           Data.Time.Clock.POSIX                         (getPOSIXTime)
 import           Data.Typeable
@@ -27,6 +29,13 @@ import           Prelude                                       hiding (read)
 import           System.IO.Streams.Combinators
 import           System.IO.Streams.Internal
 import           System.IO.Streams.Internal.BoyerMooreHorspool
+import           System.IO.Streams.List
+
+
+------------------------------------------------------------------------------
+writeLazyByteString :: L.ByteString -> OutputStream ByteString -> IO ()
+writeLazyByteString = writeList . L.toChunks
+{-# INLINE writeLazyByteString #-}
 
 
 ------------------------------------------------------------------------------

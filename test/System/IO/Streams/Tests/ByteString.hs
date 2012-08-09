@@ -33,6 +33,7 @@ tests = [ testCountInput
         , testKillIfTooSlow
         , testTrivials
         , testBoyerMoore
+        , testWriteLazyByteString
         ]
 
 
@@ -317,6 +318,23 @@ testBoyerMoore = testProperty "bytestring/boyerMoore" $
 
         lenN = fromEnum $ L.length lneedle
         lenL = fromEnum $ L.length lhaystack
+
+
+------------------------------------------------------------------------------
+testWriteLazyByteString :: Test
+testWriteLazyByteString = testProperty "bytestring/writeLazy" $
+                          monadicIO $
+                          forAllM arbitrary prop
+  where
+    prop :: [ByteString] -> PropertyM IO ()
+    prop l0 = liftQ $ do
+        let l = filter (not . S.null) l0
+        let s = L.fromChunks l
+        (os, grab) <- listOutputStream
+        writeLazyByteString s os
+
+        l' <- grab
+        assertEqual "writeLazy" l l'
 
 
 ------------------------------------------------------------------------------
