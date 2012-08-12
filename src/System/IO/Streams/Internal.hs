@@ -97,6 +97,15 @@ unRead c (IS ref) = readIORef ref >>= f >>= writeIORef ref
 
 
 ------------------------------------------------------------------------------
+peek :: InputStream c -> IO (Maybe c)
+peek s = do
+    x <- read s
+    maybe (return ()) (\c -> unRead c s) x
+    return x
+{-# INLINE peek #-}
+
+
+------------------------------------------------------------------------------
 write :: Maybe c -> OutputStream c -> IO ()
 write c (OS ref) = readIORef ref >>= (($ c) . consume) >>= writeIORef ref
 {-# INLINE write #-}

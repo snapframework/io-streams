@@ -7,6 +7,7 @@ module System.IO.Streams
  , nullInput
  , nullOutput
  , read
+ , peek
  , unRead
  , write
  , connect
