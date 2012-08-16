@@ -5,8 +5,10 @@ module System.IO.Streams.ByteString
  ( writeLazyByteString
  , countInput
  , countOutput
- , readNoMoreThan
+ , readExactly
+ , ReadTooShortException
  , TooManyBytesReadException
+ , readNoMoreThan
  , takeNoMoreThan
  , writeNoMoreThan
  , MatchInfo(..)
@@ -92,6 +94,16 @@ instance Exception TooManyBytesReadException
 
 
 ------------------------------------------------------------------------------
+data ReadTooShortException = ReadTooShortException Int deriving (Typeable)
+
+instance Show ReadTooShortException where
+    show (ReadTooShortException x) = "Short read, expected " ++ show x
+                                     ++ " bytes"
+
+instance Exception ReadTooShortException
+
+
+------------------------------------------------------------------------------
 -- | Like 'readNoMoreThan', but throws an exception if the input stream
 -- produces more bytes than the limit.
 takeNoMoreThan :: Int64                    -- ^ maximum number of bytes to read
@@ -108,6 +120,28 @@ takeNoMoreThan k0 src = sourceToStream $ source k0
                   in if k' < 0
                        then throwIO TooManyBytesReadException
                        else return (source k', Just s)
+
+
+------------------------------------------------------------------------------
+-- | Read an @n@-byte ByteString from an input stream. Throws a
+-- 'ReadTooShortException' if fewer than @n@ bytes were available.
+--
+readExactly :: Int                     -- ^ number of bytes to read
+            -> InputStream ByteString  -- ^ input stream
+            -> IO ByteString
+readExactly n input = go id n
+  where
+    go !dl !k =
+        read input >>=
+        maybe (throwIO $ ReadTooShortException n)
+              (\s -> do
+                 let l = S.length s
+                 if l >= k
+                   then do
+                     let (a,b) = S.splitAt k s
+                     when (not $ S.null b) $ unRead b input
+                     return $! S.concat $! dl [a]
+                   else go (dl . (s:)) (k - l))
 
 
 ------------------------------------------------------------------------------
