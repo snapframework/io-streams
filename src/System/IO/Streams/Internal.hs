@@ -209,3 +209,8 @@ nullInput = sourceToStream nullSource
 ------------------------------------------------------------------------------
 nullOutput :: IO (OutputStream a)
 nullOutput = sinkToStream nullSink
+
+
+------------------------------------------------------------------------------
+atEOF :: InputStream a -> IO Bool
+atEOF s = read s >>= maybe (return True) (\k -> unRead k s >> return False)

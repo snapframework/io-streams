@@ -10,6 +10,7 @@ module System.IO.Streams
  , peek
  , unRead
  , write
+ , atEOF
  , connect
  , connectTo
  , connectWithoutEof
