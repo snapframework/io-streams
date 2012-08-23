@@ -6,15 +6,15 @@ module System.IO.Streams.Internal where
 ------------------------------------------------------------------------------
 import           Control.Concurrent
 import           Control.Monad
-import           Data.Functor.Contravariant
 import           Data.IORef
-import           Data.Monoid
+import           Data.List
 import           Prelude hiding (read)
 
 
 ------------------------------------------------------------------------------
 data Source c = Source {
-      produce :: IO (Source c, Maybe c)
+      produce  :: IO (Source c, Maybe c)
+    , pushback :: c -> IO (Source c)
     }
 
 
@@ -24,48 +24,61 @@ data Sink c = Sink {
 
 
 ------------------------------------------------------------------------------
-instance Functor Source where
-    fmap f (Source p) = Source $ do
-                              (q, c) <- p
-                              return (fmap f q, fmap f c)
-    {-# INLINE fmap #-}
+appendSource :: Source c -> Source c -> Source c
+p `appendSource` q = Source prod pb
+  where
+    prod = do
+        (p', c) <- produce p
+        maybe (produce q)
+              (const $ return (p' `appendSource` q, c))
+              c
+
+    pb c = do
+        s' <- pushback p c
+        return $! s' `appendSource` q
 
 
 ------------------------------------------------------------------------------
-instance Contravariant Sink where
-    contramap f (Sink p) = Sink $ \c -> do
-                                q <- p $ fmap f c
-                                return $ contramap f q
-    {-# INLINE contramap #-}
+concatSources :: [Source c] -> Source c
+concatSources = foldl' appendSource nullSource
+
 
 ------------------------------------------------------------------------------
-instance Monoid (Source c) where
-    mempty = nullSource
+defaultPushback :: Source c -> c -> IO (Source c)
+defaultPushback s c = let s' = Source { produce  = return (s, Just c)
+                                      , pushback = defaultPushback s'
+                                      }
+                      in return s'
 
-    p `mappend` q = Source $ do
-                        (p', c) <- produce p
-                        maybe (produce q)
-                              (const $ return (p' `mappend` q, c))
-                              c
+
+------------------------------------------------------------------------------
+withDefaultPushback :: IO (Source c, Maybe c) -> Source c
+withDefaultPushback prod = let s = Source prod (defaultPushback s)
+                           in s
+
 
 ------------------------------------------------------------------------------
 nullSource :: Source c
-nullSource = Source $ return (nullSource, Nothing)
-
-nullSink :: Sink c
-nullSink = Sink $ const $ return nullSink
-
-singletonSource :: c -> Source c
-singletonSource c = Source (return (nullSource, Just c))
+nullSource = withDefaultPushback (return (nullSource, Nothing))
 
 
 ------------------------------------------------------------------------------
--- A modifyIORef takes about 35ns to run on my Macbook, and the equivalent
+nullSink :: Sink c
+nullSink = Sink $ const $ return nullSink
+
+
+------------------------------------------------------------------------------
+singletonSource :: c -> Source c
+singletonSource c = withDefaultPushback $ return (nullSource, Just c)
+
+
+------------------------------------------------------------------------------
+-- A modifyMVar takes about 35ns to run on my Macbook, and the equivalent
 -- readIORef/writeIORef pair takes 6ns.
 --
--- Given that we'll be composing these, we'll give up thread safety in order to
--- gain a 6x performance improvement. If you want thread-safe access to a
--- stream, you can use lockingInputStream or lockingOutputStream.
+-- Given that we'll be composing these often, we'll give up thread safety in
+-- order to gain a 6x performance improvement. If you want thread-safe access
+-- to a stream, you can use lockingInputStream or lockingOutputStream.
 
 --newtype InputStream  c = IS (MVar (Source c))
 --newtype OutputStream c = OS (MVar (Sink   c))
@@ -76,7 +89,6 @@ singletonSource c = Source (return (nullSource, Just c))
 
 newtype InputStream  c = IS (IORef (Source c))
 newtype OutputStream c = OS (IORef (Sink   c))
-
 
 ------------------------------------------------------------------------------
 read :: InputStream c -> IO (Maybe c)
@@ -92,23 +104,8 @@ read (IS ref) = do
 unRead :: c -> InputStream c -> IO ()
 unRead c (IS ref) = readIORef ref >>= f >>= writeIORef ref
   where
-    f p = return $ Source $ return (p, Just c)
+    f (Source _ pb) = pb c
 {-# INLINE unRead #-}
-
-
-------------------------------------------------------------------------------
-peek :: InputStream c -> IO (Maybe c)
-peek s = do
-    x <- read s
-    maybe (return ()) (\c -> unRead c s) x
-    return x
-{-# INLINE peek #-}
-
-
-------------------------------------------------------------------------------
-write :: Maybe c -> OutputStream c -> IO ()
-write c (OS ref) = readIORef ref >>= (($ c) . consume) >>= writeIORef ref
-{-# INLINE write #-}
 
 
 ------------------------------------------------------------------------------
@@ -117,9 +114,25 @@ sourceToStream = liftM IS . newIORef
 {-# INLINE sourceToStream #-}
 
 
+------------------------------------------------------------------------------
 sinkToStream :: Sink a -> IO (OutputStream a)
 sinkToStream = liftM OS . newIORef
 {-# INLINE sinkToStream #-}
+
+
+------------------------------------------------------------------------------
+peek :: InputStream c -> IO (Maybe c)
+peek s = do
+    x <- read s
+    maybe (return $! ()) (\c -> unRead c s) x
+    return x
+{-# INLINE peek #-}
+
+
+------------------------------------------------------------------------------
+write :: Maybe c -> OutputStream c -> IO ()
+write c (OS ref) = readIORef ref >>= (($ c) . consume) >>= writeIORef ref
+{-# INLINE write #-}
 
 
 ------------------------------------------------------------------------------
@@ -165,9 +178,10 @@ connectToWithoutEof = flip connectWithoutEof
 makeInputStream :: IO (Maybe a) -> IO (InputStream a)
 makeInputStream m = sourceToStream s
   where
-    s = Source $ do
-        x <- m
-        return (s, x)
+    s = Source { produce = do
+                     x <- m
+                     return (s, x)
+               , pushback = defaultPushback s }
 {-# INLINE makeInputStream #-}
 
 
@@ -183,10 +197,14 @@ makeOutputStream f = sinkToStream s
 lockingInputStream :: InputStream a -> IO (InputStream a)
 lockingInputStream s = do
     mv <- newMVar $! ()
-    makeInputStream $ f mv
-
-  where
-    f mv = withMVar mv $ const $ read s
+    let src = Source { produce = withMVar mv $ const $ do
+                           x <- read s
+                           return (src, x)
+                     , pushback = \c -> withMVar mv $ const $ do
+                                      unRead c s
+                                      return src
+                     }
+    sourceToStream src
 {-# INLINE lockingInputStream #-}
 
 

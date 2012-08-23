@@ -22,18 +22,19 @@ import           System.IO.Streams.Tests.Common
 ------------------------------------------------------------------------------
 
 tests :: [Test]
-tests = [ testCountInput
+tests = [ testBoyerMoore
+        , testCountInput
         , testCountOutput
+        , testKillIfTooSlow
+        , testReadExactly
         , testReadNoMoreThan
         , testReadNoMoreThan2
         , testReadNoMoreThan3
         , testTakeNoMoreThan
         , testTakeNoMoreThan2
-        , testWriteNoMoreThan
-        , testKillIfTooSlow
         , testTrivials
-        , testBoyerMoore
         , testWriteLazyByteString
+        , testWriteNoMoreThan
         ]
 
 
@@ -106,13 +107,22 @@ testReadNoMoreThan2 = testProperty "bytestring/readNoMoreThan2" $
     prop :: L.ByteString -> PropertyM IO ()
     prop l = liftQ $ do
         is  <- fromList (L.toChunks l)
-        is' <- readNoMoreThan 0 is
+        is2 <- readNoMoreThan 0 is
 
-        x   <- toList is'
+        x   <- toList is2
         y   <- liftM L.fromChunks $ toList is
 
         assertEqual "readNoMoreThan3" [] x
         assertEqual "readNoMoreThan4" l y
+
+        -- Test that pushback makes it back to the source inputstream
+        is3 <- readNoMoreThan 20 is
+        void $ toList is3
+        unRead "ok2" is3
+        unRead "ok1" is3
+
+        z   <- toList is
+        assertEqual "readNoMoreThan5" ["ok1", "ok2"] z
 
 
 ------------------------------------------------------------------------------
@@ -164,6 +174,11 @@ testTakeNoMoreThan2 = testProperty "bytestring/takeNoMoreThan2" $
             m   <- read is'
             assertEqual "takeNoMoreThan2-2" Nothing m
 
+            unRead "ok2" is'
+            unRead "ok1" is'
+            z   <- toList is
+            assertEqual "takeNoMoreThan2-3" ["ok1", "ok2"] z
+
 
 ------------------------------------------------------------------------------
 testWriteNoMoreThan :: Test
@@ -211,10 +226,22 @@ testKillIfTooSlow = testCase "bytestring/killIfTooSlow" $ do
 
     assertEqual "killIfTooSlow" Nothing x
 
+    src  <- mkSrc
+    src' <- killIfTooSlow (return ()) 10 2 src
+
+    void $ toList src'
+    unRead "ok2" src'
+    unRead "ok1" src'
+    l <- toList src
+
+    assertEqual "killIfTooSlow/pushback" ["ok1", "ok2"] l
+
+
   where
-    mkList = (fromList $ take 100 $ cycle $
-              intersperse " " ["the", "quick", "brown", "fox"]) >>=
-             killIfTooSlow (return ()) 10 2
+    mkSrc = fromList $ take 100 $ cycle $
+            intersperse " " ["the", "quick", "brown", "fox"]
+
+    mkList = mkSrc >>= killIfTooSlow (return ()) 10 2
 
     trickleFrom is = go
       where
@@ -338,12 +365,40 @@ testWriteLazyByteString = testProperty "bytestring/writeLazy" $
 
 
 ------------------------------------------------------------------------------
+testReadExactly :: Test
+testReadExactly = testProperty "bytestring/readExactly" $
+                  monadicIO $
+                  forAllM arbitrary prop
+  where
+    prop l0 = liftQ $ do
+        let l = filter (not . S.null) l0
+        is <- fromList l
+
+        let s = L.fromChunks l
+        let n = fromEnum $ L.length s
+
+        t <- readExactly n is
+        assertEqual "eq" s $ L.fromChunks [t]
+
+        unRead t is
+        expectExceptionH $ readExactly (n+1) is
+
+        when (n > 0) $ do
+            is' <- fromList l
+            u   <- readExactly (n-1) is'
+            assertEqual "eq2" (L.take (toEnum $ n-1) s) (L.fromChunks [u])
+            v   <- readExactly 1 is'
+            assertEqual "eq3" (L.drop (toEnum $ n-1) s) (L.fromChunks [v])
+
+
+------------------------------------------------------------------------------
 testTrivials :: Test
 testTrivials = testCase "bytestring/testTrivials" $ do
     coverTypeableInstance (undefined :: TooManyBytesReadException)
     coverShowInstance     (undefined :: TooManyBytesReadException)
     coverTypeableInstance (undefined :: RateTooSlowException)
     coverShowInstance     (undefined :: RateTooSlowException)
+    coverTypeableInstance (undefined :: ReadTooShortException)
 
     coverEqInstance $ Match ""
 

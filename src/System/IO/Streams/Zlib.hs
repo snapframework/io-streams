@@ -46,10 +46,12 @@ decompress input = initInflate compressBits >>= inflate input
 
 
 ------------------------------------------------------------------------------
+-- Note: bytes pushed back to this input stream are not propagated back to the
+-- source InputStream.
 inflate :: InputStream ByteString -> Inflate -> IO (InputStream ByteString)
 inflate input state = sourceToStream source
   where
-    source  = Source $ read input >>= maybe eof chunk
+    source  = withDefaultPushback $ read input >>= maybe eof chunk
     eof     = do
         x <- finishInflate state
         if (not $ S.null x)
@@ -66,7 +68,7 @@ inflate input state = sourceToStream source
     popAll popper = go
       where
         go = popper >>= maybe (produce source)
-                              (\s -> return (Source go, Just s))
+                              (\s -> return (withDefaultPushback go, Just s))
 
 
 ------------------------------------------------------------------------------

@@ -5,9 +5,6 @@ module System.IO.Streams.Tests.Internal (tests) where
 
 ------------------------------------------------------------------------------
 import           Control.Monad hiding (mapM)
-import           Data.Functor.Contravariant
-import           Data.IORef
-import           Data.Monoid
 import           Prelude hiding (mapM, read)
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
@@ -17,39 +14,37 @@ import           System.IO.Streams.Internal
 import           System.IO.Streams.List
 
 tests :: [Test]
-tests = [ testSourceFunctor
-        , testSinkContravariant
-        , testNullInput
+tests = [ testSourceConcat
+        , testConst
         , testCoverLockingStream
+        , testPeek
+        , testNullInput
         ]
 
 
 ------------------------------------------------------------------------------
-testSourceFunctor :: Test
-testSourceFunctor = testCase "internal/sourceFunctor" $ do
-    is <- sourceToStream $ fmap (+4) $ mconcat $
+testSourceConcat :: Test
+testSourceConcat = testCase "internal/sourceConcat" $ do
+    is <- sourceToStream $ concatSources $
           map singletonSource [1::Int, 2, 3]
+
+    unRead 7 is
 
     l  <- toList is
 
-    assertEqual "sourceFunctor" [5,6,7] l
+    assertEqual "sourceConcat" [7,1,2,3] l
 
 
 ------------------------------------------------------------------------------
-testSinkContravariant :: Test
-testSinkContravariant = testCase "internal/sinkContravariant" $ do
-    ref <- newIORef 0
-    os  <- sinkToStream $ contramap (+4) $ sink ref
-    fromList [1,2,3::Int] >>= connectTo os
+testConst :: Test
+testConst = testCase "internal/const" $ do
+    is <- makeInputStream (return (Just (1::Int)))
+    read is >>= assertEqual "const" (Just 1)
 
-    out <- readIORef ref
+    unRead 7 is
+    read is >>= assertEqual "unRead" (Just 7)
+    read is >>= assertEqual "const2" (Just 1)
 
-    assertEqual "sinkContravariant" 18 out
-
-  where
-    sink ref = Sink $
-               maybe (return nullSink)
-                     (\s -> atomicModifyIORef ref $ \t -> (s+t, sink ref))
 
 ------------------------------------------------------------------------------
 testNullInput :: Test
@@ -73,3 +68,32 @@ testCoverLockingStream = testCase "internal/coverLockingStreams" $ do
 
     write Nothing os
     write Nothing os
+
+    unRead 7 is
+    y <- read is
+    assertEqual "unRead" (Just 7) y
+
+
+------------------------------------------------------------------------------
+testPeek :: Test
+testPeek = testCase "internal/peek" $ do
+    is <- fromList [1::Int, 2, 3]
+    b   <- atEOF is
+    assertEqual "eof1" False b
+
+    x0  <- peek is
+    x1  <- peek is
+
+    unRead 7 is
+    x2  <- peek is
+
+    assertEqual "peek" (map Just [1, 1, 7]) [x0, x1, x2]
+
+    l   <- toList is
+    assertEqual "toList" [7, 1, 2, 3] l
+
+    z   <- peek is
+    assertEqual "peekEOF" Nothing z
+
+    b'  <- atEOF is
+    assertEqual "eof2" True b'

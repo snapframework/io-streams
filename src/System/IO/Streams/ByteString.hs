@@ -62,25 +62,38 @@ countOutput = outputFoldM f 0
 
 
 ------------------------------------------------------------------------------
+-- | Read n bytes from the stream, then yield EOF forever.
 readNoMoreThan :: Int64
                -> InputStream ByteString
                -> IO (InputStream ByteString)
 readNoMoreThan k0 src = sourceToStream $ source k0
   where
-    source !k =
-        Source $ read src >>= maybe (return (nullSource, Nothing)) chunk
+    fromBS s = if S.null s then Nothing else Just s
+
+    eof !n = return (eofSrc n, Nothing)
+
+    eofSrc !n = Source {
+               produce = eof n
+             , pushback = pb n
+             }
+
+    pb !n s = do
+        unRead s src
+        return $! source $ n + toEnum (S.length s)
+
+    source !k = Source {
+                  produce  = read src >>= maybe (eof k) chunk
+                , pushback = pb k
+                }
 
       where
-        fromBS s | S.null s  = Nothing
-                 | otherwise = Just s
-
         chunk s = let l  = toEnum $ S.length s
                       k' = k - l
                   in if k' <=  0
                        then let (a,b) = S.splitAt (fromEnum k) s
                             in do
-                                unRead b src
-                                return (nullSource, fromBS a)
+                                when (not $ S.null b) $ unRead b src
+                                return (eofSrc 0, fromBS a)
                        else return (source k', Just s)
 
 
@@ -111,10 +124,21 @@ takeNoMoreThan :: Int64                    -- ^ maximum number of bytes to read
                -> IO (InputStream ByteString)
 takeNoMoreThan k0 src = sourceToStream $ source k0
   where
-    source !k =
-        Source $ read src >>= maybe (return (nullSource, Nothing)) chunk
+    eofSrc n = Source {
+                 produce  = eof n
+               , pushback = pb n
+               }
 
+    eof n = return (eofSrc n, Nothing)
+
+    pb n s = do
+        unRead s src
+        return $! source $! n + toEnum (S.length s)
+
+    source !k = Source prod (pb k)
       where
+        prod = read src >>= maybe (eof k) chunk
+
         chunk s = let l  = toEnum $ S.length s
                       k' = k - l
                   in if k' < 0
@@ -131,7 +155,8 @@ readExactly :: Int                     -- ^ number of bytes to read
             -> IO ByteString
 readExactly n input = go id n
   where
-    go !dl !k =
+    go !dl 0  = return $! S.concat $! dl []
+    go !dl k  =
         read input >>=
         maybe (throwIO $ ReadTooShortException n)
               (\s -> do
@@ -204,20 +229,30 @@ killIfTooSlow !bump !minRate !minSeconds' !stream = do
 
     source !startTime = proc
       where
-        proc !nb = Source $ do
-          mb <- read stream
-          maybe (return (nullSource, Nothing))
-                (\s -> do
-                   let slen = S.length s
-                   now <- getTime
-                   let !delta = now - startTime
-                   let !newBytes = nb + slen
-                   when (delta > minSeconds + 1 &&
-                         fromIntegral newBytes /
-                            (delta-minSeconds) < minRate) $
-                       throwIO RateTooSlowException
+        eof !nb = return (eofSrc nb, Nothing)
+        eofSrc !nb = Source { produce = eof nb
+                            , pushback = pb nb }
 
-                   -- otherwise, bump the timeout and return the input
-                   !_ <- bump
-                   return (proc newBytes, Just s))
-                mb
+        pb !nb s = do
+            unRead s stream
+            return $ proc $ nb - S.length s
+
+        proc !nb = Source prod (pb nb)
+          where
+            prod = do
+                mb <- read stream
+                maybe (eof nb)
+                      (\s -> do
+                         let slen = S.length s
+                         now <- getTime
+                         let !delta = now - startTime
+                         let !newBytes = nb + slen
+                         when (delta > minSeconds + 1 &&
+                               fromIntegral newBytes /
+                                  (delta-minSeconds) < minRate) $
+                             throwIO RateTooSlowException
+
+                         -- otherwise, bump the timeout and return the input
+                         !_ <- bump
+                         return (proc newBytes, Just s))
+                      mb

@@ -11,7 +11,6 @@ import qualified Data.ByteString.Char8 as S
 import           Data.ByteString.Char8 (ByteString)
 import           Data.ByteString.Unsafe as S
 import           Data.Int
-import           Data.Monoid
 import qualified Data.Vector.Unboxed as V
 import qualified Data.Vector.Unboxed.Mutable  as MV
 import           Prelude hiding (last, read)
@@ -57,8 +56,8 @@ boyerMooreHorspool :: ByteString
                    -> IO (InputStream MatchInfo)
 boyerMooreHorspool needle stream = do
     --debug $ "boyermoore: needle=" ++ show needle
-    sourceToStream (Source $ lookahead nlen >>=
-                             either finishAndEOF startSearch)
+    sourceToStream (withDefaultPushback $
+                    lookahead nlen >>= either finishAndEOF startSearch)
 
   where
     --------------------------------------------------------------------------
@@ -148,18 +147,18 @@ boyerMooreHorspool needle stream = do
                           let (!crumb, rest) = S.splitAt sidx nextHaystack
                           let s1 = singletonSource $ NoMatch $
                                    S.concat [haystack, crumb]
-                          let s2 = Source $ startSearch rest
-                          produce $ s1 `mappend` s2
+                          let s2 = withDefaultPushback $ startSearch rest
+                          produce $ s1 `appendSource` s2
 
     --------------------------------------------------------------------------
     produceMatch nomatch aftermatch = do
         let s1 = singletonSource $ NoMatch nomatch
         let s2 = singletonSource $ Match needle
-        let s3 = Source $ startSearch aftermatch
+        let s3 = withDefaultPushback $ startSearch aftermatch
 
-        produce $ mconcat $ if S.null nomatch
-                              then [s2, s3]
-                              else [s1, s2, s3]
+        produce $ concatSources $ if S.null nomatch
+                                    then [s2, s3]
+                                    else [s1, s2, s3]
 
 
     --------------------------------------------------------------------------

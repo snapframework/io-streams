@@ -13,8 +13,8 @@ import System.IO.Streams.Internal
 fromList :: [c] -> IO (InputStream c)
 fromList = sourceToStream . f
   where
-    f []     = Source $ return (nullSource, Nothing)
-    f (x:xs) = Source $ return (f xs, Just x)
+    f []     = withDefaultPushback $ return (nullSource, Nothing)
+    f (x:xs) = withDefaultPushback $ return (f xs, Just x)
 {-# INLINE fromList #-}
 
 
