@@ -3,14 +3,16 @@
 module System.IO.Streams.Attoparsec where
 
 ------------------------------------------------------------------------------
-import Control.Exception
-import Data.Attoparsec.ByteString.Char8
-import Data.ByteString.Char8            (ByteString)
-import Data.Maybe
-import Data.Typeable
-import Prelude                          hiding (read)
+import           Control.Exception
+import           Control.Monad                    (when)
+import           Data.Attoparsec.ByteString.Char8
+import           Data.ByteString.Char8            (ByteString)
+import qualified Data.ByteString.Char8            as S
+import           Data.Maybe
+import           Data.Typeable
+import           Prelude                          hiding (read)
 ------------------------------------------------------------------------------
-import System.IO.Streams.Internal
+import           System.IO.Streams.Internal
 
 ------------------------------------------------------------------------------
 data ParseException = ParseException String
@@ -31,15 +33,17 @@ parseFromStream parser is = do
                       (go . parse parser)
 
   where
+    leftover x = when (not $ S.null x) $ unRead x is
+
     finish k = let k' = feed (feed k "") ""
                in case k' of
-                    Fail x _ _ -> unRead x is >> err k'
+                    Fail x _ _ -> leftover x >> err k'
                     Partial _  -> err k'
-                    Done x r   -> unRead x is >> return r
+                    Done x r   -> leftover x >> return r
 
 
     err r = let (Left s) = eitherResult r in throwIO $ ParseException s
 
-    go r@(Fail x _ _) = unRead x is >> err r
-    go (Done x r)     = unRead x is >> return r
+    go r@(Fail x _ _) = leftover x >> err r
+    go (Done x r)     = leftover x >> return r
     go r              = read is >>= maybe (finish r) (go . feed r)
