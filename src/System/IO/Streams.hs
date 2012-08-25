@@ -24,6 +24,7 @@ module System.IO.Streams
  , module System.IO.Streams.ByteString
  , module System.IO.Streams.Combinators
  , module System.IO.Streams.Handle
+ , module System.IO.Streams.File
  , module System.IO.Streams.List
  , module System.IO.Streams.Zlib
  ) where

@@ -7,6 +7,13 @@ Build-type:          Simple
 Cabal-version:       >= 1.10
 
 ------------------------------------------------------------------------------
+Flag portable
+  Description: Compile in cross-platform mode. No platform-specific code or
+               optimizations such as C routines will be used.
+  Default: False
+
+
+------------------------------------------------------------------------------
 Library
   hs-source-dirs:    src
   Default-language:  Haskell2010
@@ -20,6 +27,7 @@ Library
                      System.IO.Streams.ByteString,
                      System.IO.Streams.Combinators,
                      System.IO.Streams.Handle,
+                     System.IO.Streams.File,
                      System.IO.Streams.List,
                      System.IO.Streams.Zlib,
                      System.IO.Streams.Internal
@@ -35,11 +43,24 @@ Library
                      vector        >= 0.9   && <0.10,
                      zlib-bindings >= 0.1   && <0.2
 
+  other-extensions:
+    BangPatterns,
+    CPP,
+    DeriveDataTypeable,
+    GeneralizedNewtypeDeriving,
+    OverloadedStrings
+
+  if flag(portable) || os(windows)
+    cpp-options: -DPORTABLE
+  else
+    build-depends: bytestring-mmap >= 0.2 && <0.3,
+                   unix            >= 2.4 && <3.0
+
 
 ------------------------------------------------------------------------------
 Test-suite testsuite
   Type:              exitcode-stdio-1.0
-  hs-source-dirs:    test src
+  hs-source-dirs:    test
   Main-is:           TestSuite.hs
   Default-language:  Haskell2010
 
@@ -54,7 +75,8 @@ Test-suite testsuite
   ghc-options:       -O2 -Wall -fhpc -fwarn-tabs -funbox-strict-fields -threaded
                      -fno-warn-unused-do-bind
 
-  Build-depends:     base          >= 4     && <5,
+  Build-depends:     io-streams,
+                     base          >= 4     && <5,
                      attoparsec    >= 0.10  && <0.11,
                      blaze-builder >= 0.3.1 && <0.4,
                      bytestring    >= 0.9.2 && <0.10,
@@ -74,3 +96,17 @@ Test-suite testsuite
                      test-framework-quickcheck2 >= 0.2.12.1 && <0.3,
                      zlib                       >= 0.5      && <0.6
 
+  if flag(portable) || os(windows)
+    cpp-options: -DPORTABLE
+  else
+    build-depends: bytestring-mmap >= 0.2 && <0.3,
+                   unix            >= 2.4 && <3.0
+
+  other-extensions:
+    BangPatterns,
+    CPP,
+    DeriveDataTypeable,
+    FlexibleInstances,
+    GeneralizedNewtypeDeriving,
+    OverloadedStrings,
+    ScopedTypeVariables

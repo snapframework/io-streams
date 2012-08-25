@@ -1,8 +1,6 @@
 module System.IO.Streams.Handle
  ( handleToInputStream
  , handleToOutputStream
- , withFileAsInputStream
- , withFileAsOutputStream
  ) where
 
 import qualified Data.ByteString            as S
@@ -34,20 +32,3 @@ handleToOutputStream h = makeOutputStream f
     f (Just x) = if S.null x
                    then hFlush h
                    else S.hPut h x
-
-
-------------------------------------------------------------------------------
-withFileAsInputStream :: FilePath
-                      -> (InputStream ByteString -> IO a)
-                      -> IO a
-withFileAsInputStream fp m =
-    withBinaryFile fp ReadMode ((m =<<) . handleToInputStream)
-
-
-------------------------------------------------------------------------------
-withFileAsOutputStream :: FilePath
-                       -> IOMode
-                       -> (OutputStream ByteString -> IO a)
-                       -> IO a
-withFileAsOutputStream fp mode m =
-    withBinaryFile fp mode ((m =<<) . handleToOutputStream)
