@@ -20,13 +20,12 @@ import           Test.HUnit hiding (Test)
 import           System.IO.Streams.Tests.Common
 
 tests :: [Test]
-tests = [ testFiles
-        ]
+tests = [ testHandle ]
 
 
 ------------------------------------------------------------------------------
-testFiles :: Test
-testFiles = testCase "handle/files" $ do
+testHandle :: Test
+testHandle = testCase "file/files" $ do
     createDirectoryIfMissing False "tmp"
     tst `finally` eatException (removeFile fn >> removeDirectory "tmp")
 
@@ -34,9 +33,11 @@ testFiles = testCase "handle/files" $ do
     fn = "tmp" </> "data"
 
     tst = do
-        withFileAsOutputStream fn WriteMode $ \os -> do
+        withBinaryFile fn WriteMode $ \h -> do
             let l = "" : (intersperse " " ["the", "quick", "brown", "fox"])
+            os <- handleToOutputStream h
             fromList l >>= connectTo os
 
-        l <- liftM S.concat $ withFileAsInputStream fn toList
-        assertEqual "testFiles" "the quick brown fox" l
+        withBinaryFile fn ReadMode $ \h -> do
+            l <- liftM S.concat (handleToInputStream h >>= toList)
+            assertEqual "testFiles" "the quick brown fox" l

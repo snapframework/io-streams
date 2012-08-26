@@ -38,6 +38,7 @@ import           System.IO.Streams.Internal
 import           System.IO.Streams.Blaze
 import           System.IO.Streams.ByteString
 import           System.IO.Streams.Combinators
+import           System.IO.Streams.File
 import           System.IO.Streams.Handle
 import           System.IO.Streams.List
 import           System.IO.Streams.Zlib

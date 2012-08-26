@@ -7,7 +7,9 @@ export LANG=C
 
 rm -f testsuite.tix
 
-cabal test --show-details=always --test-options="-j4 -a1000 $*"
+./dist/build/testsuite/testsuite -j4 -a1000 $*
+
+# cabal test --show-details=always --test-options="-j4 -a1000 $*"
 
 DIR=dist/hpc
 
@@ -19,6 +21,7 @@ System.IO.Streams.Tests.Blaze
 System.IO.Streams.Tests.ByteString
 System.IO.Streams.Tests.Combinators
 System.IO.Streams.Tests.Common
+System.IO.Streams.Tests.File
 System.IO.Streams.Tests.Handle
 System.IO.Streams.Tests.Internal
 System.IO.Streams.Tests.Zlib
