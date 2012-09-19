@@ -24,8 +24,8 @@ debug s = liftIO $ putStrLn s
 debug _ = return ()
 -}
 
-data MatchInfo = Match !ByteString
-               | NoMatch !ByteString
+data MatchInfo = Match   {-# UNPACK #-} !ByteString
+               | NoMatch {-# UNPACK #-} !ByteString
   deriving (Show, Eq)
 
 

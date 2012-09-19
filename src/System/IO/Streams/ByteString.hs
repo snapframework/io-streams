@@ -8,27 +8,28 @@ module System.IO.Streams.ByteString
  , countOutput
 
    -- * Input and output
+ , readExactly
  , writeLazyByteString
 
- , ReadTooShortException
- , readExactly
-
    -- * Stream transformers
- , takeBytes
- , TooManyBytesReadException
- , throwIfProducesMoreThan
-
  , giveBytes
- , TooManyBytesWrittenException
+ , takeBytes
  , throwIfConsumesMoreThan
+ , throwIfProducesMoreThan
 
    -- * Rate limiting
  , throwIfTooSlow
- , RateTooSlowException
 
    -- * String search
  , MatchInfo(..)
  , search
+
+   -- * Exception types
+ , RateTooSlowException
+ , ReadTooShortException
+ , TooManyBytesReadException
+ , TooManyBytesWrittenException
+
  ) where
 
 ------------------------------------------------------------------------------
