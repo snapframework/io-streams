@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module System.IO.Streams.Internal.BoyerMooreHorspool
-  ( boyerMooreHorspool
+  ( search
   , MatchInfo(..)
   ) where
 
@@ -51,10 +51,22 @@ matches !needle !nstart !nend' !haystack !hstart !hend' =
 
 
 ------------------------------------------------------------------------------
-boyerMooreHorspool :: ByteString
-                   -> InputStream ByteString
-                   -> IO (InputStream MatchInfo)
-boyerMooreHorspool needle stream = do
+-- | Given a 'ByteString' to look for (the \"needle\") and an 'InputStream',
+-- produce a new 'InputStream' which yields data of type 'MatchInfo'.
+--
+-- Example:
+--
+-- @
+-- ghci> fromList [\"food\", \"oof\", \"oodles\", \"ok\"] >>= search \"foo\" >>= toList
+-- [Match \"foo\",NoMatch \"d\",NoMatch \"oo\",Match \"foo\",NoMatch \"dlesok\"]
+-- @
+--
+-- Uses the Boyer-Moore-Horspool algorithm
+-- (<http://en.wikipedia.org/wiki/Boyer%E2%80%93Moore%E2%80%93Horspool_algorithm>).
+search :: ByteString                   -- ^ \"needle\" to look for
+       -> InputStream ByteString       -- ^ input stream to wrap
+       -> IO (InputStream MatchInfo)
+search needle stream = do
     --debug $ "boyermoore: needle=" ++ show needle
     sourceToStream (withDefaultPushback $
                     lookahead nlen >>= either finishAndEOF startSearch)

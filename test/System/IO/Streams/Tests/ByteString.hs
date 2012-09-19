@@ -11,6 +11,7 @@ import qualified Data.ByteString.Lazy.Char8 as L
 import           Data.List
 import           Data.Monoid
 import           Prelude hiding (read)
+import qualified Prelude
 import           System.IO.Streams
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
@@ -25,16 +26,18 @@ tests :: [Test]
 tests = [ testBoyerMoore
         , testCountInput
         , testCountOutput
-        , testKillIfTooSlow
+        , testThrowIfTooSlow
         , testReadExactly
-        , testReadNoMoreThan
-        , testReadNoMoreThan2
-        , testReadNoMoreThan3
-        , testTakeNoMoreThan
-        , testTakeNoMoreThan2
+        , testTakeBytes
+        , testTakeBytes2
+        , testTakeBytes3
+        , testThrowIfProducesMoreThan
+        , testThrowIfProducesMoreThan2
+        , testThrowIfConsumesMoreThan
+        , testThrowIfConsumesMoreThan2
         , testTrivials
         , testWriteLazyByteString
-        , testWriteNoMoreThan
+        , testGiveBytes
         ]
 
 
@@ -78,70 +81,69 @@ testCountOutput = testProperty "bytestring/countOutput" $
 
 
 ------------------------------------------------------------------------------
-testReadNoMoreThan :: Test
-testReadNoMoreThan = testProperty "bytestring/readNoMoreThan" $
-                     monadicIO $
-                     forAllM arbitrary prop
+testTakeBytes :: Test
+testTakeBytes = testProperty "bytestring/takeBytes" $
+                monadicIO $
+                forAllM arbitrary prop
   where
     prop :: L.ByteString -> PropertyM IO ()
     prop l = pre (L.length l > 5) >> liftQ (do
         let (a,b) = L.splitAt 4 l
 
         is  <- fromList (L.toChunks l)
-        is' <- readNoMoreThan 4 is
+        is' <- takeBytes 4 is
 
         x   <- liftM L.fromChunks $ toList is'
         y   <- liftM L.fromChunks $ toList is
 
-        assertEqual "readNoMoreThan1" a x
-        assertEqual "readNoMoreThan2" b y
+        assertEqual "take1" a x
+        assertEqual "take2" b y
         )
 
 
 ------------------------------------------------------------------------------
-testReadNoMoreThan2 :: Test
-testReadNoMoreThan2 = testProperty "bytestring/readNoMoreThan2" $
-                      monadicIO $
-                      forAllM arbitrary prop
+testTakeBytes2 :: Test
+testTakeBytes2 = testProperty "bytestring/takeBytes2" $
+                 monadicIO $
+                 forAllM arbitrary prop
   where
     prop :: L.ByteString -> PropertyM IO ()
     prop l = liftQ $ do
         is  <- fromList (L.toChunks l)
-        is2 <- readNoMoreThan 0 is
+        is2 <- takeBytes 0 is
 
         x   <- toList is2
         y   <- liftM L.fromChunks $ toList is
 
-        assertEqual "readNoMoreThan3" [] x
-        assertEqual "readNoMoreThan4" l y
+        assertEqual "takeBytes3" [] x
+        assertEqual "takeBytes4" l y
 
         -- Test that pushback makes it back to the source inputstream
-        is3 <- readNoMoreThan 20 is
+        is3 <- takeBytes 20 is
         void $ toList is3
         unRead "ok2" is3
         unRead "ok1" is3
 
         z   <- toList is
-        assertEqual "readNoMoreThan5" ["ok1", "ok2"] z
+        assertEqual "takeBytes5" ["ok1", "ok2"] z
 
 
 ------------------------------------------------------------------------------
-testReadNoMoreThan3 :: Test
-testReadNoMoreThan3 = testCase "bytestring/readNoMoreThan3" $ do
+testTakeBytes3 :: Test
+testTakeBytes3 = testCase "bytestring/takeBytes3" $ do
     is <- fromList ["The", "quick", "brown", "fox"::ByteString] >>=
-          readNoMoreThan 100
-
+          takeBytes 100
     _  <- toList is
     m  <- read is
 
-    assertEqual "readNoMoreThan3" Nothing m
+    assertEqual "takeBytes3" Nothing m
 
 
 ------------------------------------------------------------------------------
-testTakeNoMoreThan :: Test
-testTakeNoMoreThan = testProperty "bytestring/takeNoMoreThan" $
-                     monadicIO $
-                     forAllM arbitrary prop
+testThrowIfProducesMoreThan :: Test
+testThrowIfProducesMoreThan =
+    testProperty "bytestring/throwIfProducesMoreThan" $
+    monadicIO $ forAllM arbitrary prop
 
   where
     prop :: L.ByteString -> PropertyM IO ()
@@ -150,15 +152,15 @@ testTakeNoMoreThan = testProperty "bytestring/takeNoMoreThan" $
 
         liftQ $ do
             is  <- fromList $ L.toChunks l
-            is' <- takeNoMoreThan 4 is
+            is' <- throwIfProducesMoreThan 4 is
             expectExceptionH $ toList is'
 
 
 ------------------------------------------------------------------------------
-testTakeNoMoreThan2 :: Test
-testTakeNoMoreThan2 = testProperty "bytestring/takeNoMoreThan2" $
-                      monadicIO $
-                      forAllM arbitrary prop
+testThrowIfProducesMoreThan2 :: Test
+testThrowIfProducesMoreThan2 =
+    testProperty "bytestring/throwIfProducesMoreThan2" $
+    monadicIO $ forAllM arbitrary prop
 
   where
     prop :: L.ByteString -> PropertyM IO ()
@@ -167,24 +169,65 @@ testTakeNoMoreThan2 = testProperty "bytestring/takeNoMoreThan2" $
 
         liftQ $ do
             is  <- fromList $ L.toChunks l
-            is' <- takeNoMoreThan (n + 1) is
+            is' <- throwIfProducesMoreThan (n + 1) is
             l'  <- liftM L.fromChunks $ toList is'
-            assertEqual "takeNoMoreThan2" l l'
+            assertEqual "throwIfProducesMoreThan2" l l'
 
             m   <- read is'
-            assertEqual "takeNoMoreThan2-2" Nothing m
+            assertEqual "throwIfProducesMoreThan2-2" Nothing m
 
             unRead "ok2" is'
             unRead "ok1" is'
             z   <- toList is
-            assertEqual "takeNoMoreThan2-3" ["ok1", "ok2"] z
+            assertEqual "throwIfProducesMoreThan2-3" ["ok1", "ok2"] z
 
 
 ------------------------------------------------------------------------------
-testWriteNoMoreThan :: Test
-testWriteNoMoreThan = testProperty "bytestring/writeNoMoreThan" $
-                      monadicIO $
-                      forAllM arbitrary prop
+testThrowIfConsumesMoreThan :: Test
+testThrowIfConsumesMoreThan =
+    testProperty "bytestring/throwIfConsumesMoreThan" $
+    monadicIO $
+    forAllM arbitrary prop
+  where
+    prop :: L.ByteString -> PropertyM IO ()
+    prop l = do
+        let n = L.length l
+        pre (n > 0)
+        liftQ $ do
+             is      <- fromList (L.toChunks l)
+             (os, _) <- listOutputStream
+             os'     <- throwIfConsumesMoreThan (n-1) os
+
+             expectExceptionH $ connect is os'
+
+
+------------------------------------------------------------------------------
+testThrowIfConsumesMoreThan2 :: Test
+testThrowIfConsumesMoreThan2 =
+    testProperty "bytestring/throwIfConsumesMoreThan2" $
+    monadicIO $
+    forAllM arbitrary prop
+  where
+    prop :: L.ByteString -> PropertyM IO ()
+    prop l = do
+        let n = L.length l
+
+        liftQ $ do
+             is         <- fromList (L.toChunks l)
+             (os, grab) <- listOutputStream
+             os'        <- throwIfConsumesMoreThan n os
+
+             connect is os'
+
+             l' <- liftM L.fromChunks grab
+             assertEqual "throwIfConsumesMoreThan" l l'
+
+
+------------------------------------------------------------------------------
+testGiveBytes :: Test
+testGiveBytes = testProperty "bytestring/giveBytes" $
+                monadicIO $
+                forAllM arbitrary prop
   where
     prop :: L.ByteString -> PropertyM IO ()
     prop l = do
@@ -194,29 +237,29 @@ testWriteNoMoreThan = testProperty "bytestring/writeNoMoreThan" $
         liftQ $ do
             is         <- fromList (L.toChunks l)
             (os, grab) <- listOutputStream
-            os'        <- writeNoMoreThan 4 os
+            os'        <- giveBytes 4 os
 
             connect is os'
             write Nothing os'
 
             x <- liftM L.fromChunks grab
 
-            assertEqual "writeNoMoreThan1" a x
+            assertEqual "giveBytes1" a x
 
         liftQ $ do
             is <- fromList $ L.toChunks a
             (os, grab) <- listOutputStream
-            os'        <- writeNoMoreThan 10 os
+            os'        <- giveBytes 10 os
 
             connect is os'
             write Nothing os'
             x <- liftM L.fromChunks grab
-            assertEqual "writeNoMoreThan2" a x
+            assertEqual "giveBytes2" a x
 
 
 ------------------------------------------------------------------------------
-testKillIfTooSlow :: Test
-testKillIfTooSlow = testCase "bytestring/killIfTooSlow" $ do
+testThrowIfTooSlow :: Test
+testThrowIfTooSlow = testCase "bytestring/throwIfTooSlow" $ do
     is <- mkList
     expectExceptionH $ trickleFrom is
 
@@ -224,24 +267,24 @@ testKillIfTooSlow = testCase "bytestring/killIfTooSlow" $ do
     void $ toList is'
     x <- read is'
 
-    assertEqual "killIfTooSlow" Nothing x
+    assertEqual "throwIfTooSlow" Nothing x
 
     src  <- mkSrc
-    src' <- killIfTooSlow (return ()) 10 2 src
+    src' <- throwIfTooSlow (return ()) 10 2 src
 
     void $ toList src'
     unRead "ok2" src'
     unRead "ok1" src'
     l <- toList src
 
-    assertEqual "killIfTooSlow/pushback" ["ok1", "ok2"] l
+    assertEqual "throwIfTooSlow/pushback" ["ok1", "ok2"] l
 
 
   where
-    mkSrc = fromList $ take 100 $ cycle $
+    mkSrc = fromList $ Prelude.take 100 $ cycle $
             intersperse " " ["the", "quick", "brown", "fox"]
 
-    mkList = mkSrc >>= killIfTooSlow (return ()) 10 2
+    mkList = mkSrc >>= throwIfTooSlow (return ()) 10 2
 
     trickleFrom is = go
       where
@@ -269,7 +312,7 @@ testBoyerMoore = testProperty "bytestring/boyerMoore" $
         let toklist = (Match needle) : toklist0
 
         -- there should be exactly three matches
-        out <- liftQ (fromList stream >>= boyerMooreHorspool needle >>= toList)
+        out <- liftQ (fromList stream >>= search needle >>= toList)
 
         let nMatches = length $ filter isMatch out
 
@@ -301,19 +344,19 @@ testBoyerMoore = testProperty "bytestring/boyerMoore" $
               -> ([MatchInfo] -> [MatchInfo])
               -> [MatchInfo]
               -> [MatchInfo]
-    concatAdj pre dl []     = dl $ maybe [] (:[]) pre
-    concatAdj pre dl (x:xs) =
+    concatAdj prefix dl []     = dl $ maybe [] (:[]) prefix
+    concatAdj prefix dl (x:xs) =
         maybe (concatAdj (Just x) dl xs)
               (\p -> maybe (concatAdj (Just x) (dl . (p:)) xs)
                            (\x' -> concatAdj (Just x') dl xs)
                            (merge p x))
-              pre
+              prefix
 
       where
-        merge (NoMatch x) y
-            | S.null x  = Just y
+        merge (NoMatch z) y
+            | S.null z  = Just y
             | otherwise = case y of
-                            NoMatch x' -> Just $ NoMatch $ x `mappend` x'
+                            NoMatch x' -> Just $ NoMatch $ z `mappend` x'
                             _          -> Nothing
 
         merge (Match _) _ = Nothing
@@ -338,9 +381,6 @@ testBoyerMoore = testProperty "bytestring/boyerMoore" $
         return (out1, res)
 
       where
-        nonEmpty (Match _)   = True
-        nonEmpty (NoMatch x) = not $ S.null x
-
         strict = S.concat . L.toChunks
 
         lenN = fromEnum $ L.length lneedle

@@ -1,20 +1,34 @@
 {-# LANGUAGE BangPatterns       #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 
+-- | Stream operations on 'ByteString'.
 module System.IO.Streams.ByteString
- ( writeLazyByteString
- , countInput
+ ( -- * Counting bytes
+   countInput
  , countOutput
- , readExactly
+
+   -- * Input and output
+ , writeLazyByteString
+
  , ReadTooShortException
+ , readExactly
+
+   -- * Stream transformers
+ , takeBytes
  , TooManyBytesReadException
- , readNoMoreThan
- , takeNoMoreThan
- , writeNoMoreThan
- , MatchInfo(..)
- , boyerMooreHorspool
+ , throwIfProducesMoreThan
+
+ , giveBytes
+ , TooManyBytesWrittenException
+ , throwIfConsumesMoreThan
+
+   -- * Rate limiting
+ , throwIfTooSlow
  , RateTooSlowException
- , killIfTooSlow
+
+   -- * String search
+ , MatchInfo(..)
+ , search
  ) where
 
 ------------------------------------------------------------------------------
@@ -35,12 +49,18 @@ import           System.IO.Streams.List
 
 
 ------------------------------------------------------------------------------
-writeLazyByteString :: L.ByteString -> OutputStream ByteString -> IO ()
+-- | Write a lazy 'ByteString' to an 'OutputStream'.
+writeLazyByteString :: L.ByteString             -- ^ string to write to output
+                    -> OutputStream ByteString  -- ^ output stream
+                    -> IO ()
 writeLazyByteString = writeList . L.toChunks
 {-# INLINE writeLazyByteString #-}
 
 
 ------------------------------------------------------------------------------
+-- | Wraps an 'InputStream', counting the number of bytes produced by the
+-- stream as a side effect. Produces a new 'InputStream' as well as an IO
+-- action to retrieve the count of bytes produced.
 countInput :: InputStream ByteString -> IO (InputStream ByteString, IO Int64)
 countInput = inputFoldM f 0
   where
@@ -51,6 +71,9 @@ countInput = inputFoldM f 0
 
 
 ------------------------------------------------------------------------------
+-- | Wraps an 'OutputStream', counting the number of bytes consumed by the
+-- stream as a side effect. Produces a new 'OutputStream' as well as an IO
+-- action to retrieve the count of bytes consumed.
 countOutput :: OutputStream ByteString
             -> IO (OutputStream ByteString, IO Int64)
 countOutput = outputFoldM f 0
@@ -62,11 +85,12 @@ countOutput = outputFoldM f 0
 
 
 ------------------------------------------------------------------------------
--- | Read n bytes from the stream, then yield EOF forever.
-readNoMoreThan :: Int64
-               -> InputStream ByteString
-               -> IO (InputStream ByteString)
-readNoMoreThan k0 src = sourceToStream $ source k0
+-- | Wrap an 'InputStream', producing a new 'InputStream' that will produce at
+-- most n, then yielding EOF forever.
+takeBytes :: Int64                        -- ^ maximum number of bytes to read
+          -> InputStream ByteString       -- ^ input stream to wrap
+          -> IO (InputStream ByteString)
+takeBytes k0 src = sourceToStream $ source k0
   where
     fromBS s = if S.null s then Nothing else Just s
 
@@ -79,7 +103,7 @@ readNoMoreThan k0 src = sourceToStream $ source k0
 
     pb !n s = do
         unRead s src
-        return $! source $ n + toEnum (S.length s)
+        return $! source $! n + toEnum (S.length s)
 
     source !k = Source {
                   produce  = read src >>= maybe (eof k) chunk
@@ -107,6 +131,16 @@ instance Exception TooManyBytesReadException
 
 
 ------------------------------------------------------------------------------
+data TooManyBytesWrittenException =
+    TooManyBytesWrittenException deriving (Typeable)
+
+instance Show TooManyBytesWrittenException where
+    show TooManyBytesWrittenException = "Too many bytes written"
+
+instance Exception TooManyBytesWrittenException
+
+
+------------------------------------------------------------------------------
 data ReadTooShortException = ReadTooShortException Int deriving (Typeable)
 
 instance Show ReadTooShortException where
@@ -117,12 +151,13 @@ instance Exception ReadTooShortException
 
 
 ------------------------------------------------------------------------------
--- | Like 'readNoMoreThan', but throws an exception if the input stream
--- produces more bytes than the limit.
-takeNoMoreThan :: Int64                    -- ^ maximum number of bytes to read
-               -> InputStream ByteString   -- ^ input stream
-               -> IO (InputStream ByteString)
-takeNoMoreThan k0 src = sourceToStream $ source k0
+-- | Wraps an 'InputStream'. If more than @n@ bytes are produced by this
+-- stream, 'read' will throw a 'TooManyBytesReadException'.
+throwIfProducesMoreThan
+    :: Int64                    -- ^ maximum number of bytes to read
+    -> InputStream ByteString   -- ^ input stream
+    -> IO (InputStream ByteString)
+throwIfProducesMoreThan k0 src = sourceToStream $ source k0
   where
     eofSrc n = Source {
                  produce  = eof n
@@ -170,10 +205,14 @@ readExactly n input = go id n
 
 
 ------------------------------------------------------------------------------
-writeNoMoreThan :: Int64
-                -> OutputStream ByteString
-                -> IO (OutputStream ByteString)
-writeNoMoreThan k0 str = sinkToStream $ sink k0
+-- | Wraps an 'OutputStream', producing a new stream that will pass along at
+-- most @n@ bytes to the wrapped stream, throwing any subsequent input away.
+--
+giveBytes :: Int64                        -- ^ maximum number of bytes to send
+                                          -- to the wrapped stream
+          -> OutputStream ByteString      -- ^ output stream to wrap
+          -> IO (OutputStream ByteString)
+giveBytes k0 str = sinkToStream $ sink k0
   where
     sink !k = Sink g
       where
@@ -194,6 +233,30 @@ writeNoMoreThan k0 str = sinkToStream $ sink k0
     h _       = return nullSink
 
 
+------------------------------------------------------------------------------
+-- | Wraps an 'OutputStream', producing a new stream that will pass along at
+-- most @n@ bytes to the wrapped stream. If more than @n@ bytes are sent to the
+-- outer stream, a 'TooManyBytesWrittenException' will be thrown.
+--
+-- Note that if more than @n@ bytes are sent to the outer stream,
+-- 'throwIfConsumesMoreThan' will not necessarily send the first @n@ bytes
+-- through to the wrapped stream before throwing the exception.
+throwIfConsumesMoreThan
+    :: Int64                    -- ^ maximum number of bytes to send to the
+                                --   wrapped stream
+    -> OutputStream ByteString  -- ^ output stream to wrap
+    -> IO (OutputStream ByteString)
+throwIfConsumesMoreThan k0 str = sinkToStream $ sink k0
+  where
+    sink !k = Sink g
+      where
+        g Nothing     = write Nothing str >> return nullSink
+
+        g mb@(Just x) = let l  = toEnum $ S.length x
+                            k' = k - l
+                        in if k' < 0
+                             then throwIO TooManyBytesWrittenException
+                             else write mb str >> return (sink k')
 
 ------------------------------------------------------------------------------
 getTime :: IO Double
@@ -211,14 +274,14 @@ instance Exception RateTooSlowException
 -- | Rate-limit an input stream. If the input stream is not read from faster
 -- than the given rate, reading from the wrapped stream will throw a
 -- 'RateTooSlowException'.
-killIfTooSlow
+throwIfTooSlow
     :: IO ()                   -- ^ action to bump timeout
     -> Double                  -- ^ minimum data rate, in bytes per second
     -> Int                     -- ^ amount of time to wait before data rate
                                --   calculation takes effect
     -> InputStream ByteString  -- ^ input stream
     -> IO (InputStream ByteString)
-killIfTooSlow !bump !minRate !minSeconds' !stream = do
+throwIfTooSlow !bump !minRate !minSeconds' !stream = do
     !_        <- bump
     startTime <- getTime
 
