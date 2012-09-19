@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns               #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings          #-}
 
@@ -48,7 +49,7 @@ defaultPushback :: Source c -> c -> IO (Source c)
 defaultPushback s c = let s' = Source { produce  = return (s, Just c)
                                       , pushback = defaultPushback s'
                                       }
-                      in return s'
+                      in return $! s'
 
 
 ------------------------------------------------------------------------------

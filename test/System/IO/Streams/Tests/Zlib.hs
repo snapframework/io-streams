@@ -11,9 +11,6 @@ import           Control.Monad hiding (mapM)
 import           Data.ByteString.Char8 (ByteString)
 import qualified Data.ByteString.Char8 as S
 import qualified Data.ByteString.Lazy.Char8 as L
-import           Data.Functor.Contravariant
-import           Data.IORef
-import           Data.Monoid
 import           Prelude hiding (mapM, read)
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
