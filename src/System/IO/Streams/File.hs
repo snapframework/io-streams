@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP #-}
 
+-- | Input and output streams for files.
 module System.IO.Streams.File
   ( withFileAsInput
   , withFileAsInputStartingAt
@@ -7,26 +8,68 @@ module System.IO.Streams.File
   , withFileAsOutput
   ) where
 
-------------------------------------------------------------------------------
-import           Control.Exception          (bracket)
-import           Control.Monad              (liftM, unless, void)
-import           Data.ByteString            (ByteString)
-import qualified Data.ByteString            as S
-import           Data.Int                   (Int64)
-import           System.IO
-------------------------------------------------------------------------------
-import           System.IO.Streams.Internal
-
 #ifndef PORTABLE
+
+                                ---------------
+                                -- unix mode --
+                                ---------------
+
+------------------------------------------------------------------------------
+import           Data.ByteString            ( ByteString )
+import           Data.Int                   ( Int64 )
+import           Control.Exception          ( bracket )
+import           Control.Monad              ( liftM, unless, void )
+import qualified Data.ByteString.Char8      as S
 import qualified Data.ByteString.Internal   as S
 import qualified Data.ByteString.Unsafe     as S
-import           Foreign.Ptr
-import           GHC.ForeignPtr
-import           System.IO.Posix.MMap
-import           System.Posix.Files
-import           System.Posix.IO
-import           System.Posix.Types
+import           Foreign.Ptr                ( castPtr, plusPtr )
+import           GHC.ForeignPtr             ( mallocPlainForeignPtrBytes )
+import           System.IO                  ( IOMode(..)
+                                            , SeekMode(AbsoluteSeek)
+                                            )
+import           System.IO.Posix.MMap       ( unsafeMMapFile )
+import           System.Posix.Files         ( fileSize
+                                            , getFileStatus
+                                            , stdFileMode
+                                            )
+import           System.Posix.IO            ( OpenMode(..)
+                                            , append
+                                            , closeFd
+                                            , defaultFileFlags
+                                            , fdSeek
+                                            , fdReadBuf
+                                            , fdWriteBuf
+                                            , openFd
+                                            , trunc
+                                            )
+import           System.Posix.Types         ( FileOffset )
+------------------------------------------------------------------------------
+import           System.IO.Streams.Internal ( InputStream
+                                            , OutputStream
+                                            , makeInputStream
+                                            , makeOutputStream
+                                            , singletonSource
+                                            , sourceToStream
+                                            )
 #else
+
+                              -------------------
+                              -- portable mode --
+                              -------------------
+
+------------------------------------------------------------------------------
+import           Data.ByteString            ( ByteString )
+import           Data.Int                   ( Int64 )
+import           Control.Monad              ( unless )
+import           System.IO                  ( IOMode(ReadMode)
+                                            , SeekMode(AbsoluteSeek)
+                                            , hSeek
+                                            , withBinaryFile
+                                            )
+------------------------------------------------------------------------------
+import           System.IO.Streams.Internal ( InputStream
+                                            , OutputStream
+                                            )
 import           System.IO.Streams.Handle
 #endif
 

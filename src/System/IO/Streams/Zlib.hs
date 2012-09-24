@@ -12,17 +12,47 @@ module System.IO.Streams.Zlib
  ) where
 
 ------------------------------------------------------------------------------
-import           Blaze.ByteString.Builder
-import           Blaze.ByteString.Builder.Internal
-import           Blaze.ByteString.Builder.Internal.Buffer
-import           Codec.Zlib
-import           Control.Monad              (liftM)
-import qualified Data.ByteString            as S
-import           Data.ByteString            (ByteString)
-import           Prelude                    hiding (read)
+import           Blaze.ByteString.Builder (fromByteString)
 ------------------------------------------------------------------------------
-import           System.IO.Streams.Blaze
+import           Blaze.ByteString.Builder.Internal
+                   ( Builder
+                   , defaultBufferSize
+                   , flush
+                   )
+------------------------------------------------------------------------------
+import           Blaze.ByteString.Builder.Internal.Buffer ( allocBuffer )
+------------------------------------------------------------------------------
+import           Codec.Zlib
+                   ( Deflate
+                   , Inflate
+                   , WindowBits(..)
+                   , feedInflate
+                   , feedDeflate
+                   , finishDeflate
+                   , finishInflate
+                   , flushDeflate
+                   , flushInflate
+                   , initDeflate
+                   , initInflate
+                   )
+------------------------------------------------------------------------------
+import           Control.Monad   (liftM)
+import qualified Data.ByteString as S
+import           Data.ByteString (ByteString)
+import           Prelude         hiding (read)
+------------------------------------------------------------------------------
+import           System.IO.Streams.Blaze (unsafeBuilderStream)
 import           System.IO.Streams.Internal
+                   ( InputStream
+                   , OutputStream
+                   , makeOutputStream
+                   , nullSource
+                   , produce
+                   , read
+                   , sourceToStream
+                   , withDefaultPushback
+                   , write
+                   )
 
 
 ------------------------------------------------------------------------------

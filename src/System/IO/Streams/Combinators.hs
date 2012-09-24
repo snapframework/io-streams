@@ -10,11 +10,21 @@ module System.IO.Streams.Combinators
  ) where
 
 ------------------------------------------------------------------------------
-import           Control.Monad              (liftM)
-import           Data.IORef
-import           Prelude                    hiding (mapM, read)
+import Control.Monad              ( liftM )
+import Data.IORef                 ( atomicModifyIORef
+                                  , newIORef
+                                  , readIORef
+                                  , writeIORef
+                                  )
+import Prelude             hiding ( mapM, read )
 ------------------------------------------------------------------------------
-import           System.IO.Streams.Internal
+import System.IO.Streams.Internal ( InputStream
+                                  , OutputStream
+                                  , makeInputStream
+                                  , makeOutputStream
+                                  , read
+                                  , write
+                                  )
 
 
 ------------------------------------------------------------------------------

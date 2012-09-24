@@ -1,8 +1,58 @@
 {-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE OverloadedStrings #-}
 
--- Based on Simon's blaze-bytestring-enumerator code. TODO(gdc) properly credit
-
+-- | Buffering for output streams based on @blaze-builder@.
+--
+-- Buffering an output stream can often improve throughput by reducing the
+-- number of system calls made through the file descriptor. The @blaze-builder@
+-- package provides an efficient set of primitives for serializing values
+-- directly to an output buffer.
+--
+-- /Using this module/
+--
+-- Given an 'OutputStream' taking 'ByteString':
+--
+-- > someOutputStream :: OutputStream ByteString
+--
+-- You create a new output stream wrapping the original one that accepts
+-- 'Builder' values:
+--
+--
+-- > do
+-- >     newStream <- Streams.'builderStream' someOutputStream
+-- >     Streams.'write' ('fromByteString' "hello") newStream
+-- >     ....
+--
+--
+-- You can flush the output buffer using 'flush':
+--
+-- >     ....
+-- >     Streams.'write' flush newStream
+-- >     ....
+--
+-- As a convention, 'builderStream' will write the empty string to the wrapped
+-- 'OutputStream' upon a builder buffer flush. Output streams which receive
+-- 'ByteString' should either ignore the empty string or interpret it as a
+-- signal to flush their own buffers, as the "System.IO.Streams.Zlib" functions
+-- do.
+--
+-- /Example/
+--
+-- > example :: IO [ByteString]
+-- > example = do
+-- >     let l1 = intersperse " " ["the", "quick", "brown", "fox"]
+-- >     let l2 = intersperse " " ["jumped", "over", "the"]
+-- >     let l  = map fromByteString l1 ++ [flush] ++ map fromByteString l2
+-- >
+-- >     is          <- Streams.fromList l
+-- >     (os0, grab) <- Streams.listOutputStream
+-- >     os          <- Streams.builderStream os0
+-- >
+-- >     connect is os >> grab
+--
+-- > ghci> example
+-- > ["the quick brown fox","","jumped over the"]
+--
 module System.IO.Streams.Blaze
  ( builderStream
  , unsafeBuilderStream
@@ -10,15 +60,38 @@ module System.IO.Streams.Blaze
  ) where
 
 ------------------------------------------------------------------------------
-import           Blaze.ByteString.Builder
 import           Blaze.ByteString.Builder.Internal
+                   ( defaultBufferSize )
+------------------------------------------------------------------------------
 import           Blaze.ByteString.Builder.Internal.Types
+                   ( Builder(..)
+                   , BuildSignal(..)
+                   , BufRange(..)
+                   , buildStep
+                   )
+------------------------------------------------------------------------------
 import           Blaze.ByteString.Builder.Internal.Buffer
-import           Control.Monad
+                   ( Buffer
+                   , BufferAllocStrategy
+                   , allNewBuffersStrategy
+                   , execBuildStep
+                   , reuseBufferStrategy
+                   , unsafeFreezeBuffer
+                   , unsafeFreezeNonEmptyBuffer
+                   , updateEndOfSlice
+                   )
+------------------------------------------------------------------------------
+import           Control.Monad         (when)
 import           Data.ByteString.Char8 (ByteString)
 import qualified Data.ByteString.Char8 as S
 ------------------------------------------------------------------------------
 import           System.IO.Streams.Internal
+                   ( OutputStream
+                   , Sink(..)
+                   , nullSink
+                   , sinkToStream
+                   , write
+                   )
 
 
 ------------------------------------------------------------------------------
@@ -88,33 +161,3 @@ builderStreamWith (ioBuf0, nextBuf) os = do
 
               ioBuf' <- nextBuf 1 buf'
               feed bStep' ioBuf'
-
-{-
-------------------------------------------------------------------------------
-example :: IO [ByteString]
-example = do
-    let l1 = intersperse " " ["the", "quick", "brown", "fox"]
-    let l2 = intersperse " " ["jumped", "over", "the"]
-
-    let l = map fromByteString l1 ++ [flush] ++ map fromByteString l2
-
-    is <- fromList l
-
-    (os0, grab) <- listOutputStream
-
-    os <- builderStream os0
-
-    connect is os >> grab
-
-
-------------------------------------------------------------------------------
-example2 :: IO [ByteString]
-example2 = do
-    let l1 = intersperse " " $ replicate 18000 "foo!"
-    is <- fromList $ map fromByteString l1
-
-    (os0, grab) <- listOutputStream
-    os <- builderStream os0
-
-    connect is os >> grab
--}

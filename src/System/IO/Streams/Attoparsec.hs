@@ -3,16 +3,20 @@
 module System.IO.Streams.Attoparsec where
 
 ------------------------------------------------------------------------------
-import           Control.Exception
-import           Control.Monad                    (when)
-import           Data.Attoparsec.ByteString.Char8
-import           Data.ByteString.Char8            (ByteString)
+import           Control.Exception                ( Exception, throwIO )
+import           Control.Monad                    ( when )
+import           Data.Attoparsec.ByteString.Char8 ( Parser
+                                                  , IResult(..)
+                                                  , eitherResult
+                                                  , feed
+                                                  , parse
+                                                  )
+import           Data.ByteString.Char8            ( ByteString )
 import qualified Data.ByteString.Char8            as S
-import           Data.Maybe
-import           Data.Typeable
-import           Prelude                          hiding (read)
+import           Data.Typeable                    ( Typeable )
+import           Prelude                   hiding ( read )
 ------------------------------------------------------------------------------
-import           System.IO.Streams.Internal
+import           System.IO.Streams.Internal       ( InputStream, read, unRead )
 
 ------------------------------------------------------------------------------
 data ParseException = ParseException String

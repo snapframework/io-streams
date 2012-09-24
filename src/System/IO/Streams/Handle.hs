@@ -1,13 +1,18 @@
+-- | Input and output streams for Handles.
 module System.IO.Streams.Handle
  ( handleToInputStream
  , handleToOutputStream
  ) where
 
 import qualified Data.ByteString            as S
-import           Data.ByteString            (ByteString)
-import           System.IO
+import           Data.ByteString            ( ByteString )
+import           System.IO                  ( Handle, hFlush )
 ------------------------------------------------------------------------------
-import           System.IO.Streams.Internal
+import           System.IO.Streams.Internal ( InputStream
+                                            , OutputStream
+                                            , makeInputStream
+                                            , makeOutputStream
+                                            )
 
 
 ------------------------------------------------------------------------------

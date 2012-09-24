@@ -33,20 +33,36 @@ module System.IO.Streams.ByteString
  ) where
 
 ------------------------------------------------------------------------------
-import           Control.Exception
-import           Control.Monad                                 (when)
-import           Data.ByteString                               (ByteString)
-import qualified Data.ByteString.Char8                         as S
-import qualified Data.ByteString.Lazy.Char8                    as L
-import           Data.Int
-import           Data.Time.Clock.POSIX                         (getPOSIXTime)
-import           Data.Typeable
-import           Prelude                                       hiding (read)
+import           Control.Exception             (Exception, throwIO)
+import           Control.Monad                 (when)
+import           Data.ByteString               (ByteString)
+import qualified Data.ByteString.Char8         as S
+import qualified Data.ByteString.Lazy.Char8    as L
+import           Data.Int                      (Int64)
+import           Data.Time.Clock.POSIX         (getPOSIXTime)
+import           Data.Typeable                 (Typeable)
+import           Prelude                       hiding (read)
 ------------------------------------------------------------------------------
-import           System.IO.Streams.Combinators
+import           System.IO.Streams.Combinators (inputFoldM, outputFoldM)
 import           System.IO.Streams.Internal
+                   ( Source(..)
+                   , Sink(..)
+                   , InputStream
+                   , OutputStream
+                   , nullSink
+                   , pushback
+                   , read
+                   , sinkToStream
+                   , sourceToStream
+                   , unRead
+                   , write
+                   )
 import           System.IO.Streams.Internal.BoyerMooreHorspool
-import           System.IO.Streams.List
+                   ( MatchInfo(..)
+                   , search
+                   )
+import           System.IO.Streams.List (writeList)
+------------------------------------------------------------------------------
 
 
 ------------------------------------------------------------------------------

@@ -5,8 +5,21 @@ module System.IO.Streams.List
  , listOutputStream
  ) where
 
-import Control.Concurrent.MVar
-import System.IO.Streams.Internal
+import Control.Concurrent.MVar    ( modifyMVar
+                                  , modifyMVar_
+                                  , newMVar
+                                  )
+import System.IO.Streams.Internal ( InputStream
+                                  , OutputStream
+                                  , Sink(..)
+                                  , connect
+                                  , nullSink
+                                  , nullSource
+                                  , sinkToStream
+                                  , sourceToStream
+                                  , withDefaultPushback
+                                  , write
+                                  )
 
 
 ------------------------------------------------------------------------------

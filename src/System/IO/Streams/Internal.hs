@@ -2,14 +2,43 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings          #-}
 
-module System.IO.Streams.Internal where
+module System.IO.Streams.Internal
+  ( Source(..)
+  , Sink(..)
+  , appendSource
+  , concatSources
+  , defaultPushback
+  , withDefaultPushback
+  , nullSource
+  , nullSink
+  , singletonSource
+  , InputStream(..)
+  , OutputStream(..)
+  , read
+  , unRead
+  , write
+  , sourceToStream
+  , sinkToStream
+  , peek
+  , connect
+  , connectTo
+  , connectWithoutEof
+  , connectToWithoutEof
+  , makeInputStream
+  , makeOutputStream
+  , lockingInputStream
+  , lockingOutputStream
+  , nullInput
+  , nullOutput
+  , atEOF
+  ) where
 
 ------------------------------------------------------------------------------
-import           Control.Concurrent
-import           Control.Monad
-import           Data.IORef
-import           Data.List
-import           Prelude hiding (read)
+import           Control.Concurrent ( newMVar, withMVar )
+import           Control.Monad      ( liftM )
+import           Data.IORef         ( IORef, newIORef, readIORef, writeIORef )
+import           Data.List          ( foldl' )
+import           Prelude hiding     ( read )
 
 
 ------------------------------------------------------------------------------

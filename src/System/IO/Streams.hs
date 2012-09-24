@@ -1,6 +1,11 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings          #-}
 
+-- | It is recommended to import this module qualified, as follows:
+--
+-- > import           System.IO.Streams (InputStream, OutputStream)
+-- > import qualified System.IO.Streams as Streams
+--
 module System.IO.Streams
  ( InputStream
  , OutputStream
@@ -30,7 +35,7 @@ module System.IO.Streams
  ) where
 
 ------------------------------------------------------------------------------
-import           Prelude hiding (read)
+import           Prelude ()
 
 ------------------------------------------------------------------------------
 import           System.IO.Streams.Internal

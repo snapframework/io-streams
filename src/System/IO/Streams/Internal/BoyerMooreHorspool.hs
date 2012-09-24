@@ -7,28 +7,33 @@ module System.IO.Streams.Internal.BoyerMooreHorspool
   ) where
 
 ------------------------------------------------------------------------------
-import qualified Data.ByteString.Char8 as S
-import           Data.ByteString.Char8 (ByteString)
-import           Data.ByteString.Unsafe as S
-import           Data.Int
-import qualified Data.Vector.Unboxed as V
-import qualified Data.Vector.Unboxed.Mutable  as MV
-import           Prelude hiding (last, read)
+import qualified Data.ByteString.Char8       as S
+import           Data.ByteString.Char8       (ByteString)
+import           Data.ByteString.Unsafe      as S
+import qualified Data.Vector.Unboxed         as V
+import qualified Data.Vector.Unboxed.Mutable as MV
+import           Prelude                     hiding (last, read)
 ------------------------------------------------------------------------------
 import           System.IO.Streams.Internal
+                   ( InputStream
+                   , appendSource
+                   , concatSources
+                   , nullSource
+                   , produce
+                   , read
+                   , singletonSource
+                   , sourceToStream
+                   , withDefaultPushback
+                   )
 
-{-
-{-# INLINE debug #-}
-debug :: String -> IO ()
-debug s = liftIO $ putStrLn s
-debug _ = return ()
--}
 
+------------------------------------------------------------------------------
 data MatchInfo = Match   {-# UNPACK #-} !ByteString
                | NoMatch {-# UNPACK #-} !ByteString
   deriving (Show, Eq)
 
 
+------------------------------------------------------------------------------
 matches :: ByteString     -- ^ needle
         -> Int            -- ^ needle start
         -> Int            -- ^ needle end (inclusive)
@@ -57,7 +62,8 @@ matches !needle !nstart !nend' !haystack !hstart !hend' =
 -- Example:
 --
 -- @
--- ghci> fromList [\"food\", \"oof\", \"oodles\", \"ok\"] >>= search \"foo\" >>= toList
+-- ghci> fromList [\"food\", \"oof\", \"oodles\", \"ok\"] >>=
+--       search \"foo\" >>= toList
 -- [Match \"foo\",NoMatch \"d\",NoMatch \"oo\",Match \"foo\",NoMatch \"dlesok\"]
 -- @
 --
