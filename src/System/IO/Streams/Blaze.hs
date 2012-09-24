@@ -18,17 +18,21 @@
 -- 'Builder' values:
 --
 --
--- > do
--- >     newStream <- Streams.'builderStream' someOutputStream
--- >     Streams.'write' ('fromByteString' "hello") newStream
--- >     ....
+-- @
+-- do
+--     newStream <- Streams.'builderStream' someOutputStream
+--     Streams.'write' ('Blaze.ByteString.Builder.fromByteString' \"hello\") newStream
+--     ....
+-- @
 --
 --
--- You can flush the output buffer using 'flush':
+-- You can flush the output buffer using 'Blaze.ByteString.Builder.flush':
 --
--- >     ....
--- >     Streams.'write' flush newStream
--- >     ....
+-- @
+--     ....
+--     Streams.'write' 'Blaze.ByteString.Builder.flush' newStream
+--     ....
+-- @
 --
 -- As a convention, 'builderStream' will write the empty string to the wrapped
 -- 'OutputStream' upon a builder buffer flush. Output streams which receive
