@@ -30,6 +30,7 @@ Description:
   .
     * support for parsing from streams using @attoparsec@.
 
+Extra-Source-Files:  CONTRIBUTORS
 
 ------------------------------------------------------------------------------
 Flag portable
