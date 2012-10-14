@@ -99,11 +99,18 @@ import           System.IO.Streams.Internal
 
 
 ------------------------------------------------------------------------------
+-- | Convert a 'ByteString' sink into a 'Builder' sink
 builderStream :: OutputStream ByteString -> IO (OutputStream Builder)
 builderStream = builderStreamWith (allNewBuffersStrategy defaultBufferSize)
+{- TODO: Perhaps the equivalent generator version might be more intuitive for
+         some users:
+
+    InputStream Builder -> IO (InputStream ByteString) -}
 
 
 ------------------------------------------------------------------------------
+{-| Unsafe variation on 'builderStream' that reuses an existing buffer for
+    efficiency -}
 unsafeBuilderStream :: IO Buffer
                     -> OutputStream ByteString
                     -> IO (OutputStream Builder)
@@ -113,6 +120,7 @@ unsafeBuilderStream = builderStreamWith . reuseBufferStrategy
 ------------------------------------------------------------------------------
 -- Note: will not yield empty string unless it wants downstream to flush.
 --
+-- | Customize 'builderStream' with a 'BufferAllocStrategy'
 builderStreamWith :: BufferAllocStrategy
                   -> OutputStream ByteString
                   -> IO (OutputStream Builder)
