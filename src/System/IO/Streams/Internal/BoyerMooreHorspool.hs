@@ -16,6 +16,7 @@ import           Prelude                     hiding (last, read)
 ------------------------------------------------------------------------------
 import           System.IO.Streams.Internal
                    ( InputStream
+                   , SP(..)
                    , appendSource
                    , concatSources
                    , nullSource
@@ -80,8 +81,8 @@ search needle stream = do
   where
     --------------------------------------------------------------------------
     finishAndEOF x = if S.null x
-                       then return (nullSource, Nothing)
-                       else return (nullSource, Just $ NoMatch x)
+                       then return $! SP nullSource Nothing
+                       else return $! SP nullSource (Just $! NoMatch x)
 
     --------------------------------------------------------------------------
     startSearch !haystack =

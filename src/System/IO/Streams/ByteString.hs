@@ -45,10 +45,11 @@ import           Prelude                       hiding (read)
 ------------------------------------------------------------------------------
 import           System.IO.Streams.Combinators (inputFoldM, outputFoldM)
 import           System.IO.Streams.Internal
-                   ( Source(..)
-                   , Sink(..)
-                   , InputStream
+                   ( InputStream
                    , OutputStream
+                   , SP(..)
+                   , Sink(..)
+                   , Source(..)
                    , nullSink
                    , pushback
                    , read
@@ -111,7 +112,7 @@ takeBytes k0 src = sourceToStream $ source k0
   where
     fromBS s = if S.null s then Nothing else Just s
 
-    eof !n = return (eofSrc n, Nothing)
+    eof !n = return $! SP (eofSrc n) Nothing
 
     eofSrc !n = Source {
                produce = eof n
@@ -134,8 +135,8 @@ takeBytes k0 src = sourceToStream $ source k0
                        then let (a,b) = S.splitAt (fromEnum k) s
                             in do
                                 when (not $ S.null b) $ unRead b src
-                                return (eofSrc 0, fromBS a)
-                       else return (source k', Just s)
+                                return $! SP (eofSrc 0) (fromBS a)
+                       else return $! SP (source k') (Just s)
 
 
 ------------------------------------------------------------------------------
@@ -181,7 +182,7 @@ throwIfProducesMoreThan k0 src = sourceToStream $ source k0
                , pushback = pb n
                }
 
-    eof n = return (eofSrc n, Nothing)
+    eof n = return $! SP (eofSrc n) Nothing
 
     pb n s = do
         unRead s src
@@ -195,7 +196,7 @@ throwIfProducesMoreThan k0 src = sourceToStream $ source k0
                       k' = k - l
                   in if k' < 0
                        then throwIO TooManyBytesReadException
-                       else return (source k', Just s)
+                       else return $! SP (source k') (Just s)
 
 
 ------------------------------------------------------------------------------
@@ -309,7 +310,7 @@ throwIfTooSlow !bump !minRate !minSeconds' !stream = do
 
     source !startTime = proc
       where
-        eof !nb = return (eofSrc nb, Nothing)
+        eof !nb = return $! SP (eofSrc nb) Nothing
         eofSrc !nb = Source { produce = eof nb
                             , pushback = pb nb }
 
@@ -319,20 +320,18 @@ throwIfTooSlow !bump !minRate !minSeconds' !stream = do
 
         proc !nb = Source prod (pb nb)
           where
-            prod = do
-                mb <- read stream
-                maybe (eof nb)
-                      (\s -> do
-                         let slen = S.length s
-                         now <- getTime
-                         let !delta = now - startTime
-                         let !newBytes = nb + slen
-                         when (delta > minSeconds + 1 &&
-                               fromIntegral newBytes /
-                                  (delta-minSeconds) < minRate) $
-                             throwIO RateTooSlowException
+            prod = read stream >>=
+                   maybe (eof nb)
+                         (\s -> do
+                            let slen = S.length s
+                            now <- getTime
+                            let !delta = now - startTime
+                            let !newBytes = nb + slen
+                            when (delta > minSeconds + 1 &&
+                                  fromIntegral newBytes /
+                                     (delta-minSeconds) < minRate) $
+                                throwIO RateTooSlowException
 
-                         -- otherwise, bump the timeout and return the input
-                         !_ <- bump
-                         return (proc newBytes, Just s))
-                      mb
+                            -- otherwise, bump the timeout and return the input
+                            !_ <- bump
+                            return $! SP (proc newBytes) (Just s))
