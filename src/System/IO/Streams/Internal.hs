@@ -5,6 +5,7 @@
 module System.IO.Streams.Internal
   ( Source(..)
   , Sink(..)
+  , SP(..)
   , appendSource
   , concatSources
   , defaultPushback
@@ -42,6 +43,10 @@ import           Prelude hiding     ( read )
 
 
 ------------------------------------------------------------------------------
+-- | A strict pair type.
+data SP a b = SP !a !b
+
+------------------------------------------------------------------------------
 -- TODO: Define the rest of the laws, which are basically the State monad laws
 {-| A 'Source' generates values of type @c@ in the 'IO' monad.
 
@@ -58,7 +63,7 @@ import           Prelude hiding     ( read )
     'Source's.
 -}
 data Source c = Source {
-      produce  :: IO (Source c, Maybe c)
+      produce  :: IO (SP (Source c) (Maybe c))
     , pushback :: c -> IO (Source c)
     }
 
@@ -103,9 +108,9 @@ appendSource :: Source c -> Source c -> Source c
 p `appendSource` q = Source prod pb
   where
     prod = do
-        (p', c) <- produce p
+        (SP p' c) <- produce p
         maybe (produce q)
-              (const $ return (p' `appendSource` q, c))
+              (const $ return $! SP (p' `appendSource` q) c)
               c
 
     pb c = do
@@ -128,7 +133,7 @@ concatSources = foldl' appendSource nullSource
 {- TODO: Leaving this undocumented for now since it has a very narrow use case
          and might be worth replacing with a more useful function -}
 defaultPushback :: Source c -> c -> IO (Source c)
-defaultPushback s c = let s' = Source { produce  = return (s, Just c)
+defaultPushback s c = let s' = Source { produce  = return $! SP s (Just c)
                                       , pushback = defaultPushback s'
                                       }
                       in return $! s'
@@ -137,7 +142,7 @@ defaultPushback s c = let s' = Source { produce  = return (s, Just c)
 ------------------------------------------------------------------------------
 {- TODO: Leaving this undocumented for now since it has a very narrow use case
          and might be worth replacing with a more useful function -}
-withDefaultPushback :: IO (Source c, Maybe c) -> Source c
+withDefaultPushback :: IO (SP (Source c) (Maybe c)) -> Source c
 withDefaultPushback prod = let s = Source prod (defaultPushback s)
                            in s
 
@@ -145,7 +150,7 @@ withDefaultPushback prod = let s = Source prod (defaultPushback s)
 ------------------------------------------------------------------------------
 -- | An empty source that immediately yields 'Nothing'
 nullSource :: Source c
-nullSource = withDefaultPushback (return (nullSource, Nothing))
+nullSource = withDefaultPushback (return $! SP nullSource Nothing)
 
 
 ------------------------------------------------------------------------------
@@ -157,7 +162,7 @@ nullSink = Sink $ const $ return nullSink
 ------------------------------------------------------------------------------
 -- | Transform any value into a 1-element 'Source'
 singletonSource :: c -> Source c
-singletonSource c = withDefaultPushback $ return (nullSource, Just c)
+singletonSource c = withDefaultPushback $ return $! SP nullSource (Just c)
 
 
 ------------------------------------------------------------------------------
@@ -191,8 +196,8 @@ newtype OutputStream c = OS (IORef (Sink   c))
 -}
 read :: InputStream c -> IO (Maybe c)
 read (IS ref) = do
-    m      <- readIORef ref
-    (m',x) <- produce m
+    m       <- readIORef ref
+    SP m' x <- produce m
     writeIORef ref m'
     return x
 {-# INLINE read #-}
@@ -315,8 +320,9 @@ makeInputStream m = sourceToStream s
   where
     s = Source { produce = do
                      x <- m
-                     return (s, x)
-               , pushback = defaultPushback s }
+                     return $! SP s x
+               , pushback = defaultPushback s
+               }
 {-# INLINE makeInputStream #-}
 
 
@@ -346,7 +352,7 @@ lockingInputStream s = do
     mv <- newMVar $! ()
     let src = Source { produce = withMVar mv $ const $ do
                            x <- read s
-                           return (src, x)
+                           return $! SP src x
                      , pushback = \c -> withMVar mv $ const $ do
                                       unRead c s
                                       return src

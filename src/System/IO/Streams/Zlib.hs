@@ -45,6 +45,7 @@ import           System.IO.Streams.Blaze (unsafeBuilderStream)
 import           System.IO.Streams.Internal
                    ( InputStream
                    , OutputStream
+                   , SP(..)
                    , makeOutputStream
                    , nullSource
                    , produce
@@ -85,20 +86,21 @@ inflate input state = sourceToStream source
     eof     = do
         x <- finishInflate state
         if (not $ S.null x)
-          then return (nullSource, Just x)
-          else return (nullSource, Nothing)
+          then return $! SP nullSource (Just x)
+          else return $! SP nullSource Nothing
 
     chunk s =
         if S.null s
           then do
               out <- liftM Just $ flushInflate state
-              return (source, out)
+              return $! SP source out
           else feedInflate state s >>= popAll
 
     popAll popper = go
       where
-        go = popper >>= maybe (produce source)
-                              (\s -> return (withDefaultPushback go, Just s))
+        go = popper >>=
+             maybe (produce source)
+                   (\s -> return $! SP (withDefaultPushback go) (Just s))
 
 
 ------------------------------------------------------------------------------

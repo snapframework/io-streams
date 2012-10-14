@@ -12,6 +12,7 @@ import Control.Concurrent.MVar    ( modifyMVar
 import System.IO.Streams.Internal ( InputStream
                                   , OutputStream
                                   , Sink(..)
+                                  , SP(..)
                                   , connect
                                   , nullSink
                                   , nullSource
@@ -26,8 +27,8 @@ import System.IO.Streams.Internal ( InputStream
 fromList :: [c] -> IO (InputStream c)
 fromList = sourceToStream . f
   where
-    f []     = withDefaultPushback $ return (nullSource, Nothing)
-    f (x:xs) = withDefaultPushback $ return (f xs, Just x)
+    f []     = withDefaultPushback $ return $! SP (nullSource) Nothing
+    f (x:xs) = withDefaultPushback $ return $! SP (f xs) (Just x)
 {-# INLINE fromList #-}
 
 
