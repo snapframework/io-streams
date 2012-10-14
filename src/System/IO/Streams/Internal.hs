@@ -20,6 +20,7 @@ module System.IO.Streams.Internal
   , write
   , sourceToStream
   , sinkToStream
+  , appendInputStream
   , peek
   , connect
   , connectTo
@@ -35,11 +36,11 @@ module System.IO.Streams.Internal
   ) where
 
 ------------------------------------------------------------------------------
-import           Control.Concurrent ( newMVar, withMVar )
-import           Control.Monad      ( liftM )
-import           Data.IORef         ( IORef, newIORef, readIORef, writeIORef )
-import           Data.List          ( foldl' )
-import           Prelude hiding     ( read )
+import           Control.Concurrent  ( newMVar, withMVar )
+import           Control.Monad       ( liftM )
+import           Data.IORef          ( IORef, newIORef, readIORef, writeIORef )
+import           Data.List           ( foldl' )
+import           Prelude hiding      ( read )
 
 
 ------------------------------------------------------------------------------
@@ -229,6 +230,23 @@ sourceToStream = liftM IS . newIORef
 sinkToStream :: Sink a -> IO (OutputStream a)
 sinkToStream = liftM OS . newIORef
 {-# INLINE sinkToStream #-}
+
+
+------------------------------------------------------------------------------
+-- Note: does not push back to either input stream
+appendInputStream :: InputStream a -> InputStream a -> IO (InputStream a)
+appendInputStream s1 s2 = sourceToStream src1
+  where
+    src1 = withDefaultPushback read1
+    src2 = withDefaultPushback read2
+
+    read1 = do
+        x <- read s1
+        maybe read2 (const $! return $! SP src1 x) x
+
+    read2 = do
+        x <- read s2
+        return $! SP src2 x
 
 
 ------------------------------------------------------------------------------

@@ -15,6 +15,7 @@ import           System.IO.Streams.List
 
 tests :: [Test]
 tests = [ testSourceConcat
+        , testAppendInput
         , testConst
         , testCoverLockingStream
         , testPeek
@@ -33,6 +34,18 @@ testSourceConcat = testCase "internal/sourceConcat" $ do
     l  <- toList is
 
     assertEqual "sourceConcat" [7,1,2,3] l
+
+
+------------------------------------------------------------------------------
+testAppendInput :: Test
+testAppendInput = testCase "internal/appendInputStream" $ do
+    s1 <- fromList [1::Int, 2, 3]
+    s2 <- fromList [5, 6, 7]
+
+    is <- appendInputStream s1 s2
+    l  <- toList is
+
+    assertEqual "appendInputStream" [1,2,3,5,6,7] l
 
 
 ------------------------------------------------------------------------------
