@@ -2,11 +2,11 @@
 
 module System.IO.Streams.Zlib
  ( gunzip
- , gzip
- , gzipBuilder
- , compress
- , compressBuilder
  , decompress
+ , gzip
+ , compress
+ , gzipBuilder
+ , compressBuilder
  , CompressionLevel(..)
  , defaultCompressionLevel
  ) where
@@ -67,11 +67,13 @@ compressBits = WindowBits 15
 
 
 ------------------------------------------------------------------------------
+-- | Decompress an 'InputStream' of strict 'ByteString's from the @gzip@ format
 gunzip :: InputStream ByteString -> IO (InputStream ByteString)
 gunzip input = initInflate gzipBits >>= inflate input
 
 
 ------------------------------------------------------------------------------
+-- | Decompress an 'InputStream' of strict 'ByteString's from the @zlib@ format
 decompress :: InputStream ByteString -> IO (InputStream ByteString)
 decompress input = initInflate compressBits >>= inflate input
 
@@ -123,14 +125,20 @@ deflateBuilder stream state = do
 
 
 ------------------------------------------------------------------------------
+-- | Convert an 'OutputStream' that consumes compressed 'Builder's into an
+-- 'OutputStream' that consumes uncompressed 'Builder's in the @gzip@ format
 gzipBuilder :: CompressionLevel
             -> OutputStream Builder
             -> IO (OutputStream Builder)
 gzipBuilder level output =
     initDeflate (clamp level) gzipBits >>= deflateBuilder output
-
+-- TODO: I don't know a better way to phrase that while not confusing the users.
+-- These function would be much more intuitive for users if it transformed
+-- 'InputStream's rather than 'OutputStream's
 
 ------------------------------------------------------------------------------
+-- | Convert an 'OutputStream' that consumes compressed 'Builder's into an
+-- 'OutputStream' that consumes uncompressed 'Builder's in the @zlib@ format
 compressBuilder :: CompressionLevel
                 -> OutputStream Builder
                 -> IO (OutputStream Builder)
@@ -167,6 +175,7 @@ newtype CompressionLevel = CompressionLevel Int
 
 
 ------------------------------------------------------------------------------
+-- | A compression level that balances speed with compression ratio
 defaultCompressionLevel :: CompressionLevel
 defaultCompressionLevel = CompressionLevel 5
 
@@ -177,6 +186,8 @@ clamp (CompressionLevel x) = min 9 (max x 0)
 
 
 ------------------------------------------------------------------------------
+-- | Convert an 'OutputStream' that consumes compressed 'ByteString's into an
+-- 'OutputStream' that consumes uncompressed 'ByteString's in the @gzip@ format
 gzip :: CompressionLevel
      -> OutputStream ByteString
      -> IO (OutputStream ByteString)
@@ -184,6 +195,8 @@ gzip level output = initDeflate (clamp level) gzipBits >>= deflate output
 
 
 ------------------------------------------------------------------------------
+-- | Convert an 'OutputStream' that consumes compressed 'ByteString's into an
+-- 'OutputStream' that consumes uncompressed 'ByteString's in the @zlib@ format
 compress :: CompressionLevel
          -> OutputStream ByteString
          -> IO (OutputStream ByteString)
