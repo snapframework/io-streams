@@ -21,6 +21,7 @@ bUFSIZ = 32752
 
 
 ------------------------------------------------------------------------------
+-- | Convert a read-only handle into an 'InputStream' of strict 'ByteString's
 handleToInputStream :: Handle -> IO (InputStream ByteString)
 handleToInputStream h = makeInputStream f
   where
@@ -30,6 +31,7 @@ handleToInputStream h = makeInputStream f
 
 
 ------------------------------------------------------------------------------
+-- | Convert a read-only handle into an 'OutputStream' of strict 'ByteString's
 handleToOutputStream :: Handle -> IO (OutputStream ByteString)
 handleToOutputStream h = makeOutputStream f
   where
