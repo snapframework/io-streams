@@ -7,24 +7,31 @@
 -- > import qualified System.IO.Streams as Streams
 --
 module System.IO.Streams
- ( InputStream
+ ( -- * Stream types
+   InputStream
  , OutputStream
- , nullInput
- , nullOutput
+   -- * Build streams
+ , makeInputStream
+ , makeOutputStream
+   -- * Primitive stream operations
  , read
- , peek
  , unRead
+ , peek
  , write
  , atEOF
+   -- * Connect streams
  , connect
  , connectTo
  , connectWithoutEof
  , connectToWithoutEof
- , makeInputStream
- , makeOutputStream
+   -- * Thread safety
  , lockingInputStream
  , lockingOutputStream
+   -- * Utility streams
+ , nullInput
+ , nullOutput
 
+   -- * Batteries included
  , module System.IO.Streams.Blaze
  , module System.IO.Streams.ByteString
  , module System.IO.Streams.Combinators

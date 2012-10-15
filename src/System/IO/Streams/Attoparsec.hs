@@ -1,6 +1,13 @@
+-- | This module provides @attoparsec@ integration, converting 'Parser's into
+-- 'InputStream's.
+
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE OverloadedStrings  #-}
-module System.IO.Streams.Attoparsec where
+module System.IO.Streams.Attoparsec
+  ( -- * Parsing
+    ParseException(..)
+  , parseFromStream
+    ) where
 
 ------------------------------------------------------------------------------
 import           Control.Exception                ( Exception, throwIO )
@@ -19,6 +26,7 @@ import           Prelude                   hiding ( read )
 import           System.IO.Streams.Internal       ( InputStream, read, unRead )
 
 ------------------------------------------------------------------------------
+-- | An exception raised when parsing fails
 data ParseException = ParseException String
   deriving (Typeable)
 

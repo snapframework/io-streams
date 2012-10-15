@@ -2,7 +2,8 @@
 
 -- | Input and output streams for files.
 module System.IO.Streams.File
-  ( withFileAsInput
+  ( -- * File conversions
+    withFileAsInput
   , withFileAsInputStartingAt
   , unsafeWithFileAsInputStartingAt
   , withFileAsOutput

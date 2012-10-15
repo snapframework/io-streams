@@ -1,12 +1,18 @@
+-- | Interface to @zlib@ and @gzip@ compression for 'Bytestring's and 'Builder's
+
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module System.IO.Streams.Zlib
- ( gunzip
+ ( -- * ByteString decompression
+   gunzip
  , decompress
+   -- * ByteString compression
  , gzip
  , compress
+   -- * Builder compression
  , gzipBuilder
  , compressBuilder
+   -- * Compression level
  , CompressionLevel(..)
  , defaultCompressionLevel
  ) where
@@ -170,6 +176,7 @@ deflate output state = makeOutputStream stream
 
 
 ------------------------------------------------------------------------------
+-- | Parameter that defines the tradeoff between speed and compression ratio
 newtype CompressionLevel = CompressionLevel Int
   deriving (Read, Eq, Show, Num)
 

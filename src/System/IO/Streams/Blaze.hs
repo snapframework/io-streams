@@ -58,7 +58,8 @@
 -- > ["the quick brown fox","","jumped over the"]
 --
 module System.IO.Streams.Blaze
- ( builderStream
+ ( -- * Blaze builder conversion
+   builderStream
  , unsafeBuilderStream
  , builderStreamWith
  ) where

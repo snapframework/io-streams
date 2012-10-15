@@ -1,7 +1,11 @@
+-- | List conversions and utilities
+
 module System.IO.Streams.List
- ( fromList
+ ( -- * List conversions
+   fromList
  , toList
  , writeList
+   -- * Utility
  , listOutputStream
  ) where
 

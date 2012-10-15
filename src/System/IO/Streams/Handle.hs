@@ -1,6 +1,7 @@
 -- | Input and output streams for Handles.
 module System.IO.Streams.Handle
- ( handleToInputStream
+ ( -- * Handle conversions
+   handleToInputStream
  , handleToOutputStream
  ) where
 

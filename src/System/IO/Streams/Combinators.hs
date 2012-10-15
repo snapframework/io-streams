@@ -1,11 +1,16 @@
+-- | Generic stream manipulations
+
 {-# LANGUAGE BangPatterns       #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 
 module System.IO.Streams.Combinators
- ( inputFoldM
+ ( -- * Folds
+   inputFoldM
  , outputFoldM
+   -- * Maps
  , mapM
  , contramapM
+   -- * Utility
  , skipToEof
  ) where
 

@@ -1,38 +1,52 @@
+-- | Internal implementation of the @io-streams@ library, intended for library
+-- writers
+--
+-- Library users should use the interface provided by "System.IO.Streams"
+
 {-# LANGUAGE BangPatterns               #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings          #-}
 
 module System.IO.Streams.Internal
-  ( Source(..)
+  ( -- * Types
+    SP(..)
+  , Source(..)
   , Sink(..)
-  , SP(..)
+    -- * Source concatenation
   , appendSource
   , concatSources
+    -- * Default sources and sinks
   , defaultPushback
   , withDefaultPushback
   , nullSource
   , nullSink
   , singletonSource
+    -- * Input and output streams
   , InputStream(..)
   , OutputStream(..)
+    -- * Primitive stream operations
   , read
   , unRead
+  , peek
   , write
+  , atEOF
+    -- * Build streams
   , sourceToStream
   , sinkToStream
+  , makeInputStream
+  , makeOutputStream
   , appendInputStream
-  , peek
+    -- * Connect streams
   , connect
   , connectTo
   , connectWithoutEof
   , connectToWithoutEof
-  , makeInputStream
-  , makeOutputStream
+    -- * Thread safety
   , lockingInputStream
   , lockingOutputStream
+    -- * Utility streams
   , nullInput
   , nullOutput
-  , atEOF
   ) where
 
 ------------------------------------------------------------------------------
