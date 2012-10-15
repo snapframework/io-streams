@@ -29,14 +29,13 @@ instance Exception ParseException
 
 
 ------------------------------------------------------------------------------
-{-| Supply an @attoparsec@ 'Parser' with an 'InputStream', returning the final
-    parsed value or a 'ParseException' if parsing fails.
-
-    'parseFromStream' consumes only as much input as necessary to satisfy the
-    'Parser' and unconsumed input is pushed back onto the 'InputStream.
-
-    If the 'Parser' exhausts the 'InputStream', it receives an @EOF@.
--}
+-- | Supply an @attoparsec@ 'Parser' with an 'InputStream', returning the final
+-- parsed value or a 'ParseException' if parsing fails.
+--
+-- 'parseFromStream' consumes only as much input as necessary to satisfy the
+-- 'Parser' and unconsumed input is pushed back onto the 'InputStream.
+--
+-- If the 'Parser' exhausts the 'InputStream', it receives an @EOF@.
 parseFromStream :: Parser r
                 -> InputStream ByteString
                 -> IO r

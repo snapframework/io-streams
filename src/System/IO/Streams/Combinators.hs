@@ -73,14 +73,13 @@ inputFoldM f initial stream = do
 
 
 ------------------------------------------------------------------------------
-{-| Map an impure function over an 'InputStream'
-
-    @mapM f s@ passes all output from @s@ through the impure function @f@.
-
-> mapM (f >=> g) = mapM f >=> mapM g
->
-> mapM return = return
--}
+-- | Map an impure function over an 'InputStream'
+--
+-- @mapM f s@ passes all output from @s@ through the impure function @f@.
+--
+-- > mapM (f >=> g) = mapM f >=> mapM g
+-- >
+-- > mapM return = return
 mapM :: (a -> IO b) -> InputStream a -> IO (InputStream b)
 mapM f s = makeInputStream g
   where
@@ -92,14 +91,13 @@ mapM f s = makeInputStream g
 
 
 ------------------------------------------------------------------------------
-{-| Contravariant counterpart to 'mapM'
-
-    (@contramapM f s@) passes all input to @s@ through the impure function @f@
-
-> contramapM (f >=> g) = contramapM g >=> contramapM f
->
-> contramapM return = return
--}
+-- | Contravariant counterpart to 'mapM'
+--
+-- (@contramapM f s@) passes all input to @s@ through the impure function @f@
+--
+-- > contramapM (f >=> g) = contramapM g >=> contramapM f
+-- >
+-- > contramapM return = return
 contramapM :: (a -> IO b) -> OutputStream b -> IO (OutputStream a)
 contramapM f s = makeOutputStream g
   where

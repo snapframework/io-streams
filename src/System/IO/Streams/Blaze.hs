@@ -109,8 +109,11 @@ builderStream = builderStreamWith (allNewBuffersStrategy defaultBufferSize)
 
 
 ------------------------------------------------------------------------------
-{-| Unsafe variation on 'builderStream' that reuses an existing buffer for
-    efficiency -}
+-- | Unsafe variation on 'builderStream' that reuses an existing buffer for
+-- efficiency
+--
+-- Do not modify the buffer afterwards or you will violate referential
+-- transparency.
 unsafeBuilderStream :: IO Buffer
                     -> OutputStream ByteString
                     -> IO (OutputStream Builder)
