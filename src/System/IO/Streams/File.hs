@@ -75,6 +75,7 @@ import           System.IO.Streams.Handle
 
 
 ------------------------------------------------------------------------------
+-- | Expose a file as an 'InputStream' to read from
 withFileAsInput :: FilePath                          -- ^ file to open
                 -> (InputStream ByteString -> IO a)  -- ^ function to run
                 -> IO a
@@ -82,6 +83,8 @@ withFileAsInput = withFileAsInputStartingAt 0
 
 
 ------------------------------------------------------------------------------
+-- | Expose a file as an 'InputStream' to read from beginning at a specified
+-- index
 withFileAsInputStartingAt
     :: Int64                             -- ^ starting index to seek to
     -> FilePath                          -- ^ file to open
@@ -102,6 +105,7 @@ unsafeWithFileAsInputStartingAt
 
 
 ------------------------------------------------------------------------------
+-- | Expose a file as an 'OutputStream' to write to
 withFileAsOutput
     :: FilePath                           -- ^ file to open
     -> IOMode                             -- ^ mode to write in
