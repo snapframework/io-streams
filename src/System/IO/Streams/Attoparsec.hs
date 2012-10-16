@@ -1,8 +1,9 @@
--- | This module provides @attoparsec@ integration, converting 'Parser's into
--- 'InputStream's.
+-- | This module provides support for parsing values from 'InputStream's using
+-- @attoparsec@.
 
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE OverloadedStrings  #-}
+
 module System.IO.Streams.Attoparsec
   ( -- * Parsing
     ParseException(..)
@@ -26,7 +27,7 @@ import           Prelude                   hiding ( read )
 import           System.IO.Streams.Internal       ( InputStream, read, unRead )
 
 ------------------------------------------------------------------------------
--- | An exception raised when parsing fails
+-- | An exception raised when parsing fails.
 data ParseException = ParseException String
   deriving (Typeable)
 
@@ -37,11 +38,11 @@ instance Exception ParseException
 
 
 ------------------------------------------------------------------------------
--- | Supply an @attoparsec@ 'Parser' with an 'InputStream', returning the final
--- parsed value or a 'ParseException' if parsing fails.
+-- | Supplies an @attoparsec@ 'Parser' with an 'InputStream', returning the
+-- final parsed value or a 'ParseException' if parsing fails.
 --
 -- 'parseFromStream' consumes only as much input as necessary to satisfy the
--- 'Parser' and unconsumed input is pushed back onto the 'InputStream.
+-- 'Parser' and unconsumed input is pushed back onto the 'InputStream'.
 --
 -- If the 'Parser' exhausts the 'InputStream', it receives an @EOF@.
 parseFromStream :: Parser r

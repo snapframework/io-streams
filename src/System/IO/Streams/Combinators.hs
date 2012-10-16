@@ -78,9 +78,11 @@ inputFoldM f initial stream = do
 
 
 ------------------------------------------------------------------------------
--- | Map an impure function over an 'InputStream'
+-- | Maps an impure function over an 'InputStream'.
 --
 -- @mapM f s@ passes all output from @s@ through the impure function @f@.
+--
+-- Satisfies the following laws:
 --
 -- > mapM (f >=> g) = mapM f >=> mapM g
 -- >
@@ -96,9 +98,11 @@ mapM f s = makeInputStream g
 
 
 ------------------------------------------------------------------------------
--- | Contravariant counterpart to 'mapM'
+-- | Contravariant counterpart to 'mapM'.
 --
 -- (@contramapM f s@) passes all input to @s@ through the impure function @f@
+--
+-- Satisfies the following laws:
 --
 -- > contramapM (f >=> g) = contramapM g >=> contramapM f
 -- >
@@ -114,7 +118,8 @@ contramapM f s = makeOutputStream g
 
 
 ------------------------------------------------------------------------------
--- | Drive an 'InputStream' to completion without using any values
+-- | Drives an 'InputStream' to end-of-stream, discarding all of the yielded
+-- values.
 skipToEof :: InputStream a -> IO ()
 skipToEof str = go
   where

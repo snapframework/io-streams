@@ -67,7 +67,7 @@ import           System.IO.Streams.List (writeList)
 
 
 ------------------------------------------------------------------------------
--- | Write a lazy 'ByteString' to an 'OutputStream'.
+-- | Writes a lazy 'ByteString' to an 'OutputStream'.
 writeLazyByteString :: L.ByteString             -- ^ string to write to output
                     -> OutputStream ByteString  -- ^ output stream
                     -> IO ()
@@ -103,8 +103,8 @@ countOutput = outputFoldM f 0
 
 
 ------------------------------------------------------------------------------
--- | Wrap an 'InputStream', producing a new 'InputStream' that will produce at
--- most n, then yielding EOF forever.
+-- | Wraps an 'InputStream', producing a new 'InputStream' that will produce at
+-- most @n@ bytes, subsequently yielding end-of-stream forever.
 takeBytes :: Int64                        -- ^ maximum number of bytes to read
           -> InputStream ByteString       -- ^ input stream to wrap
           -> IO (InputStream ByteString)
@@ -200,7 +200,7 @@ throwIfProducesMoreThan k0 src = sourceToStream $ source k0
 
 
 ------------------------------------------------------------------------------
--- | Read an @n@-byte ByteString from an input stream. Throws a
+-- | Reads an @n@-byte ByteString from an input stream. Throws a
 -- 'ReadTooShortException' if fewer than @n@ bytes were available.
 --
 readExactly :: Int                     -- ^ number of bytes to read
@@ -256,7 +256,7 @@ giveBytes k0 str = sinkToStream $ sink k0
 -- most @n@ bytes to the wrapped stream. If more than @n@ bytes are sent to the
 -- outer stream, a 'TooManyBytesWrittenException' will be thrown.
 --
--- Note that if more than @n@ bytes are sent to the outer stream,
+-- /Note/: if more than @n@ bytes are sent to the outer stream,
 -- 'throwIfConsumesMoreThan' will not necessarily send the first @n@ bytes
 -- through to the wrapped stream before throwing the exception.
 throwIfConsumesMoreThan
@@ -289,7 +289,7 @@ instance Exception RateTooSlowException
 
 
 ------------------------------------------------------------------------------
--- | Rate-limit an input stream. If the input stream is not read from faster
+-- | Rate-limits an input stream. If the input stream is not read from faster
 -- than the given rate, reading from the wrapped stream will throw a
 -- 'RateTooSlowException'.
 throwIfTooSlow

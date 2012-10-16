@@ -58,7 +58,7 @@ matches !needle !nstart !nend' !haystack !hstart !hend' =
 
 ------------------------------------------------------------------------------
 -- | Given a 'ByteString' to look for (the \"needle\") and an 'InputStream',
--- produce a new 'InputStream' which yields data of type 'MatchInfo'.
+-- produces a new 'InputStream' which yields data of type 'MatchInfo'.
 --
 -- Example:
 --

@@ -28,7 +28,7 @@ import System.IO.Streams.Internal ( InputStream
 
 
 ------------------------------------------------------------------------------
--- | Transform a list into an 'InputStream' that produces no side effects
+-- | Transforms a list into an 'InputStream' that produces no side effects.
 fromList :: [c] -> IO (InputStream c)
 fromList = sourceToStream . f
   where
@@ -42,6 +42,10 @@ fromList = sourceToStream . f
 -- it and an action which flushes all stored values to a list.
 --
 -- The flush action resets the store.
+--
+-- Note that this function /will/ buffer any input sent to it on the heap.
+-- Please don't use this unless you're sure that the amount of input provided
+-- is bounded and will fit in memory without issues.
 listOutputStream :: IO (OutputStream c, IO [c])
 listOutputStream = do
     r <- newMVar id
@@ -59,7 +63,7 @@ listOutputStream = do
 
 
 ------------------------------------------------------------------------------
--- | Drain an 'InputStream', converting it to a list
+-- | Drains an 'InputStream', converting it to a list.
 toList :: InputStream a -> IO [a]
 toList is = do
     (os, grab) <- listOutputStream
@@ -68,10 +72,8 @@ toList is = do
 
 
 ------------------------------------------------------------------------------
--- | Feed a list to an 'OutputStream'
---
--- 'writeList' does not supply a 'Nothing' upon list completion in order to
--- permit further output.
+-- | Feeds a list to an 'OutputStream'. Does /not/ write an end-of-stream to
+-- the list.
 writeList :: [a] -> OutputStream a -> IO ()
 writeList xs os = mapM_ (flip write os . Just) xs
 {-# INLINE writeList #-}

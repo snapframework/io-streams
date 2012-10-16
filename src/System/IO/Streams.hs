@@ -10,23 +10,28 @@ module System.IO.Streams
  ( -- * Stream types
    InputStream
  , OutputStream
+
    -- * Build streams
  , makeInputStream
  , makeOutputStream
+
    -- * Primitive stream operations
  , read
  , unRead
  , peek
  , write
  , atEOF
+
    -- * Connect streams
  , connect
  , connectTo
  , connectWithoutEof
  , connectToWithoutEof
+
    -- * Thread safety
  , lockingInputStream
  , lockingOutputStream
+
    -- * Utility streams
  , nullInput
  , nullOutput

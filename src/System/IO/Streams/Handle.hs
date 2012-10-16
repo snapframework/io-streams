@@ -1,4 +1,4 @@
--- | Input and output streams for Handles.
+-- | Input and output streams for file 'Handle's.
 module System.IO.Streams.Handle
  ( -- * Handle conversions
    handleToInputStream
@@ -22,7 +22,7 @@ bUFSIZ = 32752
 
 
 ------------------------------------------------------------------------------
--- | Convert a read-only handle into an 'InputStream' of strict 'ByteString's
+-- | Converts a read-only handle into an 'InputStream' of strict 'ByteString's.
 handleToInputStream :: Handle -> IO (InputStream ByteString)
 handleToInputStream h = makeInputStream f
   where
@@ -32,7 +32,7 @@ handleToInputStream h = makeInputStream f
 
 
 ------------------------------------------------------------------------------
--- | Convert a read-only handle into an 'OutputStream' of strict 'ByteString's
+-- | Converts a writable handle into an 'OutputStream' of strict 'ByteString's.
 handleToOutputStream :: Handle -> IO (OutputStream ByteString)
 handleToOutputStream h = makeOutputStream f
   where

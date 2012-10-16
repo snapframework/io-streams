@@ -100,7 +100,7 @@ import           System.IO.Streams.Internal
 
 
 ------------------------------------------------------------------------------
--- | Convert a 'ByteString' sink into a 'Builder' sink
+-- | Converts a 'ByteString' sink into a 'Builder' sink.
 builderStream :: OutputStream ByteString -> IO (OutputStream Builder)
 builderStream = builderStreamWith (allNewBuffersStrategy defaultBufferSize)
 {- TODO: Perhaps the equivalent generator version might be more intuitive for
@@ -111,10 +111,17 @@ builderStream = builderStreamWith (allNewBuffersStrategy defaultBufferSize)
 
 ------------------------------------------------------------------------------
 -- | Unsafe variation on 'builderStream' that reuses an existing buffer for
--- efficiency
+-- efficiency.
 --
--- Do not modify the buffer afterwards or you will violate referential
+-- /NOTE/: because the buffer is reused, subsequent 'ByteString' values written
+-- to the wrapped 'OutputString' will cause previous yielded strings to change.
+-- Do not retain references to these 'ByteString' values inside the
+-- 'OutputStream' you pass to this function, or you will violate referential
 -- transparency.
+--
+-- If you /must/ retain copies of these values, then please use
+-- 'Data.ByteString.copy' to ensure that you have a fresh copy of the
+-- underlying string.
 unsafeBuilderStream :: IO Buffer
                     -> OutputStream ByteString
                     -> IO (OutputStream Builder)
@@ -124,7 +131,8 @@ unsafeBuilderStream = builderStreamWith . reuseBufferStrategy
 ------------------------------------------------------------------------------
 -- Note: will not yield empty string unless it wants downstream to flush.
 --
--- | Customize 'builderStream' with a 'BufferAllocStrategy'
+-- | A customized version of 'builderStream', using the specified
+-- 'BufferAllocStrategy'.
 builderStreamWith :: BufferAllocStrategy
                   -> OutputStream ByteString
                   -> IO (OutputStream Builder)
