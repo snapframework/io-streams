@@ -408,7 +408,9 @@ makeInputStream m = sourceToStream s
   where
     s = Source { produce = do
                      x <- m
-                     return $! SP s x
+                     return $! maybe (SP nullSource Nothing)
+                                     (const $ SP s x)
+                                     x
                , pushback = defaultPushback s
                }
 {-# INLINE makeInputStream #-}

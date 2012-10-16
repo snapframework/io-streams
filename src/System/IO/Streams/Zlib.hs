@@ -172,7 +172,7 @@ deflate output state = makeOutputStream stream
 
     popAll popper = go
       where
-        go = popper >>= maybe (return ()) (\s -> write (Just s) output >> go)
+        go = popper >>= maybe (return $! ()) (\s -> write (Just s) output >> go)
 
 
 ------------------------------------------------------------------------------

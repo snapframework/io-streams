@@ -24,6 +24,7 @@ import           System.IO.Streams.Tests.Common
 
 tests :: [Test]
 tests = [ testBoyerMoore
+        , testBoyerMoore2
         , testCountInput
         , testCountOutput
         , testThrowIfTooSlow
@@ -222,6 +223,11 @@ testThrowIfConsumesMoreThan2 =
              l' <- liftM L.fromChunks grab
              assertEqual "throwIfConsumesMoreThan" l l'
 
+             -- cover nullSink behaviour
+             write (Just "blah") os'
+             nil <- liftM L.fromChunks grab
+             assertEqual "nil after eof" "" nil
+
 
 ------------------------------------------------------------------------------
 testGiveBytes :: Test
@@ -388,6 +394,43 @@ testBoyerMoore = testProperty "bytestring/boyerMoore" $
 
 
 ------------------------------------------------------------------------------
+testBoyerMoore2 :: Test
+testBoyerMoore2 = testCase "bytestring/boyerMoore2" $ do
+    fromList ["bork", "no", "bork", "bor"]
+        >>= search "bork"
+        >>= toList
+        >>= assertEqual "bork!" [ Match "bork", NoMatch "no", Match "bork"
+                                , NoMatch "bor" ]
+
+    fromList [] >>= search "bork" >>= toList >>= assertEqual "nothing" []
+
+    fromList ["borkbo", "r"] >>= search "bork" >>= toList
+        >>= assertEqual "borkbo" [Match "bork", NoMatch "bor"]
+
+    fromList ["borkborkborkb", "o", "r", "k", "b", "o"]
+        >>= search "borkborkbork"
+        >>= toList
+        >>= assertEqual "boooooork" [Match "borkborkbork", NoMatch "borkbo"]
+
+    fromList ["bbbbb", "o", "r", "k", "bork"]
+        >>= search "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        >>= toList
+        >>= assertEqual "bbbbbbbbb" [NoMatch "bbbbborkbork"]
+
+    fromList ["bbbbbbbbb", "o", "r", "k"]
+        >>= search "bbbbbbbb"
+        >>= toList
+        >>= assertEqual "bbb2" [Match "bbbbbbbb", NoMatch "bork"]
+
+    fromList ["bababa", "bo", "rk", "bz", "z", "z", "z"] >>= search "babababork"
+        >>= toList
+        >>= assertEqual "zzz" [Match "babababork", NoMatch "bzzzz"]
+
+    fromList ["bab", "a", "b"] >>= search "bababa"
+        >>= toList
+        >>= assertEqual "bab" [NoMatch "babab"]
+
+------------------------------------------------------------------------------
 testWriteLazyByteString :: Test
 testWriteLazyByteString = testProperty "bytestring/writeLazy" $
                           monadicIO $
@@ -436,6 +479,8 @@ testTrivials :: Test
 testTrivials = testCase "bytestring/testTrivials" $ do
     coverTypeableInstance (undefined :: TooManyBytesReadException)
     coverShowInstance     (undefined :: TooManyBytesReadException)
+    coverTypeableInstance (undefined :: TooManyBytesWrittenException)
+    coverShowInstance     (undefined :: TooManyBytesWrittenException)
     coverTypeableInstance (undefined :: RateTooSlowException)
     coverShowInstance     (undefined :: RateTooSlowException)
     coverTypeableInstance (undefined :: ReadTooShortException)

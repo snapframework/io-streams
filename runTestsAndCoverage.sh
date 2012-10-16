@@ -17,6 +17,7 @@ rm -Rf $DIR
 mkdir -p $DIR
 
 EXCLUDES='Main
+System.IO.Streams.Tests.Attoparsec
 System.IO.Streams.Tests.Blaze
 System.IO.Streams.Tests.ByteString
 System.IO.Streams.Tests.Combinators

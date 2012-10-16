@@ -5,6 +5,7 @@ module System.IO.Streams.Tests.Internal (tests) where
 
 ------------------------------------------------------------------------------
 import           Control.Monad hiding (mapM)
+import           Data.Monoid
 import           Prelude hiding (mapM, read)
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
@@ -26,14 +27,23 @@ tests = [ testSourceConcat
 ------------------------------------------------------------------------------
 testSourceConcat :: Test
 testSourceConcat = testCase "internal/sourceConcat" $ do
-    is <- sourceToStream $ concatSources $
-          map singletonSource [1::Int, 2, 3]
+    is  <- sourceToStream $ concatSources $
+           map singletonSource [1::Int, 2, 3]
 
     unRead 7 is
 
-    l  <- toList is
+    l   <- toList is
 
     assertEqual "sourceConcat" [7,1,2,3] l
+
+    is' <- sourceToStream $ mconcat $
+           map singletonSource [1::Int, 2, 3]
+
+    unRead 7 is'
+
+    l'  <- toList is'
+
+    assertEqual "sourceConcat2" [7,1,2,3] l'
 
 
 ------------------------------------------------------------------------------

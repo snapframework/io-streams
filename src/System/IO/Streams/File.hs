@@ -1,4 +1,5 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP          #-}
 
 -- | Input and output streams for files.
 --
@@ -238,7 +239,7 @@ withFileAsInputStartingAtInternal mkBuf idx fp m = do
 ------------------------------------------------------------------------------
 withFileAsOutput fp ioMode m = bracket open closeFd mkStream
   where
-    fromIOMode ReadMode      = (ReadOnly, defaultFileFlags)
+    fromIOMode ReadMode      = error "withFileAsOutput called in ReadMode"
     fromIOMode WriteMode     = (WriteOnly, defaultFileFlags { trunc = True })
     fromIOMode AppendMode    = (WriteOnly, defaultFileFlags { append = True })
     fromIOMode ReadWriteMode = (ReadWrite, defaultFileFlags)
@@ -253,8 +254,8 @@ withFileAsOutput fp ioMode m = bracket open closeFd mkStream
     go fd (Just s) = S.unsafeUseAsCStringLen s $ \(ptr, len) ->
                      writeAll (castPtr ptr) (toEnum len)
       where
-        writeAll ptr len | len <= 0 = return $! ()
-                         | otherwise = do
+        writeAll !ptr !len | len <= 0 = return $! ()
+                           | otherwise = do
             bytesWritten <- fdWriteBuf fd ptr len
             writeAll (plusPtr ptr (fromEnum bytesWritten))
                      (len - bytesWritten)

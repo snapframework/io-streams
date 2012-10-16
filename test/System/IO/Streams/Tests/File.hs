@@ -50,18 +50,27 @@ copyingListOutputStream = do
 testFiles :: Test
 testFiles = testCase "file/files" $ do
     createDirectoryIfMissing False "tmp"
-    tst `finally` eatException (removeFile fn >> removeDirectory "tmp")
+    sequence_ [tst1, tst2, tst3, tst4] `finally` cleanup
 
   where
-    fn = "tmp" </> "data"
+    fn x = ("tmp" </> "data") ++ show (x :: Int)
 
-    tst = do
-        withFileAsOutput fn WriteMode $ \os -> do
+    cleanup = eatException $ do
+                  mapM_ (eatException . removeFile . fn) [1, 2, 3]
+                  removeDirectory "tmp"
+
+    tst mode n = do
+        withFileAsOutput (fn n) mode $ \os -> do
             let l = "" : (intersperse " " ["the", "quick", "brown", "fox"])
             fromList l >>= connectTo os
 
-        l <- liftM S.concat $ withFileAsInput fn toList
+        l <- liftM S.concat $ withFileAsInput (fn n) toList
         assertEqual "testFiles" "the quick brown fox" l
+
+    tst1 = tst WriteMode 1
+    tst2 = tst AppendMode 2
+    tst3 = tst ReadWriteMode 3
+    tst4 = expectExceptionH (tst ReadMode 4)
 
 
 ------------------------------------------------------------------------------
