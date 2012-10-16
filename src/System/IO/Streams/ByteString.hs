@@ -79,6 +79,15 @@ writeLazyByteString = writeList . L.toChunks
 -- | Wraps an 'InputStream', counting the number of bytes produced by the
 -- stream as a side effect. Produces a new 'InputStream' as well as an IO
 -- action to retrieve the count of bytes produced.
+--
+-- TODO: clarify pushback semantics here. This function is wrong as written.
+-- Clearly:
+--
+-- 1. strings pushed back to this stream should be propagated upstream (this
+--    needs a fix)
+--
+-- 2. pushing back input should cause the count to drop.
+--
 countInput :: InputStream ByteString -> IO (InputStream ByteString, IO Int64)
 countInput = inputFoldM f 0
   where
@@ -105,6 +114,8 @@ countOutput = outputFoldM f 0
 ------------------------------------------------------------------------------
 -- | Wraps an 'InputStream', producing a new 'InputStream' that will produce at
 -- most @n@ bytes, subsequently yielding end-of-stream forever.
+--
+-- TODO: add note explaining pushback semantics
 takeBytes :: Int64                        -- ^ maximum number of bytes to read
           -> InputStream ByteString       -- ^ input stream to wrap
           -> IO (InputStream ByteString)
@@ -171,6 +182,8 @@ instance Exception ReadTooShortException
 ------------------------------------------------------------------------------
 -- | Wraps an 'InputStream'. If more than @n@ bytes are produced by this
 -- stream, 'read' will throw a 'TooManyBytesReadException'.
+--
+-- TODO: add note explaining pushback semantics
 throwIfProducesMoreThan
     :: Int64                    -- ^ maximum number of bytes to read
     -> InputStream ByteString   -- ^ input stream
@@ -292,6 +305,8 @@ instance Exception RateTooSlowException
 -- | Rate-limits an input stream. If the input stream is not read from faster
 -- than the given rate, reading from the wrapped stream will throw a
 -- 'RateTooSlowException'.
+--
+-- TODO: add note explaining pushback semantics
 throwIfTooSlow
     :: IO ()                   -- ^ action to bump timeout
     -> Double                  -- ^ minimum data rate, in bytes per second
