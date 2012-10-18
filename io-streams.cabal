@@ -58,7 +58,8 @@ Library
                      System.IO.Streams.Zlib,
                      System.IO.Streams.Internal
 
-  Other-modules:     System.IO.Streams.Internal.BoyerMooreHorspool
+  Other-modules:     System.IO.Streams.Internal.Attoparsec,
+                     System.IO.Streams.Internal.BoyerMooreHorspool
 
   Build-depends:     base          >= 4     && <5,
                      attoparsec    >= 0.10  && <0.11,

@@ -11,7 +11,7 @@ import           Test.Framework
 import           Test.Framework.Providers.HUnit
 import           Test.HUnit                hiding ( Test )
 import           System.IO.Streams
-import           System.IO.Streams.Attoparsec
+import           System.IO.Streams.Internal.Attoparsec
 import           System.IO.Streams.Tests.Common
 ------------------------------------------------------------------------------
 
@@ -19,6 +19,7 @@ tests :: [Test]
 tests = [ testParseFromStream
         , testParseFromStreamError
         , testParseFromStreamError2
+        , testPartialParse
         , testTrivials
         ]
 
@@ -76,6 +77,18 @@ testParseFromStreamError2 = testCase "attoparsec/parseFromStreamError2" $ do
 
   where
     p = parserToInputStream testParser2 >=> toList
+
+
+------------------------------------------------------------------------------
+testPartialParse :: Test
+testPartialParse = testCase "attoparsec/partialParse" $ do
+    is <- fromList ["1,", "2,", "3"]
+    expectExceptionH $ parseFromStreamInternal parseFunc feedFunc testParser is
+
+  where
+    result    = Partial (const result)
+    parseFunc = const $ const $ result
+    feedFunc  = const $ const $ result
 
 ------------------------------------------------------------------------------
 testTrivials :: Test
