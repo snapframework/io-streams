@@ -27,7 +27,6 @@ import           System.IO.Streams.Internal
                    , withDefaultPushback
                    )
 
-
 ------------------------------------------------------------------------------
 data MatchInfo = Match   {-# UNPACK #-} !ByteString
                | NoMatch {-# UNPACK #-} !ByteString
@@ -151,7 +150,7 @@ search needle stream = do
                         let (!leftLen', needMore') = mkCoeff hidx'
                         let !nextlen = S.length nextHaystack
                         if nextlen < needMore'
-                          then do
+                          then
                             -- this should be impossibly rare
                             lookahead (needMore' - nextlen) >>=
                               either (\s -> finishAndEOF $

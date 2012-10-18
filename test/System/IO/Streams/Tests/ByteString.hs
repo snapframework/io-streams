@@ -444,6 +444,10 @@ testBoyerMoore2 = testCase "bytestring/boyerMoore2" $ do
         >>= toList
         >>= assertEqual "bab" [NoMatch "babab"]
 
+    fromList ["xxx", "xxxzx", "xx"] >>= search "xxxx" >>= toList
+        >>= assertEqual "xxxx" [Match "xxxx", NoMatch "xxzxxx"]
+
+
 ------------------------------------------------------------------------------
 testWriteLazyByteString :: Test
 testWriteLazyByteString = testProperty "bytestring/writeLazy" $
