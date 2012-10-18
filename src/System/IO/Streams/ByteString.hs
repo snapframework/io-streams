@@ -205,11 +205,16 @@ throwIfProducesMoreThan k0 src = sourceToStream $ source k0
       where
         prod = read src >>= maybe (eof k) chunk
 
-        chunk s = let l  = toEnum $ S.length s
-                      k' = k - l
-                  in if k' < 0
-                       then throwIO TooManyBytesReadException
-                       else return $! SP (source k') (Just s)
+        chunk s | l == 0    = return $! SP (source k) (Just s)
+                | k == 0    = throwIO TooManyBytesReadException
+                | k' >= 0   = return $! SP (source k') (Just s)
+                | otherwise = do
+                     unRead b src
+                     return $! SP (source 0) (Just a)
+          where
+            l     = toEnum $ S.length s
+            k'    = k - l
+            (a,b) = S.splitAt (fromEnum k) s
 
 
 ------------------------------------------------------------------------------

@@ -34,6 +34,7 @@ tests = [ testBoyerMoore
         , testTakeBytes3
         , testThrowIfProducesMoreThan
         , testThrowIfProducesMoreThan2
+        , testThrowIfProducesMoreThan3
         , testThrowIfConsumesMoreThan
         , testThrowIfConsumesMoreThan2
         , testTrivials
@@ -181,6 +182,19 @@ testThrowIfProducesMoreThan2 =
             unRead "ok1" is'
             z   <- toList is
             assertEqual "throwIfProducesMoreThan2-3" ["ok1", "ok2"] z
+
+
+------------------------------------------------------------------------------
+testThrowIfProducesMoreThan3 :: Test
+testThrowIfProducesMoreThan3 =
+    testCase "bytestring/throwIfProducesMoreThan3" $ do
+        is <- fromList ["lo", "ngstring"] >>= throwIfProducesMoreThan 4
+        s  <- readExactly 4 is
+        assertEqual "throwIfProducesMoreThan split" "long" s
+
+        l <- fromList ["ok", "", "", "", ""] >>= throwIfProducesMoreThan 2 >>=
+             toList
+        assertEqual "throwIfProducesMoreThan3" ["ok", "", "", "", ""] l
 
 
 ------------------------------------------------------------------------------
