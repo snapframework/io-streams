@@ -56,7 +56,8 @@ Library
                      System.IO.Streams.File,
                      System.IO.Streams.List,
                      System.IO.Streams.Zlib,
-                     System.IO.Streams.Internal
+                     System.IO.Streams.Internal,
+                     System.IO.Streams.Tutorial
 
   Other-modules:     System.IO.Streams.Internal.Attoparsec,
                      System.IO.Streams.Internal.BoyerMooreHorspool
