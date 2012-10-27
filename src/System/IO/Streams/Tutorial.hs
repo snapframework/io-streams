@@ -2,8 +2,17 @@ module System.IO.Streams.Tutorial (
     -- * Introduction
     -- $introduction
 
-    -- * Creating IO Streams
+    -- * Building IO Streams
     -- $create
+
+    -- * Using IO Streams
+    -- $use
+
+    -- * Resource and Exception Safety
+    -- $safety
+
+    -- * Caveats
+    -- $gotchas
     ) where
 
 import System.IO.Streams
@@ -126,6 +135,40 @@ Nothing
     @io-streams@ provides many useful functions such as these in its standard
     library and you can take advantage of them by transforming your resources
     into IO streams.
+-}
+
+{- $use
+-}
+
+{- $safety
+    IO streams reuse existing Haskell idioms for resource safety.  Since all
+    operations occur in the IO monad, you can use 'catch' or 'bracket' to guard
+    any 'read' or 'write' without any special considerations:
+
+> withFile ReadMode $ \handle -> do
+>     stream <- handleToInputStream handle
+>     mBytes <- read stream
+>     case mBytes of
+>         Just bytes -> print bytes
+>         Nothing    -> putStrLn "EOF"
+
+    However, @io-streams@ also provides @with...@ functions of its own that
+    expose 'InputStream's and 'OutputStream's instead of 'Handle's:
+
+> withFileAsInput
+>  :: FilePath -> (InputStream ByteString -> IO a) -> IO a
+>
+> withFileAsOutput
+>  :: FilePath -> IOMode -> (OutputStream ByteString -> IO a) -> IO a
+
+-}
+
+{- $gotchas
+    {- NOTE: Talk about
+        * how multiple streams can point to the same handle
+        * how pushback works in the presence of multiple layers
+        * thread safety and locking streams
+    -}
 -}
 
 {- TODO:
