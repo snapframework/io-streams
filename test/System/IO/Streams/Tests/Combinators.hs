@@ -44,6 +44,8 @@ testFoldMWorksTwice = testCase "combinators/foldMWorksTwice" $ do
     y <- grab2
     assertEqual "foldm4" 5 y
 
+    read is >>= assertEqual "eof" Nothing
+
   where
     f a b = return (a+b)
 

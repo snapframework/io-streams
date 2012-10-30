@@ -33,17 +33,20 @@ module System.IO.Streams.ByteString
  ) where
 
 ------------------------------------------------------------------------------
-import           Control.Exception             (Exception, throwIO)
-import           Control.Monad                 (when)
-import           Data.ByteString               (ByteString)
+import           Control.Exception             ( Exception, throwIO )
+import           Control.Monad                 ( when )
+import           Data.ByteString               ( ByteString )
 import qualified Data.ByteString.Char8         as S
 import qualified Data.ByteString.Lazy.Char8    as L
 import           Data.Int                      (Int64)
-import           Data.Time.Clock.POSIX         (getPOSIXTime)
-import           Data.Typeable                 (Typeable)
-import           Prelude                       hiding (read)
+import           Data.IORef                    ( newIORef
+                                               , readIORef
+                                               , writeIORef )
+import           Data.Time.Clock.POSIX         ( getPOSIXTime )
+import           Data.Typeable                 ( Typeable )
+import           Prelude                       hiding ( read )
 ------------------------------------------------------------------------------
-import           System.IO.Streams.Combinators (inputFoldM, outputFoldM)
+import           System.IO.Streams.Combinators ( outputFoldM )
 import           System.IO.Streams.Internal
                    ( InputStream
                    , OutputStream
@@ -62,7 +65,7 @@ import           System.IO.Streams.Internal.BoyerMooreHorspool
                    ( MatchInfo(..)
                    , search
                    )
-import           System.IO.Streams.List (writeList)
+import           System.IO.Streams.List        ( writeList )
 ------------------------------------------------------------------------------
 
 
@@ -80,21 +83,43 @@ writeLazyByteString = writeList . L.toChunks
 -- stream as a side effect. Produces a new 'InputStream' as well as an IO
 -- action to retrieve the count of bytes produced.
 --
--- TODO: clarify pushback semantics here. This function is wrong as written.
--- Clearly:
---
--- 1. strings pushed back to this stream should be propagated upstream (this
---    needs a fix)
---
--- 2. pushing back input should cause the count to drop.
+-- Strings pushed back to the returned 'InputStream' will be pushed back
+-- upstream, and the count of produced bytes will be subtracted accordingly.
 --
 countInput :: InputStream ByteString -> IO (InputStream ByteString, IO Int64)
-countInput = inputFoldM f 0
+countInput src = do
+    ref    <- newIORef 0
+    stream <- sourceToStream $ source ref
+    return $! (stream, readIORef ref)
+
   where
-    f !count s = return z
+    -- strict modify necessary here, also don't care about CAS overhead in this
+    -- case.
+    modify ref f = do
+        !c <- readIORef ref
+        writeIORef ref $! f c
+
+    eof !ref = return $! SP (eofSrc ref) Nothing
+
+    eofSrc !ref = Source {
+                    produce  = eof ref
+                  , pushback = pb ref
+                  }
+
+    pb !ref !s = do
+        unRead s src
+        modify ref $ \x -> x - (toEnum $ S.length s)
+        return $! source ref
+
+    source ref = Source {
+                   produce  = read src >>= maybe (eof ref) chunk
+                 , pushback = pb ref
+                 }
       where
-        !c = S.length s
-        !z = toEnum c + count
+        chunk s = let !l = toEnum $ S.length s
+                  in do
+                      modify ref (+ l)
+                      return $! SP (source ref) (Just s)
 
 
 ------------------------------------------------------------------------------
@@ -126,9 +151,9 @@ takeBytes k0 src = sourceToStream $ source k0
     eof !n = return $! SP (eofSrc n) Nothing
 
     eofSrc !n = Source {
-               produce = eof n
-             , pushback = pb n
-             }
+                  produce = eof n
+                , pushback = pb n
+                }
 
     pb !n s = do
         unRead s src

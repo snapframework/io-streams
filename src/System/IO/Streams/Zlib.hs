@@ -138,9 +138,7 @@ gzipBuilder :: CompressionLevel
             -> IO (OutputStream Builder)
 gzipBuilder level output =
     initDeflate (clamp level) gzipBits >>= deflateBuilder output
--- TODO: I don't know a better way to phrase that while not confusing the users.
--- These function would be much more intuitive for users if it transformed
--- 'InputStream's rather than 'OutputStream's
+
 
 ------------------------------------------------------------------------------
 -- | Convert an 'OutputStream' that consumes compressed 'Builder's into an

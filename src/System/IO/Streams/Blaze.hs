@@ -103,10 +103,6 @@ import           System.IO.Streams.Internal
 -- | Converts a 'ByteString' sink into a 'Builder' sink.
 builderStream :: OutputStream ByteString -> IO (OutputStream Builder)
 builderStream = builderStreamWith (allNewBuffersStrategy defaultBufferSize)
-{- TODO: Perhaps the equivalent generator version might be more intuitive for
-         some users:
-
-    InputStream Builder -> IO (InputStream ByteString) -}
 
 
 ------------------------------------------------------------------------------
@@ -129,7 +125,8 @@ unsafeBuilderStream = builderStreamWith . reuseBufferStrategy
 
 
 ------------------------------------------------------------------------------
--- Note: will not yield empty string unless it wants downstream to flush.
+-- Note: will not yield empty string unless it wants downstream to flush. TODO:
+-- document flush semantics
 --
 -- | A customized version of 'builderStream', using the specified
 -- 'BufferAllocStrategy'.

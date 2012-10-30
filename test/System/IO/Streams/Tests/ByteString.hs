@@ -26,6 +26,7 @@ tests :: [Test]
 tests = [ testBoyerMoore
         , testBoyerMoore2
         , testCountInput
+        , testCountInput2
         , testCountOutput
         , testThrowIfTooSlow
         , testReadExactly
@@ -59,6 +60,32 @@ testCountInput = testProperty "bytestring/countInput" $
 
         assertEqual "countInput1" (L.length $ L.fromChunks l) n
         assertEqual "countInput2" (L.length $ L.fromChunks x) n
+
+        read is' >>= assertEqual "eof" Nothing
+        unRead "ok" is'
+        peek is >>= assertEqual "peek" (Just "ok")
+        read is' >>= assertEqual "read" (Just "ok")
+
+
+------------------------------------------------------------------------------
+testCountInput2 :: Test
+testCountInput2 = testCase "bytestring/countInput2" $ do
+    is              <- fromList txt
+    (is', getCount) <- countInput is
+    (Just x)        <- read is'
+
+    unRead "0, " is'
+    getCount >>= assertEqual "count1" 5
+    peek is  >>= assertEqual "pushback propagates" (Just "0, ")
+
+    (liftM (L.fromChunks . (x:)) $ toList is') >>=
+        assertEqual "output" expectedOutput
+
+    getCount >>= assertEqual "count2" (L.length $ L.fromChunks txt)
+
+  where
+    txt            = ["testing ", "1, ", "2, ", "3"]
+    expectedOutput = "testing 0, 1, 2, 3"
 
 
 ------------------------------------------------------------------------------
@@ -315,8 +342,17 @@ testThrowIfTooSlow = testCase "bytestring/throwIfTooSlow" $ do
 ------------------------------------------------------------------------------
 testBoyerMoore :: Test
 testBoyerMoore = testProperty "bytestring/boyerMoore" $
-                 monadicIO $ forAllM arbitrary prop
+                 monadicIO $ forAllM gen prop
   where
+    genBS range = liftM S.pack $ listOf $ choose range
+
+    gen :: Gen (ByteString, [ByteString])
+    gen = do
+        needle <- genBS ('a', 'z')
+        n      <- choose (0, 10)
+        hay    <- replicateM n $ genBS ('A', 'Z')
+        return (needle, hay)
+
     prop :: (ByteString, [ByteString]) -> PropertyM IO ()
     prop (needle, haystack') = do
         let lneedle   = L.fromChunks [needle]
