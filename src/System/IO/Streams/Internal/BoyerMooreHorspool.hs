@@ -62,9 +62,9 @@ matches !needle !nstart !nend' !haystack !hstart !hend' =
 -- Example:
 --
 -- @
--- ghci> fromList [\"food\", \"oof\", \"oodles\", \"ok\"] >>=
---       search \"foo\" >>= toList
--- [Match \"foo\",NoMatch \"d\",NoMatch \"oo\",Match \"foo\",NoMatch \"dlesok\"]
+-- ghci> 'System.IO.Streams.fromList' [\"food\", \"oof\", \"oodles\", \"ok\"] >>=
+--       'search' \"foo\" >>= 'System.IO.Streams.toList'
+-- ['Match' \"foo\",'NoMatch' \"d\",'NoMatch' \"oo\",'Match' \"foo\",'NoMatch' \"dlesok\"]
 -- @
 --
 -- Uses the Boyer-Moore-Horspool algorithm

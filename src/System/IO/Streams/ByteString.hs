@@ -83,8 +83,29 @@ writeLazyByteString = writeList . L.toChunks
 -- stream as a side effect. Produces a new 'InputStream' as well as an IO
 -- action to retrieve the count of bytes produced.
 --
--- Strings pushed back to the returned 'InputStream' will be pushed back
--- upstream, and the count of produced bytes will be subtracted accordingly.
+-- Strings pushed back to the returned 'InputStream' will be pushed back to the
+-- original stream, and the count of produced bytes will be subtracted
+-- accordingly.
+--
+-- Example:
+--
+-- @
+-- ghci> is <- 'System.IO.Streams.fromList' [\"abc\", \"def\", \"ghi\"::ByteString]
+-- ghci> (is', getCount) <- 'countInput' is
+-- ghci> 'read' is'
+-- Just \"abc\"
+-- ghci> getCount
+-- 3
+-- ghci> 'unRead' \"bc\" is'
+-- ghci> getCount
+-- 1
+-- ghci> 'System.IO.Streams.peek' is
+-- Just \"bc\"
+-- ghci> 'System.IO.Streams.toList' is'
+-- [\"bc\",\"def\",\"ghi\"]
+-- ghci> getCount
+-- 9
+-- @
 --
 countInput :: InputStream ByteString -> IO (InputStream ByteString, IO Int64)
 countInput src = do
@@ -126,6 +147,18 @@ countInput src = do
 -- | Wraps an 'OutputStream', counting the number of bytes consumed by the
 -- stream as a side effect. Produces a new 'OutputStream' as well as an IO
 -- action to retrieve the count of bytes consumed.
+--
+-- Example:
+--
+-- @
+-- ghci> (os :: OutputStream ByteString, getList) <- 'System.IO.Streams.listOutputStream'
+-- ghci> (os', getCount) <- 'countOutput' os
+-- ghci> 'System.IO.Streams.fromList' [\"abc\", \"def\", \"ghi\"] >>= 'System.IO.Streams.connectTo' os'
+-- ghci> getList
+-- [\"abc\",\"def\",\"ghi\"]
+-- ghci> getCount
+-- 9
+-- @
 countOutput :: OutputStream ByteString
             -> IO (OutputStream ByteString, IO Int64)
 countOutput = outputFoldM f 0
@@ -140,7 +173,32 @@ countOutput = outputFoldM f 0
 -- | Wraps an 'InputStream', producing a new 'InputStream' that will produce at
 -- most @n@ bytes, subsequently yielding end-of-stream forever.
 --
--- TODO: add note explaining pushback semantics
+-- Strings pushed back to the returned 'InputStream' will be propagated
+-- upstream, modifying the count of taken bytes accordingly.
+--
+-- Example:
+--
+-- @
+-- ghci> is <- 'System.IO.Streams.fromList' [\"truncated\", \" string\"::ByteString]
+-- ghci> is' <- 'takeBytes' 9 is
+-- ghci> 'read' is'
+-- Just \"truncated\"
+-- ghci> 'read' is'
+-- Nothing
+-- ghci> 'System.IO.Streams.peek' is
+-- Just \" string\"
+-- ghci> 'unRead' \"cated\" is'
+-- ghci> 'System.IO.Streams.peek' is
+-- Just \"cated\"
+-- ghci> 'System.IO.Streams.peek' is'
+-- Just \"cated\"
+-- ghci> 'read' is'
+-- Just \"cated\"
+-- ghci> 'read' is'
+-- Nothing
+-- ghci> 'read' is
+-- Just \" string\"
+-- @
 takeBytes :: Int64                        -- ^ maximum number of bytes to read
           -> InputStream ByteString       -- ^ input stream to wrap
           -> IO (InputStream ByteString)
@@ -208,7 +266,39 @@ instance Exception ReadTooShortException
 -- | Wraps an 'InputStream'. If more than @n@ bytes are produced by this
 -- stream, 'read' will throw a 'TooManyBytesReadException'.
 --
--- TODO: add note explaining pushback semantics
+-- If a chunk yielded by the input stream would result in more than @n@ bytes
+-- being produced, 'throwIfProducesMoreThan' will cut the generated string such
+-- that exactly @n@ bytes are yielded by the returned stream, and the
+-- /subsequent/ read will throw an exception. Example:
+--
+-- @
+-- ghci> is \<- 'System.IO.Streams.fromList' [\"abc\", \"def\", \"ghi\"] >>=
+--             'throwIfProducesMoreThan' 5
+-- ghci> 'Control.Monad.replicateM' 2 ('read' is)
+-- [Just \"abc\",Just \"de\"]
+-- ghci> 'read' is
+-- *** Exception: Too many bytes read
+-- @
+--
+-- Strings pushed back to the returned 'InputStream' will be propagated
+-- upstream, modifying the count of taken bytes accordingly. Example:
+--
+-- @
+-- ghci> is  <- 'System.IO.Streams.fromList' [\"abc\", \"def\", \"ghi\"]
+-- ghci> is' <- 'throwIfProducesMoreThan' 5 is
+-- ghci> 'read' is'
+-- Just \"abc\"
+-- ghci> 'unRead' \"xyz\" is'
+-- ghci> 'System.IO.Streams.peek' is
+-- Just \"xyz\"
+-- ghci> 'read' is
+-- Just \"xyz\"
+-- ghci> 'read' is
+-- Just \"de\"
+-- ghci> 'read' is
+-- *** Exception: Too many bytes read
+-- @
+--
 throwIfProducesMoreThan
     :: Int64                    -- ^ maximum number of bytes to read
     -> InputStream ByteString   -- ^ input stream
@@ -246,6 +336,15 @@ throwIfProducesMoreThan k0 src = sourceToStream $ source k0
 -- | Reads an @n@-byte ByteString from an input stream. Throws a
 -- 'ReadTooShortException' if fewer than @n@ bytes were available.
 --
+-- Example:
+--
+-- @
+-- ghci> 'System.IO.Streams.fromList' [\"long string\"] >>= 'readExactly' 6
+-- \"long s\"
+-- ghci> 'System.IO.Streams.fromList' [\"short\"] >>= 'readExactly' 6
+-- *** Exception: Short read, expected 6 bytes
+-- @
+--
 readExactly :: Int                     -- ^ number of bytes to read
             -> InputStream ByteString  -- ^ input stream
             -> IO ByteString
@@ -269,6 +368,15 @@ readExactly n input = go id n
 -- | Wraps an 'OutputStream', producing a new stream that will pass along at
 -- most @n@ bytes to the wrapped stream, throwing any subsequent input away.
 --
+-- Example:
+--
+-- @
+-- ghci> (os :: OutputStream ByteString, getList) <- 'System.IO.Streams.listOutputStream'
+-- ghci> os' <- 'giveBytes' 6 os
+-- ghci> 'System.IO.Streams.fromList' [\"long \", \"string\"] >>= 'System.IO.Streams.connectTo' os'
+-- ghci> getList
+-- [\"long \",\"s\"]
+-- @
 giveBytes :: Int64                        -- ^ maximum number of bytes to send
                                           -- to the wrapped stream
           -> OutputStream ByteString      -- ^ output stream to wrap
@@ -302,6 +410,19 @@ giveBytes k0 str = sinkToStream $ sink k0
 -- /Note/: if more than @n@ bytes are sent to the outer stream,
 -- 'throwIfConsumesMoreThan' will not necessarily send the first @n@ bytes
 -- through to the wrapped stream before throwing the exception.
+--
+-- Example:
+--
+-- @
+-- ghci> (os :: OutputStream ByteString, getList) <- 'System.IO.Streams.listOutputStream'
+-- ghci> os' <- 'throwIfConsumesMoreThan' 5 os
+-- ghci> 'System.IO.Streams.fromList' [\"short\"] >>= 'System.IO.Streams.connectTo' os'
+-- ghci> getList
+-- [\"short\"]
+-- ghci> os'' <- 'throwIfConsumesMoreThan' 5 os
+-- ghci> 'System.IO.Streams.fromList' [\"long\", \"string\"] >>= 'System.IO.Streams.connectTo' os''
+-- *** Exception: Too many bytes written
+-- @
 throwIfConsumesMoreThan
     :: Int64                    -- ^ maximum number of bytes to send to the
                                 --   wrapped stream
@@ -336,7 +457,8 @@ instance Exception RateTooSlowException
 -- than the given rate, reading from the wrapped stream will throw a
 -- 'RateTooSlowException'.
 --
--- TODO: add note explaining pushback semantics
+-- Strings pushed back to the returned 'InputStream' will be propagated up to
+-- the original stream.
 throwIfTooSlow
     :: IO ()                   -- ^ action to bump timeout
     -> Double                  -- ^ minimum data rate, in bytes per second
