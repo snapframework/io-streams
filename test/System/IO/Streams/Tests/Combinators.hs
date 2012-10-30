@@ -26,12 +26,12 @@ testFoldMWorksTwice = testCase "combinators/foldMWorksTwice" $ do
     (os, grab) <- nullOutput >>= outputFoldM f (0::Int)
 
     let l = [1,2,3]
-    fromList l >>= connectToWithoutEof os
+    fromList l >>= supplyTo os
     m <- grab
     assertEqual "foldm1" (sum l) m
 
     let l2 = [4,5,6]
-    fromList l2 >>= connectToWithoutEof os
+    fromList l2 >>= supplyTo os
     m2 <- grab
     assertEqual "foldm2" (sum l2) m2
 

@@ -25,8 +25,8 @@ module System.IO.Streams
    -- * Connect streams
  , connect
  , connectTo
- , connectWithoutEof
- , connectToWithoutEof
+ , supply
+ , supplyTo
 
    -- * Thread safety
  , lockingInputStream

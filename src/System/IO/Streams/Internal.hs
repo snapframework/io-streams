@@ -45,8 +45,8 @@ module System.IO.Streams.Internal
     -- * Connecting streams
   , connect
   , connectTo
-  , connectWithoutEof
-  , connectToWithoutEof
+  , supply
+  , supplyTo
 
     -- * Thread safety
   , lockingInputStream
@@ -375,26 +375,25 @@ connectTo = flip connect
 -- 'connect' for the final 'InputStream' to finalize the 'OutputStream', like
 -- so:
 --
--- > do connectWithoutEof input1 output
--- >    connectWithoutEof input2 output
--- >    connect           input3 output
+-- > do supply  input1 output
+-- >    supply  input2 output
+-- >    connect input3 output
 --
--- TODO: connectWithoutEof is a terrible name, maybe \"supply\" is better?
-connectWithoutEof :: InputStream a -> OutputStream a -> IO ()
-connectWithoutEof p q = loop
+supply :: InputStream a -> OutputStream a -> IO ()
+supply p q = loop
   where
     loop = do
         m <- read p
         maybe (return $! ())
               (const $ write m q >> loop)
               m
-{-# INLINE connectWithoutEof #-}
+{-# INLINE supply #-}
 
 
 ------------------------------------------------------------------------------
--- | 'connectWithoutEof' with the arguments flipped.
-connectToWithoutEof :: OutputStream a -> InputStream a -> IO ()
-connectToWithoutEof = flip connectWithoutEof
+-- | 'supply' with the arguments flipped.
+supplyTo :: OutputStream a -> InputStream a -> IO ()
+supplyTo = flip supply
 
 
 ------------------------------------------------------------------------------
