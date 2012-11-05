@@ -65,11 +65,11 @@ import System.IO (Handle)
 
 >>> import qualified System.IO.Streams as S
 >>> listHandle <- S.fromList [1, 2]
->>> read listHandle
+>>> S.read listHandle
 Just 1
->>> read listHandle
+>>> S.read listHandle
 Just 2
->>> read listHandle
+>>> S.read listHandle
 Nothing
 
     Additionally, IO streams come with a library of stream transformations that
@@ -78,14 +78,14 @@ Nothing
     transformed values:
 
 >>> oldHandle <- S.fromList [1, 2, 3]
->>> newHandle <- S.mapM (* 10) oldHandle
->>> read newHandle
+>>> newHandle <- S.mapM (\x -> return (x * 10)) oldHandle
+>>> S.read newHandle
 10
 >>> -- We can still view the stream through the old handle
->>> read oldHandle
+>>> S.read oldHandle
 2
 >>> -- ... and switch back again
->>> read newHandle
+>>> S.read newHandle
 30
 
     IO streams focus on preserving the convention of traditional handles while
@@ -116,7 +116,7 @@ Nothing
 > upgradeReadOnlyHandle h = Streams.makeInputStream f
 >   where
 >     f = do
->         x <- S.hGetSome h BUFSIZ
+>         x <- S.hGetSome h bUFSIZ
 >         return $! if S.null x then Nothing else Just x
 
     We didn't even really need to write the @upgradeReadOnlyHandle@ function,
@@ -144,20 +144,20 @@ Nothing
 >     Just bs -> S.putStrLn bs
 >     Nothing -> return ()
 
-    The 'Just' supplies new input, whereas 'Nothing' indicates the supplier of
-    output is exhausted.  In principle, 'OutputStream's can be fed more input
-    after receiving 'Nothing', and IO streams only guarantee a well-defined
-    behavior up to the first 'Nothing'.  The behavior afterwards may vary
-    depending on the 'OutputStream', which might:
+    The 'Just' wraps more incoming data, whereas 'Nothing' indicates the data
+    is exhausted.  In principle, you can feed 'OutputStream's more input
+    after writing a 'Nothing' to them, but IO streams only guarantee a
+    well-defined behavior up to the first 'Nothing'.  After receiving the
+    first 'Nothing', an 'OutputStream' could respond to additional input by:
 
-    * Use the input
+    * Using the input
 
-    * Ignore the input
+    * Ignoring the input
 
-    * Throw an exception
+    * Throwing an exception
 
-    Ideally, you should adhere to well-defined behavior and ensure that only the
-    final value supplied is 'Nothing'.
+    Ideally, you should adhere to well-defined behavior and ensure that after
+    you write a 'Nothing' to an 'OutputStream', you don't write anything else.
 -}
 
 {- $connect
@@ -179,8 +179,10 @@ Nothing
     into a single 'OutputStream':
 
 > import qualified System.IO.Streams as Streams
+> import System.IO (IOMode(WriteMode))
 >
-> do Streams.withFileAsOutput "out.txt" WriteMode $ \outStream ->
+> main =
+>    Streams.withFileAsOutput "out.txt" WriteMode $ \outStream ->
 >    Streams.withFileAsInput  "in1.txt" $ \inStream1 ->
 >    Streams.withFileAsInput  "in2.txt" $ \inStream2 ->
 >    Streams.withFileAsInput  "in3.txt" $ \inStream3 ->
@@ -192,8 +194,8 @@ Nothing
          the 'connect' vs 'supply' distinction to visually stand out on the last
          three lines. -}
 
-    The final 'connect' seals the 'OutputStream' after it receives the last
-    file.
+    The final 'connect' seals the 'OutputStream' when the final 'InputStream'
+    terminates.
 
     Keep in mind that you do not need to use 'connect' or 'supply' at all and
     @io-streams@ mainly provides them for user convenience.  You can always
@@ -202,16 +204,24 @@ Nothing
 
 {- $transform
     When we build or use IO streams we can tap into all the stream-processing
-    features this library provides.  For example, we can decompress a 'Handle':
+    features the @io-streams@ library provides.  For example, we can decompress
+    any 'InputStream' of 'ByteString's:
 
+> import Control.Monad ((>=>))
+> import Data.ByteString (ByteString)
+> import System.IO (Handle)
+> import System.IO.Streams (InputStream, OutputStream)
+> import qualified System.IO.Streams as Streams
+> import qualified System.IO.Streams.File as Streams
+> 
 > unzipHandle :: Handle -> IO (InputStream ByteString)
-> unzipHandle = handleToInputStream >=> Streams.decompress
+> unzipHandle = Streams.handleToInputStream >=> Streams.decompress
 
-    ... or we could prevent a denial-of-service attack:
+    ... or we can guard it against a denial-of-service attack:
 
 > protectHandle :: Handle -> IO (InputStream ByteString)
 > protectHandle =
->     handleToInputStream >=> Streams.throwIfProducesMoreThan 1000000
+>     Streams.handleToInputStream >=> Streams.throwIfProducesMoreThan 1000000
 
     @io-streams@ provides many useful functions such as these in its standard
     library and you take advantage of them by defining IO streams that wrap
@@ -224,12 +234,19 @@ Nothing
     'with...' functions to guard any 'read' or 'write' without any special
     considerations:
 
-> withFile ReadMode $ \handle -> do
->     stream <- handleToInputStream handle
->     mBytes <- read stream
->     case mBytes of
->         Just bytes -> print bytes
->         Nothing    -> putStrLn "EOF"
+> import qualified Data.ByteString as S
+> import System.IO
+> import System.IO.Streams (InputStream, OutputStream)
+> import qualified System.IO.Streams as Streams
+> import qualified System.IO.Streams.File as Streams
+> 
+> main =
+>     withFile "test.txt" ReadMode $ \handle -> do
+>         stream <- Streams.handleToInputStream handle
+>         mBytes <- Streams.read stream
+>         case mBytes of
+>             Just bytes -> S.putStrLn bytes
+>             Nothing    -> putStrLn "EOF
 
     However, you can also simplify the above example by using the convenience
     function 'withFileAsInput' from "System.IO.Streams.File":
@@ -237,17 +254,47 @@ Nothing
 > withFileAsInput
 >  :: FilePath -> (InputStream ByteString -> IO a) -> IO a
 >
-> withFile ReadMode $ \handle -> do
->     stream <- handleToInputStream handle
->     mBytes <- read stream
+> withFile "test.txt" ReadMode $ \handle -> do
+>     stream <- Streams.handleToInputStream handle
+>     mBytes <- Streams.read stream
 >     case mBytes of
->         Just bytes -> print bytes
+>         Just bytes -> S.putStrLn bytes
 >         Nothing    -> putStrLn "EOF"
 
 
 -}
 
 {- $pushback
+    All 'InputStream's support pushback, which simplifies many types of
+    operations.  For example, we can 'peek' at an 'InputStream' by combining
+    'read' and 'unRead':
+
+> peek :: InputStream c -> IO (Maybe c)
+> peek s = do
+>     x <- Streams.read s
+>     case x of
+>         Nothing -> return ()
+>         Just c  -> Streams.unRead c s
+>     return x
+
+    ... although "System.IO.Streams" already exports the above function.
+
+    'InputStream's can customize pushback behavior to support more sophisticated
+    support for pushback.  For example, if you protect a stream using
+    'throwIfProducesMoreThan' and 'unRead' input, it will subtract the unread
+    input from the total byte count.  However, these extra features will not
+    interfer with the basic pushback contract, given by the following law:
+
+> unRead c stream >> read stream == return (Just c)
+
+    When you build an 'InputStream' using 'makeInputStream', it supplies the
+    default pushback behavior which just saves the input for the next 'read'
+    call.  More advanced users can use "System.IO.Streams.Internal" to
+    customize their own pushback routines.
+{- NOTE: The library only exports pushback API for Sources, which are a
+         completely internal type, so should we teach the user how to define
+         custom pushback or not?  Maybe that belongs in some sort of separate
+         "advanced" tutorial for System.IO.Streams.Internal. -}
 -}
 
 {- $threadsafety
@@ -259,13 +306,16 @@ Nothing
 > lockingOutputStream :: OutputStream a -> IO (OutputStream a)
 >
 > threadSafeOutputStream :: Handle -> IO (OutputStream a)
-> threadSafeOutputStream = handleToOutputStream >=> lockingOutputStream
+> threadSafeOutputStream =
+>     Streams.handleToOutputStream >=> Streams.lockingOutputStream
 
     These functions do not prevent access to the previous IO stream, so you must
     take care to not save the reference to the previous stream.
 
     {- NOTE: Should I give specific performance numbers or just say something
              like "a slight cost to performance" for locking? -}
+    {- NOTE: This could use a concrete example of a race condition that a user
+             might encounter without this protection. -}
 -}
 
 {- NOTE: Should there be some sort of concluding section? -}
