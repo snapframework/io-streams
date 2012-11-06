@@ -15,14 +15,20 @@ module System.IO.Streams.Combinators
    -- * Filter
  , filterM
 
+   -- * Zip and unzip
+ , zipM
+ , unzipM
+
    -- * Utility
  , intercalate
  , skipToEof
  ) where
 
 ------------------------------------------------------------------------------
+import Control.Concurrent.MVar    ( newMVar, withMVar )
 import Control.Monad              ( liftM, when )
 import Data.IORef                 ( atomicModifyIORef
+                                  , modifyIORef
                                   , newIORef
                                   , readIORef
                                   , writeIORef
@@ -40,7 +46,6 @@ import System.IO.Streams.Internal ( InputStream
                                   , unRead
                                   , write
                                   )
-
 
 ------------------------------------------------------------------------------
 outputFoldM :: (a -> b -> IO a)
@@ -194,3 +199,51 @@ intercalate sep os = newIORef False >>= makeOutputStream . f
         writeIORef sendRef True
         when b $ write (Just sep) os
         write s os
+
+
+------------------------------------------------------------------------------
+-- | Combines two input streams. Continues yielding elements from both input
+-- streams until one of them finishes.
+zipM :: InputStream a -> InputStream b -> IO (InputStream (a, b))
+zipM src1 src2 = makeInputStream src
+  where
+    src = read src1 >>= (maybe (return Nothing) $ \a ->
+            read src2 >>= (maybe (unRead a src1 >> return Nothing) $ \b ->
+              return $! Just $! (a, b)))
+
+
+------------------------------------------------------------------------------
+-- | Takes apart a stream of pairs, producing a pair of input streams. Reading
+-- from either of the produced streams will cause a pair of values to be pulled
+-- from the original stream if necessary. Note that reading @n@ values from one
+-- of the returned streams will cause @n@ values to be buffered at the other
+-- stream.
+--
+-- Access to the original stream is thread safe, i.e. guarded by a lock.
+unzipM :: InputStream (a, b) -> IO (InputStream a, InputStream b)
+unzipM os = do
+    lock <- newMVar $! ()
+    buf1 <- newIORef id
+    buf2 <- newIORef id
+
+    is1  <- makeInputStream $ src lock id buf1 buf2
+    is2  <- makeInputStream $ src lock twist buf2 buf1
+
+    return (is1, is2)
+
+  where
+    twist (a, b) = (b, a)
+
+    src lock proj myBuf theirBuf = withMVar lock $ const $ do
+        dl <- readIORef myBuf
+
+        case dl [] of
+          []     -> more
+          (x:xs) -> writeIORef myBuf (xs++) >> (return $! Just x)
+      where
+        more = read os >>=
+               maybe (return Nothing)
+                     (\x -> do
+                          let (a, b) = proj x
+                          modifyIORef theirBuf (. (b:))
+                          return $! Just a)

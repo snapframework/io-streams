@@ -4,6 +4,7 @@
 module System.IO.Streams.Tests.Combinators (tests) where
 
 ------------------------------------------------------------------------------
+import           Control.Applicative
 import           Control.Monad hiding (filterM, mapM)
 import           Data.List
 import           Prelude hiding (mapM, read)
@@ -18,6 +19,8 @@ tests = [ testFilterM
         , testFoldMWorksTwice
         , testMapM
         , testSkipToEof
+        , testZipM
+        , testUnzipM
         ]
 
 
@@ -87,3 +90,44 @@ testFilterM = testCase "list/filterM" $ do
     peek is >>= assertEqual "pushback2" (Just 20)
     toList is' >>= assertEqual "rest2" [20]
     toList is' >>= assertEqual "eof" []
+
+
+------------------------------------------------------------------------------
+testZipM :: Test
+testZipM = testCase "list/zipM" $ do
+    let l1 = [1 .. 10 :: Int]
+    let l2 = [2 .. 10 :: Int]
+
+    (join $ zipM <$> fromList l1 <*> fromList l2) >>= toList
+        >>= assertEqual "zip1" (l1 `zip` l2)
+
+    (join $ zipM <$> fromList l2 <*> fromList l1) >>= toList
+        >>= assertEqual "zip2" (l2 `zip` l1)
+
+    is1   <- fromList l1
+    is2   <- fromList l2
+    isZip <- zipM is1 is2
+
+    _     <- toList isZip
+    read is1 >>= assertEqual "remainder" (Just 10)
+
+
+------------------------------------------------------------------------------
+testUnzipM :: Test
+testUnzipM = testCase "list/unzipM" $ do
+    let l1 = [1 .. 10 :: Int]
+        l2 = [2 .. 10 :: Int]
+        l  = l1 `zip` l2
+
+    (is1, is2) <- fromList l >>= unzipM
+    toList is1 >>= assertEqual "unzip1-a" (fst $ unzip l)
+    toList is2 >>= assertEqual "unzip1-b" (snd $ unzip l)
+    read is1 >>= assertEqual "unzip1-read-a" Nothing
+    read is2 >>= assertEqual "unzip1-read-b" Nothing
+
+    (is3, is4) <- fromList l >>= unzipM
+    toList is4 >>= assertEqual "unzip2-b" (snd $ unzip l)
+    toList is3 >>= assertEqual "unzip2-a" (fst $ unzip l)
+    read is4 >>= assertEqual "unzip2-read-b" Nothing
+    read is3 >>= assertEqual "unzip2-read" Nothing
+
