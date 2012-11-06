@@ -365,6 +365,7 @@ connect p q = loop
 --
 connectTo :: OutputStream a -> InputStream a -> IO ()
 connectTo = flip connect
+{-# INLINE connectTo #-}
 
 
 ------------------------------------------------------------------------------
@@ -394,6 +395,7 @@ supply p q = loop
 -- | 'supply' with the arguments flipped.
 supplyTo :: OutputStream a -> InputStream a -> IO ()
 supplyTo = flip supply
+{-# INLINE supplyTo #-}
 
 
 ------------------------------------------------------------------------------

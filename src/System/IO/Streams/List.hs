@@ -4,8 +4,11 @@ module System.IO.Streams.List
  ( -- * List conversions
    fromList
  , toList
+ , outputToList
  , writeList
+
    -- * Utility
+ , filterM
  , listOutputStream
  ) where
 
@@ -13,15 +16,19 @@ import Control.Concurrent.MVar    ( modifyMVar
                                   , modifyMVar_
                                   , newMVar
                                   )
+import Prelude hiding             ( read )
 import System.IO.Streams.Internal ( InputStream
                                   , OutputStream
                                   , Sink(..)
+                                  , Source(..)
                                   , SP(..)
                                   , connect
                                   , nullSink
                                   , nullSource
+                                  , read
                                   , sinkToStream
                                   , sourceToStream
+                                  , unRead
                                   , withDefaultPushback
                                   , write
                                   )
@@ -65,10 +72,27 @@ listOutputStream = do
 ------------------------------------------------------------------------------
 -- | Drains an 'InputStream', converting it to a list.
 toList :: InputStream a -> IO [a]
-toList is = do
-    (os, grab) <- listOutputStream
-    connect is os >> grab
+toList is = outputToList (connect is)
 {-# INLINE toList #-}
+
+
+------------------------------------------------------------------------------
+-- | Given an IO action that requires an 'OutputStream', creates one and
+-- captures all the output the action sends to it as a list.
+--
+-- Example:
+--
+-- @
+-- ghci> import "Control.Applicative"
+-- ghci> ('connect' <$> 'fromList' [\"a\", \"b\", \"c\"]) >>= 'outputToList'
+-- ["a","b","c"]
+-- @
+outputToList :: (OutputStream a -> IO b) -> IO [a]
+outputToList f = do
+    (os, getList) <- listOutputStream
+    _ <- f os
+    getList
+{-# INLINE outputToList #-}
 
 
 ------------------------------------------------------------------------------
@@ -79,3 +103,39 @@ writeList xs os = mapM_ (flip write os . Just) xs
 {-# INLINE writeList #-}
 
 
+------------------------------------------------------------------------------
+-- | Drops chunks from an input stream if they fail to match a given filter
+-- predicate. See 'Prelude.filter'.
+--
+-- Items pushed back to the returned stream are propagated back upstream.
+--
+-- Example:
+--
+-- @
+-- 'fromList' [\"the\", \"quick\", \"brown\", \"fox\"] >>=
+--     'filterM' ('return' . (/= \"brown\")) >>= 'toList'
+-- ghci> [\"the\",\"quick\",\"fox\"]
+-- @
+filterM :: (a -> IO Bool)
+        -> InputStream a
+        -> IO (InputStream a)
+filterM p src = sourceToStream source
+  where
+    source = Source {
+               produce  = prod
+             , pushback = pb
+             }
+
+    prod = read src >>= maybe eof chunk
+
+    chunk s = do
+        b <- p s
+        if b then return $! SP source (Just s)
+             else prod
+
+    eof = return $! flip SP Nothing Source {
+            produce  = eof
+          , pushback = pb
+          }
+
+    pb s = unRead s src >> return source

@@ -1,5 +1,6 @@
 {-# LANGUAGE BangPatterns       #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE OverloadedStrings  #-}
 
 -- | Stream operations on 'ByteString'.
 module System.IO.Streams.ByteString
@@ -12,12 +13,21 @@ module System.IO.Streams.ByteString
  , writeLazyByteString
 
    -- * Stream transformers
+   -- ** Splitting/Joining
+ , splitOn
+ , intercalate
+ , lines
+ , unlines
+ , words
+ , unwords
+
+   -- ** Other
  , giveBytes
  , takeBytes
  , throwIfConsumesMoreThan
  , throwIfProducesMoreThan
 
-   -- * Rate limiting
+   -- ** Rate limiting
  , throwIfTooSlow
 
    -- * String search
@@ -34,17 +44,25 @@ module System.IO.Streams.ByteString
 
 ------------------------------------------------------------------------------
 import           Control.Exception             ( Exception, throwIO )
-import           Control.Monad                 ( when )
+import           Control.Monad                 ( (>=>), when )
 import           Data.ByteString               ( ByteString )
 import qualified Data.ByteString.Char8         as S
 import qualified Data.ByteString.Lazy.Char8    as L
+import           Data.Char                     ( isSpace )
 import           Data.Int                      (Int64)
 import           Data.IORef                    ( newIORef
                                                , readIORef
                                                , writeIORef )
 import           Data.Time.Clock.POSIX         ( getPOSIXTime )
 import           Data.Typeable                 ( Typeable )
-import           Prelude                       hiding ( read )
+
+import           Prelude hiding
+                   ( read
+                   , lines
+                   , unlines
+                   , words
+                   , unwords
+                   )
 ------------------------------------------------------------------------------
 import           System.IO.Streams.Combinators ( outputFoldM )
 import           System.IO.Streams.Internal
@@ -53,19 +71,22 @@ import           System.IO.Streams.Internal
                    , SP(..)
                    , Sink(..)
                    , Source(..)
+                   , makeOutputStream
                    , nullSink
+                   , nullSource
                    , pushback
                    , read
                    , sinkToStream
                    , sourceToStream
                    , unRead
+                   , withDefaultPushback
                    , write
                    )
 import           System.IO.Streams.Internal.BoyerMooreHorspool
                    ( MatchInfo(..)
                    , search
                    )
-import           System.IO.Streams.List        ( writeList )
+import           System.IO.Streams.List        ( filterM, writeList )
 ------------------------------------------------------------------------------
 
 
@@ -231,6 +252,85 @@ takeBytes k0 src = sourceToStream $ source k0
                                 when (not $ S.null b) $ unRead b src
                                 return $! SP (eofSrc 0) (fromBS a)
                        else return $! SP (source k') (Just s)
+
+
+------------------------------------------------------------------------------
+-- TODO: docs
+--
+-- Notes:
+--   * pushback *not* propagated upstream
+--
+--   * may hold an unbounded amount of the bytestring in memory waiting for the
+--     function to return true, not to be used in unsafe contexts
+--
+--   * delimiter NOT included in the output
+--
+--   * consecutive delimiters not split
+--
+splitOn :: (Char -> Bool)               -- ^ predicate used to break the input
+                                        -- stream into chunks
+        -> InputStream ByteString       -- ^ input stream
+        -> IO (InputStream ByteString)
+splitOn p is = sourceToStream $ withDefaultPushback newChunk
+  where
+    newChunk = read is >>=
+               maybe (return (SP nullSource Nothing)) (go id . Just)
+
+    go !dl Nothing = return $! SP nullSource (Just $! S.concat $! dl [])
+
+    go !dl (Just s) = do
+        let (a,b) = S.break p s
+        if S.null b
+          then read is >>= go (dl . (a:))
+          else do
+              let b'   = S.drop 1 b
+              let rest = withDefaultPushback $ go id (Just b')
+              return $! SP rest $! Just $! S.concat $! dl [a]
+
+
+------------------------------------------------------------------------------
+-- TODO: doc
+lines :: InputStream ByteString -> IO (InputStream ByteString)
+lines = splitOn (== '\n')
+
+
+------------------------------------------------------------------------------
+-- TODO: doc
+words :: InputStream ByteString -> IO (InputStream ByteString)
+words = splitOn isSpace >=> filterM (return . not . S.all isSpace)
+
+
+------------------------------------------------------------------------------
+-- TODO: doc
+--
+-- Example:
+--
+-- @
+-- ghci> is <- 'System.IO.Streams.List.fromList' [\"nom\", \"nom\", \"nom\"::'ByteString']
+-- ghci> 'System.IO.Streams.List.outputToList' (\os -> 'intercalate' \"burp!\" os >>= 'System.IO.Streams.connect' is)
+-- [\"nom\",\"burp!\",\"nom\",\"burp!\",\"nom\"]
+-- @
+intercalate :: ByteString
+            -> OutputStream ByteString
+            -> IO (OutputStream ByteString)
+intercalate sep os = newIORef False >>= makeOutputStream . f
+  where
+    f _ Nothing = write Nothing os
+    f sendRef s    = do
+        b <- readIORef sendRef
+        writeIORef sendRef True
+        when b $ write (Just sep) os
+        write s os
+
+
+------------------------------------------------------------------------------
+unlines :: OutputStream ByteString -> IO (OutputStream ByteString)
+unlines = intercalate "\n"
+
+
+------------------------------------------------------------------------------
+unwords :: OutputStream ByteString -> IO (OutputStream ByteString)
+unwords = intercalate " "
 
 
 ------------------------------------------------------------------------------
