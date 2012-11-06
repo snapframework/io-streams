@@ -1,12 +1,18 @@
 {-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE OverloadedStrings #-}
 
--- | Buffering for output streams based on @blaze-builder@.
+-- | Buffering for output streams based on bytestring builders.
 --
 -- Buffering an output stream can often improve throughput by reducing the
 -- number of system calls made through the file descriptor. The @blaze-builder@
 -- package provides an efficient set of primitives for serializing values
 -- directly to an output buffer.
+--
+-- (/N.B./: most of the @blaze-builder@ package has been moved into
+-- @bytestring@ in versions \>= 0.10; once two or three Haskell Platform
+-- editions have been released that contain @bytestring@ 0.10 or higher, the
+-- dependency on @blaze-builder@ will be dropped in favor of the native support
+-- for 'Builder' contained in the @bytestring@ package.
 --
 -- /Using this module/
 --
@@ -57,7 +63,7 @@
 -- > ghci> example
 -- > ["the quick brown fox","","jumped over the"]
 --
-module System.IO.Streams.Blaze
+module System.IO.Streams.Builder
  ( -- * Blaze builder conversion
    builderStream
  , unsafeBuilderStream

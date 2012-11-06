@@ -49,7 +49,7 @@ Library
 
   Exposed-modules:   System.IO.Streams,
                      System.IO.Streams.Attoparsec,
-                     System.IO.Streams.Blaze,
+                     System.IO.Streams.Builder,
                      System.IO.Streams.ByteString,
                      System.IO.Streams.Combinators,
                      System.IO.Streams.Handle,
@@ -91,7 +91,7 @@ Test-suite testsuite
   Main-is:           TestSuite.hs
   Default-language:  Haskell2010
 
-  Other-modules:     System.IO.Streams.Tests.Blaze,
+  Other-modules:     System.IO.Streams.Tests.Builder,
                      System.IO.Streams.Tests.ByteString,
                      System.IO.Streams.Tests.Combinators,
                      System.IO.Streams.Tests.Common,
@@ -101,7 +101,7 @@ Test-suite testsuite
                      System.IO.Streams.Tests.Zlib,
                      System.IO.Streams,
                      System.IO.Streams.Attoparsec,
-                     System.IO.Streams.Blaze,
+                     System.IO.Streams.Builder,
                      System.IO.Streams.ByteString,
                      System.IO.Streams.Combinators,
                      System.IO.Streams.Handle,

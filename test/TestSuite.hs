@@ -2,7 +2,7 @@ module Main where
 
 import Test.Framework (defaultMain, testGroup)
 import qualified System.IO.Streams.Tests.Attoparsec as Attoparsec
-import qualified System.IO.Streams.Tests.Blaze as Blaze
+import qualified System.IO.Streams.Tests.Builder as Builder
 import qualified System.IO.Streams.Tests.ByteString as ByteString
 import qualified System.IO.Streams.Tests.Combinators as Combinators
 import qualified System.IO.Streams.Tests.File as File
@@ -18,7 +18,7 @@ main :: IO ()
 main = defaultMain tests
   where
     tests = [ testGroup "Tests.Attoparsec" Attoparsec.tests
-            , testGroup "Tests.Blaze" Blaze.tests
+            , testGroup "Tests.Builder" Builder.tests
             , testGroup "Tests.ByteString" ByteString.tests
             , testGroup "Tests.Combinators" Combinators.tests
             , testGroup "Tests.File" File.tests

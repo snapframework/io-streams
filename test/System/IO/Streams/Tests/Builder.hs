@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module System.IO.Streams.Tests.Blaze (tests) where
+module System.IO.Streams.Tests.Builder (tests) where
 
 ------------------------------------------------------------------------------
 import           Blaze.ByteString.Builder
@@ -26,7 +26,7 @@ tests = [ testBuilderStream
 
 ------------------------------------------------------------------------------
 testBuilderStream :: Test
-testBuilderStream = testCase "blaze/builderStream" $ do
+testBuilderStream = testCase "builder/builderStream" $ do
     let l1 = intersperse " " ["the", "quick", "brown", "fox"]
     let l2 = intersperse " " ["jumped", "over", "the"]
     let l  = map fromByteString l1 ++ [flush] ++ map fromByteString l2
@@ -47,7 +47,7 @@ testBuilderStream = testCase "blaze/builderStream" $ do
 
 ------------------------------------------------------------------------------
 testUnsafeBuilderStream :: Test
-testUnsafeBuilderStream = testCase "blaze/unsafeBuilderStream" $ do
+testUnsafeBuilderStream = testCase "builder/unsafeBuilderStream" $ do
     let l1 = intersperse " " ["the", "quick", "brown", "fox"]
     let l2 = intersperse " " ["jumped", "over", "the"]
     let l  = map fromByteString l1 ++ [flush] ++ map fromByteString l2
@@ -69,7 +69,7 @@ testUnsafeBuilderStream = testCase "blaze/unsafeBuilderStream" $ do
 
 ------------------------------------------------------------------------------
 testSmallBuffer :: Test
-testSmallBuffer = testCase "blaze/smallBuffer" $ do
+testSmallBuffer = testCase "builder/smallBuffer" $ do
     (os0, grab) <- listOutputStream
     os          <- builderStreamWith (allNewBuffersStrategy 10) os0
     let l1 = intersperse " " ["the", "quick", "brown"]
@@ -87,7 +87,7 @@ testSmallBuffer = testCase "blaze/smallBuffer" $ do
 ------------------------------------------------------------------------------
 testSmallBufferWithLargeOutput :: Test
 testSmallBufferWithLargeOutput =
-    testCase "blaze/smallBufferWithLargeOutput" $ do
+    testCase "builder/smallBufferWithLargeOutput" $ do
         (os0, grab) <- listOutputStream
         os1         <- contramapM (return . S.copy) os0
         os          <- unsafeBuilderStream (allocBuffer 10) os1
@@ -114,7 +114,7 @@ testSmallBufferWithLargeOutput =
 
 ------------------------------------------------------------------------------
 testNullStream :: Test
-testNullStream = testCase "blaze/nullStream" $ do
+testNullStream = testCase "builder/nullStream" $ do
     (os0, grab) <- listOutputStream
     os <- builderStream os0
 

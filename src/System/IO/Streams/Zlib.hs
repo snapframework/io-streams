@@ -47,7 +47,7 @@ import qualified Data.ByteString as S
 import           Data.ByteString (ByteString)
 import           Prelude         hiding (read)
 ------------------------------------------------------------------------------
-import           System.IO.Streams.Blaze (unsafeBuilderStream)
+import           System.IO.Streams.Builder (unsafeBuilderStream)
 import           System.IO.Streams.Internal
                    ( InputStream
                    , OutputStream
