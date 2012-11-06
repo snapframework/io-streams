@@ -8,9 +8,9 @@ import           Control.Monad
 import           Data.ByteString.Char8 (ByteString)
 import qualified Data.ByteString.Char8 as S
 import qualified Data.ByteString.Lazy.Char8 as L
-import           Data.List
+import           Data.List hiding (lines, unlines, unwords, words)
 import           Data.Monoid
-import           Prelude hiding (read)
+import           Prelude hiding (read, lines, unlines, unwords, words, unwords)
 import qualified Prelude
 import           System.IO.Streams
 import           Test.Framework
@@ -41,6 +41,8 @@ tests = [ testBoyerMoore
         , testTrivials
         , testWriteLazyByteString
         , testGiveBytes
+        , testLines
+        , testWords
         ]
 
 
@@ -526,6 +528,29 @@ testReadExactly = testProperty "bytestring/readExactly" $
             assertEqual "eq2" (L.take (toEnum $ n-1) s) (L.fromChunks [u])
             v   <- readExactly 1 is'
             assertEqual "eq3" (L.drop (toEnum $ n-1) s) (L.fromChunks [v])
+
+
+------------------------------------------------------------------------------
+testLines :: Test
+testLines = testCase "bytestring/testLines" $ do
+    fromList ["th", "e\nquick\nbrown", "\n", "", "fox"] >>= lines >>=
+             toList >>= assertEqual "lines" ["the", "quick", "brown", "fox"]
+    fromList [] >>= lines >>= toList >>= assertEqual "empty lines" []
+
+    fromList ["ok", "cool"] >>=
+      \is -> outputToList (\os -> unlines os >>= connect is) >>=
+      assertEqual "unlines" ["ok", "\n", "cool"]
+
+
+------------------------------------------------------------------------------
+testWords :: Test
+testWords = testCase "bytestring/testWords" $ do
+    fromList ["the quick brown    \n\tfox"] >>= words >>=
+             toList >>= assertEqual "words" ["the", "quick", "brown", "fox"]
+
+    fromList ["ok", "cool"] >>=
+      \is -> outputToList (\os -> unwords os >>= connect is) >>=
+      assertEqual "unlines" ["ok", " ", "cool"]
 
 
 ------------------------------------------------------------------------------

@@ -9,6 +9,7 @@ module System.IO.Streams.List
 
    -- * Utility
  , filterM
+ , intercalate
  , listOutputStream
  ) where
 
@@ -16,6 +17,8 @@ import Control.Concurrent.MVar    ( modifyMVar
                                   , modifyMVar_
                                   , newMVar
                                   )
+import Control.Monad              ( when )
+import Data.IORef                 ( newIORef, readIORef, writeIORef )
 import Prelude hiding             ( read )
 import System.IO.Streams.Internal ( InputStream
                                   , OutputStream
@@ -23,6 +26,7 @@ import System.IO.Streams.Internal ( InputStream
                                   , Source(..)
                                   , SP(..)
                                   , connect
+                                  , makeOutputStream
                                   , nullSink
                                   , nullSource
                                   , read
@@ -139,3 +143,24 @@ filterM p src = sourceToStream source
           }
 
     pb s = unRead s src >> return source
+
+
+------------------------------------------------------------------------------
+-- TODO: doc
+--
+-- Example:
+--
+-- @
+-- ghci> is <- 'System.IO.Streams.List.fromList' [\"nom\", \"nom\", \"nom\"::'ByteString']
+-- ghci> 'System.IO.Streams.List.outputToList' (\os -> 'intercalate' \"burp!\" os >>= 'System.IO.Streams.connect' is)
+-- [\"nom\",\"burp!\",\"nom\",\"burp!\",\"nom\"]
+-- @
+intercalate :: a -> OutputStream a -> IO (OutputStream a)
+intercalate sep os = newIORef False >>= makeOutputStream . f
+  where
+    f _ Nothing = write Nothing os
+    f sendRef s    = do
+        b <- readIORef sendRef
+        writeIORef sendRef True
+        when b $ write (Just sep) os
+        write s os

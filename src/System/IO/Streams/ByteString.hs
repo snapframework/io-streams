@@ -15,7 +15,6 @@ module System.IO.Streams.ByteString
    -- * Stream transformers
    -- ** Splitting/Joining
  , splitOn
- , intercalate
  , lines
  , unlines
  , words
@@ -71,7 +70,6 @@ import           System.IO.Streams.Internal
                    , SP(..)
                    , Sink(..)
                    , Source(..)
-                   , makeOutputStream
                    , nullSink
                    , nullSource
                    , pushback
@@ -86,7 +84,10 @@ import           System.IO.Streams.Internal.BoyerMooreHorspool
                    ( MatchInfo(..)
                    , search
                    )
-import           System.IO.Streams.List        ( filterM, writeList )
+import           System.IO.Streams.List        ( filterM
+                                               , intercalate
+                                               , writeList
+                                               )
 ------------------------------------------------------------------------------
 
 
@@ -298,29 +299,6 @@ lines = splitOn (== '\n')
 -- TODO: doc
 words :: InputStream ByteString -> IO (InputStream ByteString)
 words = splitOn isSpace >=> filterM (return . not . S.all isSpace)
-
-
-------------------------------------------------------------------------------
--- TODO: doc
---
--- Example:
---
--- @
--- ghci> is <- 'System.IO.Streams.List.fromList' [\"nom\", \"nom\", \"nom\"::'ByteString']
--- ghci> 'System.IO.Streams.List.outputToList' (\os -> 'intercalate' \"burp!\" os >>= 'System.IO.Streams.connect' is)
--- [\"nom\",\"burp!\",\"nom\",\"burp!\",\"nom\"]
--- @
-intercalate :: ByteString
-            -> OutputStream ByteString
-            -> IO (OutputStream ByteString)
-intercalate sep os = newIORef False >>= makeOutputStream . f
-  where
-    f _ Nothing = write Nothing os
-    f sendRef s    = do
-        b <- readIORef sendRef
-        writeIORef sendRef True
-        when b $ write (Just sep) os
-        write s os
 
 
 ------------------------------------------------------------------------------
