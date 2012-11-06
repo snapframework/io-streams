@@ -63,7 +63,11 @@ import           Prelude hiding
                    , unwords
                    )
 ------------------------------------------------------------------------------
-import           System.IO.Streams.Combinators ( outputFoldM )
+import           System.IO.Streams.Combinators
+                   ( filterM
+                   , intercalate
+                   , outputFoldM
+                   )
 import           System.IO.Streams.Internal
                    ( InputStream
                    , OutputStream
@@ -84,10 +88,7 @@ import           System.IO.Streams.Internal.BoyerMooreHorspool
                    ( MatchInfo(..)
                    , search
                    )
-import           System.IO.Streams.List        ( filterM
-                                               , intercalate
-                                               , writeList
-                                               )
+import           System.IO.Streams.List        ( writeList )
 ------------------------------------------------------------------------------
 
 

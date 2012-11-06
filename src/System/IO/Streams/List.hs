@@ -8,8 +8,6 @@ module System.IO.Streams.List
  , writeList
 
    -- * Utility
- , filterM
- , intercalate
  , listOutputStream
  ) where
 
@@ -17,22 +15,16 @@ import Control.Concurrent.MVar    ( modifyMVar
                                   , modifyMVar_
                                   , newMVar
                                   )
-import Control.Monad              ( when )
-import Data.IORef                 ( newIORef, readIORef, writeIORef )
 import Prelude hiding             ( read )
 import System.IO.Streams.Internal ( InputStream
                                   , OutputStream
                                   , Sink(..)
-                                  , Source(..)
                                   , SP(..)
                                   , connect
-                                  , makeOutputStream
                                   , nullSink
                                   , nullSource
-                                  , read
                                   , sinkToStream
                                   , sourceToStream
-                                  , unRead
                                   , withDefaultPushback
                                   , write
                                   )
@@ -105,62 +97,3 @@ outputToList f = do
 writeList :: [a] -> OutputStream a -> IO ()
 writeList xs os = mapM_ (flip write os . Just) xs
 {-# INLINE writeList #-}
-
-
-------------------------------------------------------------------------------
--- | Drops chunks from an input stream if they fail to match a given filter
--- predicate. See 'Prelude.filter'.
---
--- Items pushed back to the returned stream are propagated back upstream.
---
--- Example:
---
--- @
--- 'fromList' [\"the\", \"quick\", \"brown\", \"fox\"] >>=
---     'filterM' ('return' . (/= \"brown\")) >>= 'toList'
--- ghci> [\"the\",\"quick\",\"fox\"]
--- @
-filterM :: (a -> IO Bool)
-        -> InputStream a
-        -> IO (InputStream a)
-filterM p src = sourceToStream source
-  where
-    source = Source {
-               produce  = prod
-             , pushback = pb
-             }
-
-    prod = read src >>= maybe eof chunk
-
-    chunk s = do
-        b <- p s
-        if b then return $! SP source (Just s)
-             else prod
-
-    eof = return $! flip SP Nothing Source {
-            produce  = eof
-          , pushback = pb
-          }
-
-    pb s = unRead s src >> return source
-
-
-------------------------------------------------------------------------------
--- TODO: doc
---
--- Example:
---
--- @
--- ghci> is <- 'System.IO.Streams.List.fromList' [\"nom\", \"nom\", \"nom\"::'ByteString']
--- ghci> 'System.IO.Streams.List.outputToList' (\os -> 'intercalate' \"burp!\" os >>= 'System.IO.Streams.connect' is)
--- [\"nom\",\"burp!\",\"nom\",\"burp!\",\"nom\"]
--- @
-intercalate :: a -> OutputStream a -> IO (OutputStream a)
-intercalate sep os = newIORef False >>= makeOutputStream . f
-  where
-    f _ Nothing = write Nothing os
-    f sendRef s    = do
-        b <- readIORef sendRef
-        writeIORef sendRef True
-        when b $ write (Just sep) os
-        write s os

@@ -8,10 +8,7 @@ import qualified System.IO.Streams.Tests.Combinators as Combinators
 import qualified System.IO.Streams.Tests.File as File
 import qualified System.IO.Streams.Tests.Handle as Handle
 import qualified System.IO.Streams.Tests.Internal as Internal
-import qualified System.IO.Streams.Tests.List as List
 import qualified System.IO.Streams.Tests.Zlib as Zlib
-
-------------------------------------------------------------------------------
 
 
 ------------------------------------------------------------------------------
@@ -25,6 +22,5 @@ main = defaultMain tests
             , testGroup "Tests.File" File.tests
             , testGroup "Tests.Handle" Handle.tests
             , testGroup "Tests.Internal" Internal.tests
-            , testGroup "Tests.List" List.tests
             , testGroup "Tests.Zlib" Zlib.tests
             ]

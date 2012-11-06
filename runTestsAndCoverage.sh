@@ -25,7 +25,6 @@ System.IO.Streams.Tests.Common
 System.IO.Streams.Tests.File
 System.IO.Streams.Tests.Handle
 System.IO.Streams.Tests.Internal
-System.IO.Streams.Tests.List
 System.IO.Streams.Tests.Zlib
 '
 

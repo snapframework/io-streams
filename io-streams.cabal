@@ -98,7 +98,6 @@ Test-suite testsuite
                      System.IO.Streams.Tests.File,
                      System.IO.Streams.Tests.Handle,
                      System.IO.Streams.Tests.Internal,
-                     System.IO.Streams.Tests.List,
                      System.IO.Streams.Tests.Zlib,
                      System.IO.Streams,
                      System.IO.Streams.Attoparsec,
