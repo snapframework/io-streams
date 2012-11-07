@@ -12,7 +12,7 @@ import           Data.List hiding (lines, unlines, unwords, words)
 import           Data.Monoid
 import           Prelude hiding (read, lines, unlines, unwords, words, unwords)
 import qualified Prelude
-import           System.IO.Streams
+import           System.IO.Streams hiding (intersperse, mapM_)
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
 import           Test.Framework.Providers.QuickCheck2

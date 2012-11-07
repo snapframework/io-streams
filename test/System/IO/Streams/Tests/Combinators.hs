@@ -5,9 +5,10 @@ module System.IO.Streams.Tests.Combinators (tests) where
 
 ------------------------------------------------------------------------------
 import           Control.Applicative
-import           Control.Monad hiding (filterM, mapM)
+import           Control.Monad hiding (filterM, mapM, mapM_)
+import           Data.IORef
 import           Data.List
-import           Prelude hiding (mapM, read)
+import           Prelude hiding (mapM, mapM_, read)
 import           System.IO.Streams
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
@@ -18,6 +19,8 @@ tests :: [Test]
 tests = [ testFilterM
         , testFoldMWorksTwice
         , testMapM
+        , testMapM_
+        , testContramapM_
         , testSkipToEof
         , testZipM
         , testUnzipM
@@ -61,6 +64,26 @@ testMapM = testCase "combinators/mapM" $ do
     l  <- toList is
 
     assertEqual "mapM" [2,3,4] l
+
+
+------------------------------------------------------------------------------
+testMapM_ :: Test
+testMapM_ = testCase "combinators/mapM_" $ do
+    ref <- newIORef 0
+    is  <- fromList [1,2,3::Int] >>= mapM_ (modifyIORef ref . (+))
+    _   <- toList is
+
+    readIORef ref >>= assertEqual "mapM_" 6
+
+
+------------------------------------------------------------------------------
+testContramapM_ :: Test
+testContramapM_ = testCase "combinators/contramapM_" $ do
+    ref <- newIORef 0
+    is  <- fromList [1,2,3::Int]
+    _   <- outputToList (contramapM_ (modifyIORef ref . (+)) >=> connect is)
+
+    readIORef ref >>= assertEqual "contramapM_" 6
 
 
 ------------------------------------------------------------------------------

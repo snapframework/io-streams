@@ -10,7 +10,9 @@ module System.IO.Streams.Combinators
 
    -- * Maps
  , mapM
+ , mapM_
  , contramapM
+ , contramapM_
 
    -- * Filter
  , filterM
@@ -20,20 +22,20 @@ module System.IO.Streams.Combinators
  , unzipM
 
    -- * Utility
- , intercalate
+ , intersperse
  , skipToEof
  ) where
 
 ------------------------------------------------------------------------------
 import Control.Concurrent.MVar    ( newMVar, withMVar )
-import Control.Monad              ( liftM, when )
+import Control.Monad              ( liftM, void, when )
 import Data.IORef                 ( atomicModifyIORef
                                   , modifyIORef
                                   , newIORef
                                   , readIORef
                                   , writeIORef
                                   )
-import Prelude             hiding ( mapM, read )
+import Prelude             hiding ( mapM, mapM_, read )
 ------------------------------------------------------------------------------
 import System.IO.Streams.Internal ( InputStream
                                   , OutputStream
@@ -48,6 +50,7 @@ import System.IO.Streams.Internal ( InputStream
                                   )
 
 ------------------------------------------------------------------------------
+-- | TODO: document
 outputFoldM :: (a -> b -> IO a)
             -> a
             -> OutputStream b
@@ -69,6 +72,7 @@ outputFoldM f initial stream = do
 
 
 ------------------------------------------------------------------------------
+-- | TODO: document
 inputFoldM :: (a -> b -> IO a)
            -> a
            -> InputStream b
@@ -95,7 +99,7 @@ inputFoldM f initial stream = do
 ------------------------------------------------------------------------------
 -- | Maps an impure function over an 'InputStream'.
 --
--- @mapM f s@ passes all output from @s@ through the impure function @f@.
+-- @mapM f s@ passes all output from @s@ through the IO action @f@.
 --
 -- Satisfies the following laws:
 --
@@ -113,9 +117,34 @@ mapM f s = makeInputStream g
 
 
 ------------------------------------------------------------------------------
+-- | Maps a side effect over an 'InputStream'.
+--
+-- @mapM_ f s@ produces a new input stream that passes all output from @s@
+-- through the side-effecting IO action @f@.
+--
+-- Example:
+--
+-- @
+-- ghci> 'System.IO.Streams.fromList' [1,2,3] >>=
+--       'mapM_' ('putStrLn' . 'show' . (*2)) >>=
+--       'System.IO.Streams.toList'
+-- 2
+-- 4
+-- 6
+-- [2,4,6]
+-- @
+--
+mapM_ :: (a -> IO b) -> InputStream a -> IO (InputStream a)
+mapM_ f s = makeInputStream $ do
+    mb <- read s
+    _  <- maybe (return $! ()) (void . f) mb
+    return mb
+
+
+------------------------------------------------------------------------------
 -- | Contravariant counterpart to 'mapM'.
 --
--- (@contramapM f s@) passes all input to @s@ through the impure function @f@
+-- @contramapM f s@ passes all input to @s@ through the IO action @f@
 --
 -- Satisfies the following laws:
 --
@@ -130,6 +159,18 @@ contramapM f s = makeOutputStream g
     g (Just x) = do
         !y <- f x
         write (Just y) s
+
+
+------------------------------------------------------------------------------
+-- | Contravariant counterpart to 'mapM_'.
+--
+-- @contramapM f s@ passes all input to @s@ through the side-effecting IO
+-- action @f@.
+--
+contramapM_ :: (a -> IO b) -> OutputStream a -> IO (OutputStream a)
+contramapM_ f s = makeOutputStream $ \mb -> do
+    _ <- maybe (return $! ()) (void . f) mb
+    write mb s
 
 
 ------------------------------------------------------------------------------
@@ -151,9 +192,9 @@ skipToEof str = go
 -- Example:
 --
 -- @
--- 'fromList' [\"the\", \"quick\", \"brown\", \"fox\"] >>=
---     'filterM' ('return' . (/= \"brown\")) >>= 'toList'
--- ghci> [\"the\",\"quick\",\"fox\"]
+-- ghci> 'System.IO.Streams.fromList' [\"the\", \"quick\", \"brown\", \"fox\"] >>=
+--       'filterM' ('return' . (/= \"brown\")) >>= 'System.IO.Streams.toList'
+-- [\"the\",\"quick\",\"fox\"]
 -- @
 filterM :: (a -> IO Bool)
         -> InputStream a
@@ -181,17 +222,20 @@ filterM p src = sourceToStream source
 
 
 ------------------------------------------------------------------------------
--- TODO: doc
+-- | The function @intersperse v s@ wraps the 'OutputStream' @s@, creating a
+-- new output stream that writes its input to @s@ interspersed with the
+-- provided value @v@. See 'Data.List.intersperse'.
 --
 -- Example:
 --
 -- @
+-- ghci> import Control.Monad ((>=>))
 -- ghci> is <- 'System.IO.Streams.List.fromList' [\"nom\", \"nom\", \"nom\"::'ByteString']
--- ghci> 'System.IO.Streams.List.outputToList' (\os -> 'intercalate' \"burp!\" os >>= 'System.IO.Streams.connect' is)
+-- ghci> 'System.IO.Streams.List.outputToList' ('intersperse' \"burp!\" os >=> 'System.IO.Streams.connect' is)
 -- [\"nom\",\"burp!\",\"nom\",\"burp!\",\"nom\"]
 -- @
-intercalate :: a -> OutputStream a -> IO (OutputStream a)
-intercalate sep os = newIORef False >>= makeOutputStream . f
+intersperse :: a -> OutputStream a -> IO (OutputStream a)
+intersperse sep os = newIORef False >>= makeOutputStream . f
   where
     f _ Nothing = write Nothing os
     f sendRef s    = do

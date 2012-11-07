@@ -65,7 +65,7 @@ import           Prelude hiding
 ------------------------------------------------------------------------------
 import           System.IO.Streams.Combinators
                    ( filterM
-                   , intercalate
+                   , intersperse
                    , outputFoldM
                    )
 import           System.IO.Streams.Internal
@@ -304,12 +304,12 @@ words = splitOn isSpace >=> filterM (return . not . S.all isSpace)
 
 ------------------------------------------------------------------------------
 unlines :: OutputStream ByteString -> IO (OutputStream ByteString)
-unlines = intercalate "\n"
+unlines = intersperse "\n"
 
 
 ------------------------------------------------------------------------------
 unwords :: OutputStream ByteString -> IO (OutputStream ByteString)
-unwords = intercalate " "
+unwords = intersperse " "
 
 
 ------------------------------------------------------------------------------
