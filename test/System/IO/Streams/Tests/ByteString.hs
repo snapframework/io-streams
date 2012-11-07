@@ -8,9 +8,17 @@ import           Control.Monad
 import           Data.ByteString.Char8 (ByteString)
 import qualified Data.ByteString.Char8 as S
 import qualified Data.ByteString.Lazy.Char8 as L
-import           Data.List hiding (lines, unlines, unwords, words)
+import           Data.List hiding (takeWhile, lines, unlines, unwords, words)
 import           Data.Monoid
-import           Prelude hiding (read, lines, unlines, unwords, words, unwords)
+import           Prelude hiding
+                   ( read
+                   , takeWhile
+                   , lines
+                   , unlines
+                   , unwords
+                   , words
+                   , unwords
+                   )
 import qualified Prelude
 import           System.IO.Streams hiding (intersperse, mapM_)
 import           Test.Framework
@@ -30,6 +38,7 @@ tests = [ testBoyerMoore
         , testCountOutput
         , testThrowIfTooSlow
         , testReadExactly
+        , testTakeWhile
         , testTakeBytes
         , testTakeBytes2
         , testTakeBytes3
@@ -528,6 +537,24 @@ testReadExactly = testProperty "bytestring/readExactly" $
             assertEqual "eq2" (L.take (toEnum $ n-1) s) (L.fromChunks [u])
             v   <- readExactly 1 is'
             assertEqual "eq3" (L.drop (toEnum $ n-1) s) (L.fromChunks [v])
+
+
+------------------------------------------------------------------------------
+testTakeWhile :: Test
+testTakeWhile = testCase "bytestring/takeBytesWhile" $ do
+    is <- fromList ["test", "ing\n", "1-2-3\n1-2-3"]
+
+    takeBytesWhile (/= '\n') is >>=
+        assertEqual "takeBytesWhile1" (Just "testing")
+    takeBytesWhile (/= '\n') is >>=
+        assertEqual "takeBytesWhile2" (Just "")
+    readExactly 1 is >>= assertEqual "readExactly" "\n"
+    takeBytesWhile (/= '\n') is >>=
+        assertEqual "takeBytesWhile3" (Just "1-2-3")
+    readExactly 1 is >>= assertEqual "readExactly" "\n"
+    takeBytesWhile (/= '\n') is >>=
+        assertEqual "takeBytesWhile4" (Just "1-2-3")
+    takeBytesWhile (/= '\n') is >>= assertEqual "takeBytesWhile4" Nothing
 
 
 ------------------------------------------------------------------------------

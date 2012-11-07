@@ -10,6 +10,7 @@ module System.IO.Streams.ByteString
 
    -- * Input and output
  , readExactly
+ , takeBytesWhile
  , writeLazyByteString
 
    -- * Stream transformers
@@ -57,6 +58,7 @@ import           Data.Typeable                 ( Typeable )
 
 import           Prelude hiding
                    ( read
+                   , takeWhile
                    , lines
                    , unlines
                    , words
@@ -441,6 +443,24 @@ readExactly n input = go id n
                      when (not $ S.null b) $ unRead b input
                      return $! S.concat $! dl [a]
                    else go (dl . (s:)) (k - l))
+
+
+------------------------------------------------------------------------------
+-- | Takes from a stream until the given predicate is no longer satisfied.
+-- Returns Nothing on end-of-stream, or @Just \"\"@ if the predicate is never
+-- satisfied. See 'Prelude.takeWhile' and 'Data.ByteString.Char8.takeWhile'.
+--
+takeBytesWhile :: (Char -> Bool)          -- ^ predicate
+               -> InputStream ByteString  -- ^ input stream
+               -> IO (Maybe ByteString)
+takeBytesWhile p input = read input >>= maybe (return Nothing) (go id)
+  where
+    go dl !s | S.null b  = read input >>= maybe finish (go dl')
+             | otherwise = unRead b input >> finish
+      where
+        (a, b) = S.span p s
+        dl'    = dl . (a:)
+        finish = return $! Just $! S.concat $! dl [a]
 
 
 ------------------------------------------------------------------------------
