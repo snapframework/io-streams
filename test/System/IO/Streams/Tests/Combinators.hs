@@ -10,6 +10,7 @@ import           Data.IORef
 import           Data.List
 import           Prelude hiding (mapM, mapM_, read)
 import           System.IO.Streams
+import qualified System.IO.Streams as S
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
 import           Test.HUnit hiding (Test)
@@ -18,6 +19,8 @@ import           Test.HUnit hiding (Test)
 tests :: [Test]
 tests = [ testFilterM
         , testFoldMWorksTwice
+        , testMap
+        , testContramap
         , testMapM
         , testMapM_
         , testContramapM_
@@ -64,6 +67,23 @@ testMapM = testCase "combinators/mapM" $ do
     l  <- toList is
 
     assertEqual "mapM" [2,3,4] l
+
+
+------------------------------------------------------------------------------
+testMap :: Test
+testMap = testCase "combinators/map" $ do
+    is <- fromList [1,2,3::Int] >>= S.map (1+)
+    l  <- toList is
+
+    assertEqual "map" [2,3,4] l
+
+
+------------------------------------------------------------------------------
+testContramap :: Test
+testContramap = testCase "combinators/contramap" $ do
+    is  <- fromList [1,2,3::Int]
+    l   <- outputToList (contramap (+1) >=> connect is)
+    assertEqual "contramap" [2,3,4] l
 
 
 ------------------------------------------------------------------------------

@@ -9,8 +9,10 @@ module System.IO.Streams.Combinators
  , outputFoldM
 
    -- * Maps
+ , map
  , mapM
  , mapM_
+ , contramap
  , contramapM
  , contramapM_
 
@@ -35,7 +37,7 @@ import Data.IORef                 ( atomicModifyIORef
                                   , readIORef
                                   , writeIORef
                                   )
-import Prelude             hiding ( mapM, mapM_, read )
+import Prelude             hiding ( map, mapM, mapM_, read )
 ------------------------------------------------------------------------------
 import System.IO.Streams.Internal ( InputStream
                                   , OutputStream
@@ -97,15 +99,32 @@ inputFoldM f initial stream = do
 
 
 ------------------------------------------------------------------------------
+-- | Maps a pure function over an 'InputStream'.
+--
+-- @map f s@ passes all output from @s@ through the function @f@.
+--
+-- Satisfies the following laws:
+--
+-- > map (g . f) === map f >=> map g
+-- >
+-- > map id === makeInputStream . read
+map :: (a -> b) -> InputStream a -> IO (InputStream b)
+map f s = makeInputStream g
+  where
+    g = read s >>= return . fmap f
+
+
+------------------------------------------------------------------------------
 -- | Maps an impure function over an 'InputStream'.
 --
 -- @mapM f s@ passes all output from @s@ through the IO action @f@.
 --
 -- Satisfies the following laws:
 --
--- > mapM (f >=> g) = mapM f >=> mapM g
+-- > mapM (f >=> g) === mapM f >=> mapM g
 -- >
--- > mapM return = return
+-- > mapM return === makeInputStream . read
+--
 mapM :: (a -> IO b) -> InputStream a -> IO (InputStream b)
 mapM f s = makeInputStream g
   where
@@ -139,6 +158,20 @@ mapM_ f s = makeInputStream $ do
     mb <- read s
     _  <- maybe (return $! ()) (void . f) mb
     return mb
+
+
+------------------------------------------------------------------------------
+-- | Contravariant counterpart to 'map'.
+--
+-- @contramap f s@ passes all input to @s@ through the function @f@.
+--
+-- Satisfies the following laws:
+--
+-- > contramapM (g . f) === contramapM g >=> contramapM f
+-- >
+-- > contramapM id === return
+contramap :: (a -> b) -> OutputStream b -> IO (OutputStream a)
+contramap f s = makeOutputStream $ flip write s . fmap f
 
 
 ------------------------------------------------------------------------------

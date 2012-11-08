@@ -9,7 +9,7 @@ import           Control.Monad
 import qualified Data.ByteString.Char8 as S
 import           Data.List
 import           Data.Monoid
-import           System.IO.Streams hiding (intersperse)
+import           System.IO.Streams hiding (intersperse, map)
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
 import           Test.HUnit hiding (Test)
