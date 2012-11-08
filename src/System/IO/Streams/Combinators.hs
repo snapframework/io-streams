@@ -52,11 +52,27 @@ import System.IO.Streams.Internal ( InputStream
                                   )
 
 ------------------------------------------------------------------------------
--- | TODO: document
-outputFoldM :: (a -> b -> IO a)
-            -> a
-            -> OutputStream b
-            -> IO (OutputStream b, IO a)
+-- | A side-effecting fold over an 'OutputStream'.
+--
+-- The IO action returned by 'outputFoldM' can be used to fetch the updated
+-- seed value. Example:
+--
+-- @
+-- ghci> is <- 'System.IO.Streams.List.fromList' [1, 2, 3::Int]
+-- ghci> (os, getList) <- 'System.IO.Streams.List.listOutputStream'
+-- ghci> (os', getSeed) \<- 'outputFoldM' (\\x y -> return (x+y)) 0 os
+-- ghci> 'System.IO.Streams.connect' is os'
+-- ghci> getList
+-- [1,2,3]
+-- ghci> getSeed
+-- 6
+-- @
+outputFoldM :: (a -> b -> IO a)           -- ^ fold function
+            -> a                          -- ^ initial seed
+            -> OutputStream b             -- ^ output stream
+            -> IO (OutputStream b, IO a)  -- ^ returns a new stream as well as
+                                          -- an IO action to fetch the updated
+                                          -- seed value.
 outputFoldM f initial stream = do
     ref <- newIORef initial
     os  <- makeOutputStream (wr ref)
@@ -74,11 +90,25 @@ outputFoldM f initial stream = do
 
 
 ------------------------------------------------------------------------------
--- | TODO: document
-inputFoldM :: (a -> b -> IO a)
-           -> a
-           -> InputStream b
-           -> IO (InputStream b, IO a)
+-- | A side-effecting fold over an 'InputStream'.
+--
+-- The IO action returned by 'inputFoldM' can be used to fetch the updated seed
+-- value. Example:
+--
+-- @
+-- ghci> is <- 'System.IO.Streams.List.fromList' [1, 2, 3::Int]
+-- ghci> (is', getSeed) \<- 'inputFoldM' (\\x y -> return (x+y)) 0 is
+-- ghci> 'System.IO.Streams.List.toList' is'
+-- [1,2,3]
+-- ghci> getSeed
+-- 6
+-- @
+inputFoldM :: (a -> b -> IO a)          -- ^ fold function
+           -> a                         -- ^ initial seed
+           -> InputStream b             -- ^ input stream
+           -> IO (InputStream b, IO a)  -- ^ returns a new stream as well as an
+                                        -- IO action to fetch the updated seed
+                                        -- value.
 inputFoldM f initial stream = do
     ref <- newIORef initial
     is  <- makeInputStream (rd ref)
@@ -264,7 +294,7 @@ filterM p src = sourceToStream source
 -- @
 -- ghci> import Control.Monad ((>=>))
 -- ghci> is <- 'System.IO.Streams.List.fromList' [\"nom\", \"nom\", \"nom\"::'ByteString']
--- ghci> 'System.IO.Streams.List.outputToList' ('intersperse' \"burp!\" os >=> 'System.IO.Streams.connect' is)
+-- ghci> 'System.IO.Streams.List.outputToList' ('intersperse' \"burp!\" >=> 'System.IO.Streams.connect' is)
 -- [\"nom\",\"burp!\",\"nom\",\"burp!\",\"nom\"]
 -- @
 intersperse :: a -> OutputStream a -> IO (OutputStream a)
