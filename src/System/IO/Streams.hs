@@ -1,17 +1,25 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings          #-}
 
--- | It is recommended to import this module qualified, as follows:
+-- | This module is a top-level convenience module which re-exports most of the
+-- @io-streams@ library.
 --
--- > import           System.IO.Streams (InputStream, OutputStream)
--- > import qualified System.IO.Streams as Streams
+-- It is recommended to import this module qualified, as follows:
+--
+-- @
+-- import           "System.IO.Streams" ('InputStream', 'OutputStream')
+-- import qualified "System.IO.Streams" as Streams
+-- @
+--
+-- For an in-depth tutorial on how to use @io-streams@, please see the
+-- "System.IO.Streams.Tutorial" module.
 --
 module System.IO.Streams
  ( -- * Stream types
    InputStream
  , OutputStream
 
-   -- * Build streams
+   -- * Creating streams
  , makeInputStream
  , makeOutputStream
 
@@ -22,13 +30,13 @@ module System.IO.Streams
  , write
  , atEOF
 
-   -- * Connect streams
+   -- * Connecting streams together
  , connect
  , connectTo
  , supply
  , supplyTo
 
-   -- * Thread safety
+   -- * Thread safety \/ concurrency
  , lockingInputStream
  , lockingOutputStream
 

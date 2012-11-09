@@ -7,26 +7,43 @@ Build-type:          Simple
 Cabal-version:       >= 1.10
 Synopsis:            Simple and easy-to-use I/O using streams
 Description:
-  The io-streams library contains simple and easy to use primitives for I/O
-  using streams. Based on simple types with one type parameter (@InputStream a@
+  /Overview/
+  .
+  The io-streams library contains simple and easy-to-use primitives for I/O
+  using streams. Most users will want to import the top-level convenience
+  module "System.IO.Streams", which re-exports most of the library:
+  .
+  @
+  import           "System.IO.Streams" (InputStream, OutputStream)
+  import qualified "System.IO.Streams" as Streams
+  @
+  .
+  The @io-streams@ library also comes with an included tutorial, which can be
+  found in the "System.IO.Streams.Tutorial" module.
+  .
+  /Features/
+  .
+  Based on simple types with one type parameter (@InputStream a@
   and @OutputStream a@), io-streams provides a basic interface to
   side-effecting input and output in @IO@ monad with the following
   features:
   .
-    * three fundamental I/O primitives that anyone can understand: @read ::
-      InputStream a -> IO (Maybe a)@, @unRead :: a -> InputStream a -> IO ()@,
-      and @write :: Maybe a -> OutputStream a -> IO ()@.
+    * three fundamental I/O primitives that anyone can understand:
+  .
+      > read :: InputStream a -> IO (Maybe a)
+      > unRead :: a -> InputStream a -> IO ()
+      > write :: Maybe a -> OutputStream a -> IO ()
   .
     * simple types and side-effecting IO operations mean straightforward and
       simple exception handling and resource cleanup using standard Haskell
       facilities like @bracket@.
   .
-    * code to transform files, handles, and sockets to streams
+    * code to transform files, handles, channels, sockets, and more to streams
   .
     * a variety of combinators for wrapping and transforming streams, including
       compression and decompression using zlib, controlling precisely how many
       bytes are read to or written from a socket, buffering output using
-      @blaze-builder@, etc.
+      bytestring builders, etc.
   .
     * support for parsing from streams using @attoparsec@.
 
@@ -53,6 +70,7 @@ Library
                      System.IO.Streams.ByteString,
                      System.IO.Streams.Combinators,
                      System.IO.Streams.Concurrent,
+                     System.IO.Streams.Core,
                      System.IO.Streams.Handle,
                      System.IO.Streams.File,
                      System.IO.Streams.List,
@@ -106,6 +124,7 @@ Test-suite testsuite
                      System.IO.Streams.ByteString,
                      System.IO.Streams.Combinators,
                      System.IO.Streams.Concurrent,
+                     System.IO.Streams.Core,
                      System.IO.Streams.Handle,
                      System.IO.Streams.File,
                      System.IO.Streams.List,
