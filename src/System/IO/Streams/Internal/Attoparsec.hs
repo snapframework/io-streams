@@ -51,6 +51,17 @@ instance Exception ParseException
 -- 'Parser' and unconsumed input is pushed back onto the 'InputStream'.
 --
 -- If the 'Parser' exhausts the 'InputStream', it receives an @EOF@.
+--
+-- Example:
+--
+-- @
+-- ghci> import "Data.Attoparsec.ByteString.Char8"
+-- ghci> is <- 'System.IO.Streams.fromList' [\"12345xxx\" :: 'ByteString']
+-- ghci> 'parseFromStream' ('Data.Attoparsec.ByteString.Char8.takeWhile' 'Data.Attoparsec.ByteString.Char8.isDigit') is
+-- \"12345\"
+-- ghci> 'System.IO.Streams.read' is
+-- Just \"xxx\"
+-- @
 parseFromStream :: Parser r
                 -> InputStream ByteString
                 -> IO r
@@ -94,6 +105,24 @@ parseFromStreamInternal parseFunc feedFunc parser is = do
 -- if the parser yields @Nothing@, that will be interpreted as end-of-stream.
 --
 -- Upon a parse error, 'parserToInputStream' will throw a 'ParseException'.
+--
+-- Example:
+--
+-- @
+-- ghci> import "Control.Applicative"
+-- ghci> import "Data.Attoparsec.ByteString.Char8"
+-- ghci> is <- 'System.IO.Streams.fromList' [\"1 2 3 4 5\" :: 'ByteString']
+-- ghci> let parser = ('Data.Attoparsec.ByteString.Char8.endOfInput' >> 'Control.Applicative.pure' 'Nothing') \<|\> (Just \<$\> ('Data.Attoparsec.ByteString.Char8.skipWhile' 'Data.Attoparsec.ByteString.Char8.isSpace' *> 'Data.Attoparsec.ByteString.Char8.decimal'))
+-- ghci> 'parserToInputStream' parser is >>= 'System.IO.Streams.toList'
+-- [1,2,3,4,5]
+-- ghci> is' \<- 'System.IO.Streams.fromList' [\"1 2xx3 4 5\" :: 'ByteString'] >>= 'parserToInputStream' parser
+-- ghci> 'read' is'
+-- Just 1
+-- ghci> 'read' is'
+-- Just 2
+-- ghci> 'read' is'
+-- *** Exception: Parse exception: Failed reading: takeWhile1
+-- @
 parserToInputStream :: Parser (Maybe r)
                     -> InputStream ByteString
                     -> IO (InputStream r)
