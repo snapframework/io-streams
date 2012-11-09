@@ -180,7 +180,7 @@ mapM f s = makeInputStream g
 -- 2
 -- 4
 -- 6
--- [2,4,6]
+-- [1,2,3]
 -- @
 --
 mapM_ :: (a -> IO b) -> InputStream a -> IO (InputStream a)
