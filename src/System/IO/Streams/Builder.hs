@@ -12,7 +12,7 @@
 -- @bytestring@ in versions \>= 0.10; once two or three Haskell Platform
 -- editions have been released that contain @bytestring@ 0.10 or higher, the
 -- dependency on @blaze-builder@ will be dropped in favor of the native support
--- for 'Builder' contained in the @bytestring@ package.
+-- for 'Builder' contained in the @bytestring@ package.)
 --
 -- /Using this module/
 --
@@ -48,20 +48,20 @@
 --
 -- /Example/
 --
--- > example :: IO [ByteString]
--- > example = do
--- >     let l1 = intersperse " " ["the", "quick", "brown", "fox"]
--- >     let l2 = intersperse " " ["jumped", "over", "the"]
--- >     let l  = map fromByteString l1 ++ [flush] ++ map fromByteString l2
--- >
--- >     is          <- Streams.fromList l
--- >     (os0, grab) <- Streams.listOutputStream
--- >     os          <- Streams.builderStream os0
--- >
--- >     connect is os >> grab
+-- @
+-- example :: IO [ByteString]
+-- example = do
+--     let l1 = 'Data.List.intersperse' \" \" [\"the\", \"quick\", \"brown\", \"fox\"]
+--     let l2 = 'Data.List.intersperse' \" \" [\"jumped\", \"over\", \"the\"]
+--     let l  = map 'Blaze.ByteString.Builder.fromByteString' l1 ++ ['Blaze.ByteString.Builder.flush'] ++ map 'Blaze.ByteString.Builder.fromByteString' l2
+--     is          \<- Streams.'System.IO.Streams.fromList' l
+--     (os0, grab) \<- Streams.'System.IO.Streams.listOutputStream'
+--     os          \<- Streams.'builderStream' os0
+--     'System.IO.Streams.connect' is os >> grab
 --
--- > ghci> example
--- > ["the quick brown fox","","jumped over the"]
+-- ghci> example
+-- [\"the quick brown fox\",\"\",\"jumped over the\"]
+-- @
 --
 module System.IO.Streams.Builder
  ( -- * Blaze builder conversion
