@@ -233,20 +233,13 @@ takeBytes k0 src = sourceToStream $ source k0
 
     eof !n = return $! SP (eofSrc n) Nothing
 
-    eofSrc !n = Source {
-                  produce = eof n
-                , pushback = pb n
-                }
+    eofSrc !n = Source (eof n) (pb n)
 
     pb !n s = do
         unRead s src
         return $! source $! n + toEnum (S.length s)
 
-    source !k = Source {
-                  produce  = read src >>= maybe (eof k) chunk
-                , pushback = pb k
-                }
-
+    source !k = Source (read src >>= maybe (eof k) chunk) (pb k)
       where
         chunk s = let l  = toEnum $ S.length s
                       k' = k - l

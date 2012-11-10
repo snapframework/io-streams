@@ -7,8 +7,9 @@ module System.IO.Streams.Tests.Combinators (tests) where
 import           Control.Applicative
 import           Control.Monad hiding (filterM, mapM, mapM_)
 import           Data.IORef
-import           Data.List hiding (filter)
-import           Prelude hiding (filter, mapM, mapM_, read)
+import           Data.List hiding (filter, drop, take)
+import qualified Prelude
+import           Prelude hiding (filter, mapM, mapM_, read, drop, take)
 import           System.IO.Streams
 import qualified System.IO.Streams as S
 import           Test.Framework
@@ -19,6 +20,8 @@ import           Test.HUnit hiding (Test)
 tests :: [Test]
 tests = [ testFilter
         , testFilterM
+        , testFilterOutput
+        , testFilterOutputM
         , testFoldMWorksTwice
         , testMap
         , testContramap
@@ -28,6 +31,10 @@ tests = [ testFilter
         , testSkipToEof
         , testZipM
         , testUnzipM
+        , testTake
+        , testDrop
+        , testGive
+        , testIgnore
         ]
 
 
@@ -118,25 +125,6 @@ testSkipToEof = testCase "combinators/skipToEof" $ do
 
 
 ------------------------------------------------------------------------------
-testFilterM :: Test
-testFilterM = testCase "combinators/filterM" $ do
-    is  <- fromList [1..10::Int]
-    is' <- filterM (return . even) is
-
-    read is' >>= assertEqual "read1" (Just 2)
-    unRead 3 is'
-
-    peek is >>= assertEqual "pushback" (Just 3)
-    toList is' >>= assertEqual "rest" [4,6..10]
-
-    unRead 20 is'
-
-    peek is >>= assertEqual "pushback2" (Just 20)
-    toList is' >>= assertEqual "rest2" [20]
-    toList is' >>= assertEqual "eof" []
-
-
-------------------------------------------------------------------------------
 testFilter :: Test
 testFilter = testCase "combinators/filter" $ do
     is  <- fromList [1..10::Int]
@@ -156,8 +144,43 @@ testFilter = testCase "combinators/filter" $ do
 
 
 ------------------------------------------------------------------------------
+testFilterM :: Test
+testFilterM = testCase "combinators/filterM" $ do
+    is  <- fromList [1..10::Int]
+    is' <- filterM (return . even) is
+
+    read is' >>= assertEqual "read1" (Just 2)
+    unRead 3 is'
+
+    peek is >>= assertEqual "pushback" (Just 3)
+    toList is' >>= assertEqual "rest" [4,6..10]
+
+    unRead 20 is'
+
+    peek is >>= assertEqual "pushback2" (Just 20)
+    toList is' >>= assertEqual "rest2" [20]
+    toList is' >>= assertEqual "eof" []
+
+
+------------------------------------------------------------------------------
+testFilterOutput :: Test
+testFilterOutput = testCase "combinators/filterOutput" $ do
+    is  <- fromList [1..10::Int]
+    l   <- outputToList (\os -> filterOutput even os >>= connect is)
+    assertEqual "filterOutput" (Prelude.filter even [1..10]) l
+
+
+------------------------------------------------------------------------------
+testFilterOutputM :: Test
+testFilterOutputM = testCase "combinators/filterOutputM" $ do
+    is  <- fromList [1..10::Int]
+    l   <- outputToList (\os -> filterOutputM (return . even) os >>= connect is)
+    assertEqual "filterOutputM" (Prelude.filter even [1..10]) l
+
+
+------------------------------------------------------------------------------
 testZipM :: Test
-testZipM = testCase "list/zipM" $ do
+testZipM = testCase "combinators/zipM" $ do
     let l1 = [1 .. 10 :: Int]
     let l2 = [2 .. 10 :: Int]
 
@@ -177,7 +200,7 @@ testZipM = testCase "list/zipM" $ do
 
 ------------------------------------------------------------------------------
 testUnzipM :: Test
-testUnzipM = testCase "list/unzipM" $ do
+testUnzipM = testCase "combinators/unzipM" $ do
     let l1 = [1 .. 10 :: Int]
         l2 = [2 .. 10 :: Int]
         l  = l1 `zip` l2
@@ -194,3 +217,77 @@ testUnzipM = testCase "list/unzipM" $ do
     read is4 >>= assertEqual "unzip2-read-b" Nothing
     read is3 >>= assertEqual "unzip2-read" Nothing
 
+
+------------------------------------------------------------------------------
+testTake :: Test
+testTake = testCase "combinators/take" $ do
+    fromList ([]::[Int]) >>= take 0 >>= toList >>= assertEqual "empty 0" []
+    fromList ([]::[Int]) >>= take 10 >>= toList >>= assertEqual "empty 10" []
+
+    forM_ [0..4] $ \n -> fromList [1,2,3::Int] >>=
+                         take n >>=
+                         toList >>=
+                         assertEqual ("for " ++ show n)
+                                       (Prelude.take (fromEnum n) [1..3])
+
+    is  <- fromList [1,2,3::Int]
+    is' <- take 2 is
+    void $ read is'
+    unRead 0 is'
+    peek is >>= assertEqual "pb" (Just 0)
+    toList is' >>= assertEqual "toList" [0,2]
+    unRead 7 is'
+    peek is >>= assertEqual "pb2" (Just 7)
+    toList is' >>= assertEqual "toList2" [7]
+
+
+------------------------------------------------------------------------------
+testDrop :: Test
+testDrop = testCase "combinators/drop" $ do
+    fromList ([]::[Int]) >>= take 0 >>= toList >>= assertEqual "empty 0" []
+    fromList ([]::[Int]) >>= take 10 >>= toList >>= assertEqual "empty 10" []
+
+    forM_ [0..4] $ \n -> fromList [1,2,3::Int] >>=
+                         drop n >>=
+                         toList >>=
+                         assertEqual ("for " ++ show n)
+                                     (Prelude.drop (fromEnum n) [1..3])
+
+    is  <- fromList [1,2,3::Int]
+    is' <- drop 1 is
+    read is' >>= assertEqual "read" (Just 2)
+    unRead 0 is'
+    peek is >>= assertEqual "pb" (Just 0)
+    toList is' >>= assertEqual "toList" [0,3]
+    unRead 7 is'
+    peek is >>= assertEqual "pb2" (Just 7)
+    toList is' >>= assertEqual "toList2" [7]
+    toList is' >>= assertEqual "toList2_empty" []
+
+    is2  <- fromList [1,2,3::Int]
+    is2' <- drop 1 is2
+    read is2' >>= assertEqual "read2" (Just 2)
+    unRead 2 is2'
+    unRead 1 is2'
+    unRead 0 is2'
+    toList is2' >>= assertEqual "toList3" [2,3]
+
+
+------------------------------------------------------------------------------
+testGive :: Test
+testGive = testCase "combinators/give" $ forM_ [0..12] tgive
+  where
+    tgive n = fromList [1..10::Int] >>= \is ->
+              outputToList (\os -> give n os >>= connect is) >>=
+              assertEqual ("give" ++ show n)
+                          (Prelude.take (fromEnum n) [1..10])
+
+
+------------------------------------------------------------------------------
+testIgnore :: Test
+testIgnore = testCase "combinators/ignore" $ forM_ [0..12] tign
+  where
+    tign n = fromList [1..10::Int] >>= \is ->
+             outputToList (\os -> ignore n os >>= connect is) >>=
+             assertEqual ("ignore" ++ show n)
+                         (Prelude.drop (fromEnum n) [1..10])

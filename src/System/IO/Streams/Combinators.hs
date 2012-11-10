@@ -19,6 +19,14 @@ module System.IO.Streams.Combinators
    -- * Filter
  , filter
  , filterM
+ , filterOutput
+ , filterOutputM
+
+   -- * Takes and drops
+ , give
+ , take
+ , drop
+ , ignore
 
    -- * Zip and unzip
  , zipM
@@ -32,13 +40,21 @@ module System.IO.Streams.Combinators
 ------------------------------------------------------------------------------
 import Control.Concurrent.MVar    ( newMVar, withMVar )
 import Control.Monad              ( liftM, void, when )
+import Data.Int                   ( Int64 )
 import Data.IORef                 ( atomicModifyIORef
                                   , modifyIORef
                                   , newIORef
                                   , readIORef
                                   , writeIORef
                                   )
-import Prelude             hiding ( filter, map, mapM, mapM_, read )
+import Prelude             hiding ( filter
+                                  , drop
+                                  , take
+                                  , map
+                                  , mapM
+                                  , mapM_
+                                  , read
+                                  )
 ------------------------------------------------------------------------------
 import System.IO.Streams.Internal ( InputStream
                                   , OutputStream
@@ -243,7 +259,7 @@ contramapM_ f s = makeOutputStream $ \mb -> do
 skipToEof :: InputStream a -> IO ()
 skipToEof str = go
   where
-    go = read str >>= maybe (return ()) (const go)
+    go = read str >>= maybe (return $! ()) (const go)
 {-# INLINE skipToEof #-}
 
 
@@ -359,6 +375,24 @@ zipM src1 src2 = makeInputStream src
 
 
 ------------------------------------------------------------------------------
+filterOutput :: (a -> Bool) -> OutputStream a -> IO (OutputStream a)
+filterOutput p output = makeOutputStream chunk
+  where
+    chunk Nothing  = write Nothing output
+    chunk ch@(Just x) = when (p x) $ write ch output
+
+
+------------------------------------------------------------------------------
+filterOutputM :: (a -> IO Bool) -> OutputStream a -> IO (OutputStream a)
+filterOutputM p output = makeOutputStream chunk
+  where
+    chunk Nothing  = write Nothing output
+    chunk ch@(Just x) = do
+        b <- p x
+        if b then write ch output else return $! ()
+
+
+------------------------------------------------------------------------------
 -- | Takes apart a stream of pairs, producing a pair of input streams. Reading
 -- from either of the produced streams will cause a pair of values to be pulled
 -- from the original stream if necessary. Note that reading @n@ values from one
@@ -393,3 +427,67 @@ unzipM os = do
                           let (a, b) = proj x
                           modifyIORef theirBuf (. (b:))
                           return $! Just a)
+
+
+------------------------------------------------------------------------------
+take :: Int64 -> InputStream a -> IO (InputStream a)
+take k0 input = sourceToStream $ source k0
+  where
+    eof !n = return $! SP (eofSrc n) Nothing
+    eofSrc !n = Source (eof n) (pb n)
+    pb !n s = do
+        unRead s input
+        return $! source $! n + 1
+
+    source !k | k <= 0 = eofSrc k
+              | otherwise = Source (read input >>= maybe (eof k) chunk) (pb k)
+      where
+        chunk x = return $! SP (source (k - 1)) (Just x)
+
+
+------------------------------------------------------------------------------
+drop :: Int64 -> InputStream a -> IO (InputStream a)
+drop k0 input = sourceToStream $ source k0
+  where
+    source !k | k <= 0    = normalSrc k
+              | otherwise = Source (discard k) (pb k)
+
+
+    getInput k = read input >>= maybe (eof k)
+                                      (return . SP (source (k - 1)) . Just)
+    normalSrc k = Source (getInput k) (pb k)
+
+    eof !n = return $! SP (eofSrc n) Nothing
+    eofSrc !n = Source (eof n) (pb n)
+
+    pb !n s = do
+        unRead s input
+        return $! source $! n + 1
+
+    discard k | k <= 0    = getInput k
+              | otherwise = read input >>= maybe (eof k)
+                                                 (const $ discard $! k - 1)
+
+
+------------------------------------------------------------------------------
+give :: Int64 -> OutputStream a -> IO (OutputStream a)
+give k output = newIORef k >>= makeOutputStream . chunk
+  where
+    chunk ref = maybe (return $! ()) $ \x -> do
+                    !n <- readIORef ref
+                    if n <= 0
+                      then return $! ()
+                      else do
+                          writeIORef ref $! n - 1
+                          write (Just x) output
+
+
+------------------------------------------------------------------------------
+ignore :: Int64 -> OutputStream a -> IO (OutputStream a)
+ignore k output = newIORef k >>= makeOutputStream . chunk
+  where
+    chunk ref = maybe (return $! ()) $ \x -> do
+                    !n <- readIORef ref
+                    if n > 0
+                      then writeIORef ref $! n - 1
+                      else write (Just x) output
