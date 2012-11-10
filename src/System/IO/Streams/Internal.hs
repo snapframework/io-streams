@@ -62,7 +62,6 @@ module System.IO.Streams.Internal
 import           Control.Concurrent ( newMVar, withMVar )
 import           Control.Monad      ( liftM )
 import           Data.IORef         ( IORef, newIORef, readIORef, writeIORef )
-import           Data.List          ( foldl' )
 import           Data.Monoid        ( Monoid(..) )
 import           Prelude hiding     ( read )
 
@@ -136,7 +135,7 @@ data Sink c = Sink {
 -- >  (s1 `appendSource` s2) `appendSource` s3
 -- > = s1 `appendSource` (s2 `appendSource` s3)
 appendSource :: Source c -> Source c -> Source c
-p `appendSource` q = Source prod pb
+appendSource !p !q = Source prod pb
   where
     prod = do
         (SP p' c) <- produce p
@@ -153,13 +152,6 @@ p `appendSource` q = Source prod pb
 instance Monoid (Source a) where
     mempty  = nullSource
     mappend = appendSource
-
-
-------------------------------------------------------------------------------
--- | 'concatSources' concatenates a list of sources, analogous to 'concat' for
--- lists.
-concatSources :: [Source c] -> Source c
-concatSources = foldl' appendSource nullSource
 
 
 {- TODO: Define better convenience functions for pushback.  These convenience

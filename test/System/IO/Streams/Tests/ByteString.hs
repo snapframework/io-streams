@@ -20,7 +20,7 @@ import           Prelude hiding
                    , unwords
                    )
 import qualified Prelude
-import           System.IO.Streams hiding (intersperse, mapM_)
+import           System.IO.Streams hiding (filter, intersperse, mapM_)
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
 import           Test.Framework.Providers.QuickCheck2

@@ -7,8 +7,8 @@ module System.IO.Streams.Tests.Combinators (tests) where
 import           Control.Applicative
 import           Control.Monad hiding (filterM, mapM, mapM_)
 import           Data.IORef
-import           Data.List
-import           Prelude hiding (mapM, mapM_, read)
+import           Data.List hiding (filter)
+import           Prelude hiding (filter, mapM, mapM_, read)
 import           System.IO.Streams
 import qualified System.IO.Streams as S
 import           Test.Framework
@@ -17,7 +17,8 @@ import           Test.HUnit hiding (Test)
 ------------------------------------------------------------------------------
 
 tests :: [Test]
-tests = [ testFilterM
+tests = [ testFilter
+        , testFilterM
         , testFoldMWorksTwice
         , testMap
         , testContramap
@@ -118,9 +119,28 @@ testSkipToEof = testCase "combinators/skipToEof" $ do
 
 ------------------------------------------------------------------------------
 testFilterM :: Test
-testFilterM = testCase "list/filterM" $ do
+testFilterM = testCase "combinators/filterM" $ do
     is  <- fromList [1..10::Int]
     is' <- filterM (return . even) is
+
+    read is' >>= assertEqual "read1" (Just 2)
+    unRead 3 is'
+
+    peek is >>= assertEqual "pushback" (Just 3)
+    toList is' >>= assertEqual "rest" [4,6..10]
+
+    unRead 20 is'
+
+    peek is >>= assertEqual "pushback2" (Just 20)
+    toList is' >>= assertEqual "rest2" [20]
+    toList is' >>= assertEqual "eof" []
+
+
+------------------------------------------------------------------------------
+testFilter :: Test
+testFilter = testCase "combinators/filter" $ do
+    is  <- fromList [1..10::Int]
+    is' <- filter even is
 
     read is' >>= assertEqual "read1" (Just 2)
     unRead 3 is'

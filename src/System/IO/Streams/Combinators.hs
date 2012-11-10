@@ -17,6 +17,7 @@ module System.IO.Streams.Combinators
  , contramapM_
 
    -- * Filter
+ , filter
  , filterM
 
    -- * Zip and unzip
@@ -37,7 +38,7 @@ import Data.IORef                 ( atomicModifyIORef
                                   , readIORef
                                   , writeIORef
                                   )
-import Prelude             hiding ( map, mapM, mapM_, read )
+import Prelude             hiding ( filter, map, mapM, mapM_, read )
 ------------------------------------------------------------------------------
 import System.IO.Streams.Internal ( InputStream
                                   , OutputStream
@@ -273,6 +274,44 @@ filterM p src = sourceToStream source
 
     chunk s = do
         b <- p s
+        if b then return $! SP source (Just s)
+             else prod
+
+    eof = return $! flip SP Nothing Source {
+            produce  = eof
+          , pushback = pb
+          }
+
+    pb s = unRead s src >> return source
+
+
+------------------------------------------------------------------------------
+-- | Drops chunks from an input stream if they fail to match a given filter
+-- predicate. See 'Prelude.filter'.
+--
+-- Items pushed back to the returned stream are propagated back upstream.
+--
+-- Example:
+--
+-- @
+-- ghci> 'System.IO.Streams.fromList' [\"the\", \"quick\", \"brown\", \"fox\"] >>=
+--       'filter' (/= \"brown\") >>= 'System.IO.Streams.toList'
+-- [\"the\",\"quick\",\"fox\"]
+-- @
+filter :: (a -> Bool)
+       -> InputStream a
+       -> IO (InputStream a)
+filter p src = sourceToStream source
+  where
+    source = Source {
+               produce  = prod
+             , pushback = pb
+             }
+
+    prod = read src >>= maybe eof chunk
+
+    chunk s = do
+        let b = p s
         if b then return $! SP source (Just s)
              else prod
 

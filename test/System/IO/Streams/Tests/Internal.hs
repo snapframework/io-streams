@@ -27,7 +27,7 @@ tests = [ testSourceConcat
 ------------------------------------------------------------------------------
 testSourceConcat :: Test
 testSourceConcat = testCase "internal/sourceConcat" $ do
-    is  <- sourceToStream $ concatSources $
+    is  <- sourceToStream $ mconcat $
            map singletonSource [1::Int, 2, 3]
 
     unRead 7 is
