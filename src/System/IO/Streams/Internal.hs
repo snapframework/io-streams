@@ -13,13 +13,14 @@ module System.IO.Streams.Internal
   , Source(..)
   , Sink(..)
 
-    -- * Source concatenation
-  , appendSource
-  , concatSources
+    -- * About pushback
+    -- $pushback
 
-    -- * Default sources and sinks
+    -- * Pushback functions
   , defaultPushback
   , withDefaultPushback
+
+    -- * Basic sources and sinks
   , nullSource
   , nullSink
   , singletonSource
@@ -80,7 +81,9 @@ data SP a b = SP !a !b
 --
 -- All 'Source's define an optional push-back mechanism. You can assume that:
 --
--- > pushback source c >>= produce = return (source, Just c)
+-- @
+-- 'pushback' source c >>= 'produce' = 'return' (source, 'Just' c)
+-- @
 --
 -- ... unless a 'Source' documents otherwise.
 --
@@ -165,8 +168,10 @@ concatSources = foldl' appendSource nullSource
          customizations. -}
 
 ------------------------------------------------------------------------------
-{- TODO: Leaving this undocumented for now since it has a very narrow use case
-         and might be worth replacing with a more useful function -}
+-- | The default pushback implementation. Given a 'Source' and a value to push
+-- back, produces a new 'Source' that will 'produce' the value given and yield
+-- the original 'Source', and where 'pushback' recursively calls
+-- 'defaultPushback'.
 defaultPushback :: Source c -> c -> IO (Source c)
 defaultPushback s c = let s' = Source { produce  = return $! SP s (Just c)
                                       , pushback = defaultPushback s'
@@ -175,8 +180,8 @@ defaultPushback s c = let s' = Source { produce  = return $! SP s (Just c)
 
 
 ------------------------------------------------------------------------------
-{- TODO: Leaving this undocumented for now since it has a very narrow use case
-         and might be worth replacing with a more useful function -}
+-- | Given an action to use as 'produce', creates a 'Source' that uses
+-- 'defaultPushback' as its 'pushback'.
 withDefaultPushback :: IO (SP (Source c) (Maybe c)) -> Source c
 withDefaultPushback prod = let s = Source prod (defaultPushback s)
                            in s
@@ -220,17 +225,15 @@ singletonSource c = withDefaultPushback $ return $! SP nullSource (Just c)
 --
 --  Two primitive operations are defined on 'InputStream':
 --
--- * @'read' :: InputStream c -> IO (Maybe c)@ reads a value from the stream,
+-- * @'read' :: 'InputStream' c -> 'IO' ('Maybe' c)@ reads a value from the stream,
 -- where \"end of stream\" is signaled by 'read' returning 'Nothing'.
 --
--- * @'unRead' :: c -> InputStream c -> IO ()@ \"pushes back\" a value to the
+-- * @'unRead' :: c -> 'InputStream' c -> 'IO' ()@ \"pushes back\" a value to the
 -- stream.
 --
--- You can assume that the following law holds:
+-- It is intended that 'InputStream's obey the following law:
 --
--- > unRead c stream >> read stream === return (Just c)
---
--- ... unless an 'InputStream' documents otherwise.
+-- @'unRead' c stream >> 'read' stream === 'return' ('Just' c)@
 --
 -- TODO: make it clear here that in general, InputStreams do not deal with
 -- resource acquisition/release semantics
@@ -239,7 +242,7 @@ newtype InputStream  c = IS (IORef (Source c))
 -- | An 'OutputStream' consumes values of type @c@ in the 'IO' monad.
 -- The only primitive operation defined on 'OutputStream' is:
 --
--- * @'write' :: Maybe c -> OutputStream c -> IO ()@
+-- * @'write' :: 'Maybe' c -> 'OutputStream' c -> 'IO' ()@
 --
 -- Values of type @c@ are written in an 'OutputStream' by wrapping them in
 -- 'Just', and the end of the stream is indicated by by supplying 'Nothing'.
@@ -265,10 +268,12 @@ read (IS ref) = do
 
 
 ------------------------------------------------------------------------------
--- | Pushes a value back onto an input stream. 'read' and 'unRead' satisfy the
--- following law:
+-- | Pushes a value back onto an input stream. 'read' and 'unRead' should
+-- satisfy the following law, with the possible exception of side effects:
 --
--- > unRead c stream >> read stream === return (Just c)
+-- @
+-- 'unRead' c stream >> 'read' stream === 'return' ('Just' c)
+-- @
 --
 -- Note that this could be used to add values back to the stream that were not
 -- originally drawn from the stream.
@@ -322,7 +327,9 @@ appendInputStream s1 s2 = sourceToStream src1
 -- Returns 'Nothing' if the 'InputStream' is empty. 'peek' satisfies the
 -- following law:
 --
--- > peek stream >> read stream === read stream
+-- @
+-- 'peek' stream >> 'read' stream === 'read' stream
+-- @
 peek :: InputStream c -> IO (Maybe c)
 peek s = do
     x <- read s
@@ -403,7 +410,7 @@ supplyTo = flip supply
 --
 -- (@makeInputStream m@) calls the action @m@ each time you request a value
 -- from the 'InputStream'. The given action is extended with the default
--- pushback mechanism.
+-- pushback mechanism (see "System.IO.Streams.Internal#pushback").
 makeInputStream :: IO (Maybe a) -> IO (InputStream a)
 makeInputStream m = sourceToStream s
   where
@@ -487,3 +494,28 @@ nullOutput = sinkToStream nullSink
 -- | Checks if an 'InputStream' is at end-of-stream.
 atEOF :: InputStream a -> IO Bool
 atEOF s = read s >>= maybe (return True) (\k -> unRead k s >> return False)
+
+
+------------------------------------------------------------------------------
+-- $pushback
+-- #pushback#
+--
+-- Users can push a value back into an input stream using the 'unRead'
+-- function. Usually this will use the default pushback mechanism which
+-- provides a buffer for the stream. Some stream transformers, like
+-- 'takeBytes', produce streams that send pushed-back values back to the
+-- streams that they wrap. A function like 'System.IO.Streams.Combinators.map'
+-- cannot do this because the types don't match up:
+--
+-- @
+-- 'System.IO.Streams.Combinators.map' :: (a -> b) -> 'InputStream' a -> 'IO' ('InputStream' b)
+-- @
+--
+-- A function will usually document if its pushback behaviour differs from the
+-- default. No matter what the case, input streams should obey the following
+-- law:
+--
+-- @
+-- 'unRead' c stream >> 'read' stream === 'return' ('Just' c)
+-- @
+

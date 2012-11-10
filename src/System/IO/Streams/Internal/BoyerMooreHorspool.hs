@@ -10,6 +10,7 @@ module System.IO.Streams.Internal.BoyerMooreHorspool
 import qualified Data.ByteString.Char8       as S
 import           Data.ByteString.Char8       (ByteString)
 import           Data.ByteString.Unsafe      as S
+import           Data.Monoid                 ( mappend, mconcat )
 import qualified Data.Vector.Unboxed         as V
 import qualified Data.Vector.Unboxed.Mutable as MV
 import           Prelude                     hiding (last, read)
@@ -17,8 +18,6 @@ import           Prelude                     hiding (last, read)
 import           System.IO.Streams.Internal
                    ( InputStream
                    , SP(..)
-                   , appendSource
-                   , concatSources
                    , nullSource
                    , produce
                    , read
@@ -166,7 +165,7 @@ search needle stream = do
                           let s1 = singletonSource $ NoMatch $
                                    S.concat [haystack, crumb]
                           let s2 = withDefaultPushback $ startSearch rest
-                          produce $ s1 `appendSource` s2
+                          produce $ s1 `mappend` s2
 
     --------------------------------------------------------------------------
     produceMatch nomatch aftermatch = do
@@ -174,9 +173,9 @@ search needle stream = do
         let s2 = singletonSource $ Match needle
         let s3 = withDefaultPushback $ startSearch aftermatch
 
-        produce $ concatSources $ if S.null nomatch
-                                    then [s2, s3]
-                                    else [s1, s2, s3]
+        produce $ mconcat $ if S.null nomatch
+                              then [s2, s3]
+                              else [s1, s2, s3]
 
 
     --------------------------------------------------------------------------

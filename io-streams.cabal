@@ -5,7 +5,7 @@ License-file:        LICENSE
 Category:            Data
 Build-type:          Simple
 Cabal-version:       >= 1.10
-Synopsis:            Simple and easy-to-use I/O using streams
+Synopsis:            Simple, composable, and easy-to-use stream I/O
 Description:
   /Overview/
   .
@@ -18,27 +18,53 @@ Description:
   import qualified "System.IO.Streams" as Streams
   @
   .
-  The @io-streams@ library also comes with an included tutorial, which can be
-  found in the "System.IO.Streams.Tutorial" module.
+  For first-time users, @io-streams@ comes with an included tutorial, which can
+  be found in the "System.IO.Streams.Tutorial" module.
   .
   /Features/
   .
-  Based on simple types with one type parameter (@InputStream a@
-  and @OutputStream a@), io-streams provides a basic interface to
-  side-effecting input and output in @IO@ monad with the following
-  features:
+  The @io-streams@ user API has two basic types: @InputStream a@ and
+  @OutputStream a@, and three fundamental I/O primitives:
   .
-    * three fundamental I/O primitives that anyone can understand:
+  @
+  \-\- read an item from a stream
+  Streams.'System.IO.Streams.read' :: 'System.IO.Streams.InputStream' a -> IO (Maybe a)
   .
-      > read :: InputStream a -> IO (Maybe a)
-      > unRead :: a -> InputStream a -> IO ()
-      > write :: Maybe a -> OutputStream a -> IO ()
+  \-\- push an item back to a stream
+  Streams.'System.IO.Streams.unRead' :: a -> 'System.IO.Streams.InputStream' a -> IO ()
   .
-    * simple types and side-effecting IO operations mean straightforward and
-      simple exception handling and resource cleanup using standard Haskell
-      facilities like @bracket@.
+  \-\- write to an output stream
+  Streams.'System.IO.Streams.write' :: Maybe a -> 'System.IO.Streams.OutputStream' a -> IO ()
+  @
   .
-    * code to transform files, handles, channels, sockets, and more to streams
+  Streams can be transformed by composition and hooked together with provided combinators:
+  .
+  @
+  ghci> Streams.fromList [1,2,3::Int] >>= Streams.map (*10) >>= Streams.toList
+  [10,20,30]
+  @
+  .
+  Stream composition leaves the original stream accessible:
+  .
+  @
+  ghci> input \<- Streams.fromList [\"long string\" :: ByteString]
+  ghci> wrapped \<- Streams.takeBytes 4 input
+  ghci> read wrapped
+  Just \"long\"
+  ghci> read wrapped
+  Nothing
+  ghci> read input
+  Just \" string\"
+  @
+  .
+  Simple types and operations in the IO monad mean straightforward and simple
+  exception handling and resource cleanup using standard Haskell facilities
+  like 'Control.Exception.bracket'.
+  .
+  @io-streams@ comes with:
+  .
+    * functions to transform files, handles, channels, sockets, and more to
+      streams.
   .
     * a variety of combinators for wrapping and transforming streams, including
       compression and decompression using zlib, controlling precisely how many
