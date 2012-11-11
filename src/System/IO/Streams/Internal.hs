@@ -108,9 +108,6 @@ data Source c = Source {
     , pushback :: c -> IO (Source c)
     }
 
-------------------------------------------------------------------------------
--- monad experiment
-------------------------------------------------------------------------------
 newtype Generator r a = Generator {
       unG :: IO (Either (SP r (Generator r a)) a)
     }
@@ -146,10 +143,6 @@ generatorToSource (Generator m) = withDefaultPushback go
 
 fromGenerator :: Generator r a -> IO (InputStream r)
 fromGenerator = sourceToStream . generatorToSource
-
-------------------------------------------------------------------------------
--- end monad experiment
-------------------------------------------------------------------------------
 
 
 -- | A 'Sink' consumes values of type @c@ in the 'IO' monad.

@@ -11,7 +11,7 @@ module System.IO.Streams.List
 
    -- * Utility
  , chunkList
- , joinLists
+ , concatLists
  , listOutputStream
  ) where
 
@@ -19,13 +19,14 @@ import Control.Concurrent.MVar    ( modifyMVar
                                   , modifyMVar_
                                   , newMVar
                                   )
+import Control.Monad.IO.Class     ( MonadIO(..) )
 import Prelude hiding             ( read )
 import System.IO.Streams.Internal ( InputStream
                                   , OutputStream
                                   , Sink(..)
                                   , SP(..)
                                   , connect
-                                  , makeInputStream
+                                  , fromGenerator
                                   , nullSink
                                   , nullSource
                                   , read
@@ -33,6 +34,7 @@ import System.IO.Streams.Internal ( InputStream
                                   , sourceToStream
                                   , withDefaultPushback
                                   , write
+                                  , yield
                                   )
 
 
@@ -117,16 +119,20 @@ writeList xs os = mapM_ (flip write os . Just) xs
 chunkList :: Int                   -- ^ chunk size
           -> InputStream a         -- ^ stream to process
           -> IO (InputStream [a])
-chunkList n input = makeInputStream $ do
-    read input >>= maybe (return Nothing) (go (n-1) . (:))
+chunkList n input = fromGenerator $ go n id
   where
-    finish !dl = return $! Just $! dl []
-
-    go !k dl = if k <= 0
-                 then finish dl
-                 else read input >>=
-                      maybe (finish dl) (go (k-1) . (dl .) . (:))
+    go !k dl | k <= 0    = yield (dl []) >> go n id
+             | otherwise = do
+        liftIO (read input) >>= maybe finish chunk
+      where
+        finish  = let l = dl []
+                  in if null l then return $! () else yield l
+        chunk x = go (k - 1) (dl . (x:))
 
 
 ------------------------------------------------------------------------------
-joinLists = undefined
+concatLists :: InputStream [a] -> IO (InputStream a)
+concatLists input = fromGenerator go
+  where
+    go      = liftIO (read input) >>= maybe (return $! ()) chunk
+    chunk l = sequence_ (map yield l) >> go
