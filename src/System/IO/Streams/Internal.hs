@@ -56,14 +56,25 @@ module System.IO.Streams.Internal
     -- * Utility streams
   , nullInput
   , nullOutput
+
+    -- * Generator monad
+  , Generator
+  , generatorToSource
+  , fromGenerator
+  , yield
   ) where
 
 ------------------------------------------------------------------------------
-import           Control.Concurrent ( newMVar, withMVar )
-import           Control.Monad      ( liftM )
-import           Data.IORef         ( IORef, newIORef, readIORef, writeIORef )
-import           Data.Monoid        ( Monoid(..) )
-import           Prelude hiding     ( read )
+import           Control.Concurrent     ( newMVar, withMVar )
+import           Control.Monad          ( liftM )
+import           Control.Monad.IO.Class ( MonadIO(..) )
+import           Data.IORef             ( IORef
+                                        , newIORef
+                                        , readIORef
+                                        , writeIORef
+                                        )
+import           Data.Monoid            ( Monoid(..) )
+import           Prelude hiding         ( read )
 
 
 ------------------------------------------------------------------------------
@@ -96,6 +107,49 @@ data Source c = Source {
       produce  :: IO (SP (Source c) (Maybe c))
     , pushback :: c -> IO (Source c)
     }
+
+------------------------------------------------------------------------------
+-- monad experiment
+------------------------------------------------------------------------------
+newtype Generator r a = Generator {
+      unG :: IO (Either (SP r (Generator r a)) a)
+    }
+
+
+generatorBind :: Generator r a -> (a -> Generator r b) -> Generator r b
+generatorBind (Generator m) f = Generator (m >>= either step value)
+  where
+    step (SP v r) = return $! Left $! SP v (generatorBind r f)
+    value = unG .  f
+
+
+instance Monad (Generator r) where
+   return = Generator . return . Right
+   (>>=)  = generatorBind
+
+
+instance MonadIO (Generator r) where
+    liftIO = Generator . (Right `fmap`)
+
+
+yield :: r -> Generator r ()
+yield x = Generator $! return $! Left $! SP x (return $! ())
+
+
+generatorToSource :: Generator r a -> Source r
+generatorToSource (Generator m) = withDefaultPushback go
+  where
+    go              = m >>= either step finish
+    finish          = const $ return $! SP nullSource Nothing
+    step (SP v gen) = return $! SP (generatorToSource gen) (Just v)
+
+
+fromGenerator :: Generator r a -> IO (InputStream r)
+fromGenerator = sourceToStream . generatorToSource
+
+------------------------------------------------------------------------------
+-- end monad experiment
+------------------------------------------------------------------------------
 
 
 -- | A 'Sink' consumes values of type @c@ in the 'IO' monad.
@@ -510,4 +564,3 @@ atEOF s = read s >>= maybe (return True) (\k -> unRead k s >> return False)
 -- @
 -- 'unRead' c stream >> 'read' stream === 'return' ('Just' c)
 -- @
-

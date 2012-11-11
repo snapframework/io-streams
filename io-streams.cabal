@@ -112,6 +112,7 @@ Library
                      blaze-builder >= 0.3.1 && <0.4,
                      bytestring    >= 0.9.2 && <0.11,
                      time          >= 1.4   && <1.5,
+                     transformers  >= 0.2   && <0.4,
                      vector        >= 0.9   && <0.11,
                      zlib-bindings >= 0.1   && <0.2
 
@@ -171,6 +172,7 @@ Test-suite testsuite
                      filepath      >= 1.2   && <2,
                      mtl           >= 2     && <3,
                      time          >= 1.4   && <1.5,
+                     transformers  >= 0.2   && <0.4,
                      vector        >= 0.9   && <0.11,
                      zlib-bindings >= 0.1   && <0.2,
 

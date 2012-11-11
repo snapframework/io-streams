@@ -5,6 +5,7 @@ module System.IO.Streams.Tests.Internal (tests) where
 
 ------------------------------------------------------------------------------
 import           Control.Monad hiding (mapM)
+import           Control.Monad.IO.Class (liftIO)
 import           Data.Monoid
 import           Prelude hiding (mapM, read)
 import           Test.Framework
@@ -21,6 +22,7 @@ tests = [ testSourceConcat
         , testCoverLockingStream
         , testPeek
         , testNullInput
+        , testGenerator
         ]
 
 
@@ -120,3 +122,11 @@ testPeek = testCase "internal/peek" $ do
 
     b'  <- atEOF is
     assertEqual "eof2" True b'
+
+
+------------------------------------------------------------------------------
+testGenerator :: Test
+testGenerator = testCase "internal/generator" $ do
+    is <- fromGenerator $ sequence $
+          Prelude.map ((>>= yield) . (liftIO . return)) [1..5::Int]
+    toList is >>= assertEqual "generator" [1..5]

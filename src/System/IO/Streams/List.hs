@@ -1,3 +1,5 @@
+{-# LANGUAGE BangPatterns #-}
+
 -- | List conversions and utilities
 
 module System.IO.Streams.List
@@ -8,6 +10,8 @@ module System.IO.Streams.List
  , writeList
 
    -- * Utility
+ , chunkList
+ , joinLists
  , listOutputStream
  ) where
 
@@ -21,8 +25,10 @@ import System.IO.Streams.Internal ( InputStream
                                   , Sink(..)
                                   , SP(..)
                                   , connect
+                                  , makeInputStream
                                   , nullSink
                                   , nullSource
+                                  , read
                                   , sinkToStream
                                   , sourceToStream
                                   , withDefaultPushback
@@ -97,3 +103,30 @@ outputToList f = do
 writeList :: [a] -> OutputStream a -> IO ()
 writeList xs os = mapM_ (flip write os . Just) xs
 {-# INLINE writeList #-}
+
+
+------------------------------------------------------------------------------
+-- | Splits an input stream into chunks of at most size @n@.
+--
+-- Example:
+--
+-- @
+-- ghci> 'fromList' [1..14::Int] >>= 'chunkList' 4 >>= 'toList'
+-- [[1,2,3,4],[5,6,7,8],[9,10,11,12],[13,14]]
+-- @
+chunkList :: Int                   -- ^ chunk size
+          -> InputStream a         -- ^ stream to process
+          -> IO (InputStream [a])
+chunkList n input = makeInputStream $ do
+    read input >>= maybe (return Nothing) (go (n-1) . (:))
+  where
+    finish !dl = return $! Just $! dl []
+
+    go !k dl = if k <= 0
+                 then finish dl
+                 else read input >>=
+                      maybe (finish dl) (go (k-1) . (dl .) . (:))
+
+
+------------------------------------------------------------------------------
+joinLists = undefined

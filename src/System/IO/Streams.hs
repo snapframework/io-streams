@@ -44,6 +44,12 @@ module System.IO.Streams
  , nullInput
  , nullOutput
 
+    -- * Generator monad
+    -- $generator
+  , Generator
+  , fromGenerator
+  , yield
+
    -- * Batteries included
  , module System.IO.Streams.Builder
  , module System.IO.Streams.ByteString
@@ -67,3 +73,41 @@ import           System.IO.Streams.File
 import           System.IO.Streams.Handle
 import           System.IO.Streams.List
 import           System.IO.Streams.Zlib
+
+------------------------------------------------------------------------------
+-- $generator
+-- #generator#
+--
+-- The 'Generator' monad makes it easier for you to define more complicated
+-- 'InputStream's. Generators have a couple of basic features:
+--
+-- 'Generator' is a 'MonadIO', so you can run IO actions from within it using
+-- 'liftIO':
+--
+-- @
+-- foo :: 'Generator' r a
+-- foo = 'liftIO' fireTheMissiles
+-- @
+--
+-- 'Generator' has a 'yield' function:
+--
+-- @
+-- 'yield' :: r -> 'Generator' r ()
+-- @
+--
+-- A call to \"'yield' @x@\" causes \"'Just' @x@\" to appear when reading the
+-- 'InputStream'. Finally, 'Generator' comes with a function to turn a
+-- 'Generator' into an 'InputStream':
+--
+-- @
+-- 'fromGenerator' :: 'Generator' r a -> 'IO' ('InputStream' r)
+-- @
+--
+-- Once the 'Generator' action finishes, 'fromGenerator' will cause an
+-- end-of-stream 'Nothing' marker to appear at the output. Example:
+--
+-- @
+-- ghci> ('fromGenerator' $ 'Control.Monad.sequence'
+--                        $ 'Prelude.map' 'yield' [1..5::Int]) >>= 'toList'
+-- [1,2,3,4,5]
+-- @
