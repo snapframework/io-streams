@@ -62,9 +62,16 @@ module System.IO.Streams.Internal
   , generatorToSource
   , fromGenerator
   , yield
+
+    -- * Consumer monad
+  , Consumer
+  , consumerToSink
+  , fromConsumer
+  , await
   ) where
 
 ------------------------------------------------------------------------------
+import           Control.Applicative    ( Applicative(..) )
 import           Control.Concurrent     ( newMVar, withMVar )
 import           Control.Monad          ( liftM )
 import           Control.Monad.IO.Class ( MonadIO(..) )
@@ -108,11 +115,36 @@ data Source c = Source {
     , pushback :: c -> IO (Source c)
     }
 
+
+------------------------------------------------------------------------------
+-- | A 'Generator' is a coroutine monad that can be used to define complex
+-- 'InputStream's. You can cause a value of type @Just r@ to appear when the
+-- 'InputStream' is read by calling 'yield':
+--
+-- @
+-- g :: 'Generator' Int ()
+-- g = do
+--     'yield' 1
+--     'yield' 2
+--     'yield' 3
+--
+-- m :: IO [Int]
+-- m = 'fromGenerator' g >>= toList     \-\- value returned is [1,2,3]
+-- @
+--
+-- You can perform IO by calling 'liftIO', and turn a 'Generator' into an
+-- 'InputStream' with 'fromGenerator'.
+--
+-- As a general rule, you should not acquire resources that need to be freed
+-- from a 'Generator', because there is no guarantee the coroutine continuation
+-- will ever be called, nor can you catch an exception from within a
+-- 'Generator'.
 newtype Generator r a = Generator {
       unG :: IO (Either (SP r (Generator r a)) a)
     }
 
 
+------------------------------------------------------------------------------
 generatorBind :: Generator r a -> (a -> Generator r b) -> Generator r b
 generatorBind (Generator m) f = Generator (m >>= either step value)
   where
@@ -120,19 +152,46 @@ generatorBind (Generator m) f = Generator (m >>= either step value)
     value = unG .  f
 
 
+------------------------------------------------------------------------------
 instance Monad (Generator r) where
    return = Generator . return . Right
    (>>=)  = generatorBind
 
 
+------------------------------------------------------------------------------
 instance MonadIO (Generator r) where
     liftIO = Generator . (Right `fmap`)
 
 
+------------------------------------------------------------------------------
+instance Functor (Generator r) where
+    fmap f (Generator m) = Generator $ m >>= either step value
+      where
+        step (SP v m') = return $! Left $! SP v (fmap f m')
+        value v        = return $! Right $! f v
+
+
+------------------------------------------------------------------------------
+instance Applicative (Generator r) where
+    pure = Generator . return . Right
+
+    m <*> n = do
+        f <- m
+        v <- n
+        return $! f v
+
+
+------------------------------------------------------------------------------
+-- | Calling @'yield' x@ causes the value @'Just' x@ to appear on the input
+-- when this generator is converted to an 'InputStream'. The rest of the
+-- computation after the call to 'yield' is resumed later when the
+-- 'InputStream' is 'read' again.
 yield :: r -> Generator r ()
 yield x = Generator $! return $! Left $! SP x (return $! ())
 
 
+------------------------------------------------------------------------------
+-- | Turns a 'Generator' into a 'Source' using the default pushback mechanism.
 generatorToSource :: Generator r a -> Source r
 generatorToSource (Generator m) = withDefaultPushback go
   where
@@ -141,10 +200,74 @@ generatorToSource (Generator m) = withDefaultPushback go
     step (SP v gen) = return $! SP (generatorToSource gen) (Just v)
 
 
+------------------------------------------------------------------------------
+-- | Turns a 'Generator' into an 'InputStream'.
 fromGenerator :: Generator r a -> IO (InputStream r)
 fromGenerator = sourceToStream . generatorToSource
 
 
+------------------------------------------------------------------------------
+newtype Consumer c a = Consumer {
+      unC :: IO (Either (Maybe c -> Consumer c a) a)
+    }
+
+
+------------------------------------------------------------------------------
+instance Monad (Consumer c) where
+    return = Consumer . return . Right
+
+    (Consumer m) >>= f = Consumer $ m >>= either step value
+      where
+        step g  = return $! Left $! (>>= f) . g
+        value v = unC $ f v
+
+
+------------------------------------------------------------------------------
+instance MonadIO (Consumer c) where
+    liftIO = Consumer . fmap Right
+
+
+------------------------------------------------------------------------------
+instance Functor (Consumer r) where
+    fmap f (Consumer m) = Consumer (m >>= either step value)
+      where
+        step g = return $! Left $! (fmap f) . g
+        value v = return $! Right $! f v
+
+
+------------------------------------------------------------------------------
+instance Applicative (Consumer r) where
+    pure = return
+
+    m <*> n = do
+        f <- m
+        v <- n
+        return $! f v
+
+
+------------------------------------------------------------------------------
+await :: Consumer r (Maybe r)
+await = Consumer $ return (Left return)
+
+
+------------------------------------------------------------------------------
+consumerToSink :: Consumer r a -> Sink r
+consumerToSink (Consumer m) = Sink $ go m
+  where
+    go act v = act >>= either step value
+      where
+        value _ = return nullSink
+        step f  = unC (f v) >>=
+                  either (\g -> return $! Sink $! go (return $ Left g))
+                         (const $ return nullSink)
+
+
+------------------------------------------------------------------------------
+fromConsumer :: Consumer r a -> IO (OutputStream r)
+fromConsumer = sinkToStream . consumerToSink
+
+
+------------------------------------------------------------------------------
 -- | A 'Sink' consumes values of type @c@ in the 'IO' monad.
 --
 -- Sinks are supplied ordinary values by wrapping them in 'Just', and you
@@ -159,13 +282,6 @@ fromGenerator = sourceToStream . generatorToSource
 data Sink c = Sink {
       consume :: Maybe c -> IO (Sink c)
     }
-
-{- TODO: Define the behavior when you:
-
-    * supply multiple 'Nothing's, or
-
-    * supply a 'Nothing' followed by a 'Just'
--}
 
 
 ------------------------------------------------------------------------------

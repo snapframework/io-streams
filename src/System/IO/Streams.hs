@@ -107,7 +107,6 @@ import           System.IO.Streams.Zlib
 -- end-of-stream 'Nothing' marker to appear at the output. Example:
 --
 -- @
--- ghci> ('fromGenerator' $ 'Control.Monad.sequence'
---                        $ 'Prelude.map' 'yield' [1..5::Int]) >>= 'toList'
+-- ghci> ('fromGenerator' $ 'Control.Monad.sequence' $ Prelude.'Prelude.map' 'yield' [1..5::Int]) >>= 'toList'
 -- [1,2,3,4,5]
 -- @
