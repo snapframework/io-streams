@@ -4,8 +4,10 @@
 module System.IO.Streams.Tests.Internal (tests) where
 
 ------------------------------------------------------------------------------
+import           Control.Applicative
 import           Control.Monad hiding (mapM)
 import           Control.Monad.IO.Class (liftIO)
+import           Data.IORef
 import           Data.Monoid
 import           Prelude hiding (mapM, read)
 import           Test.Framework
@@ -23,6 +25,8 @@ tests = [ testSourceConcat
         , testPeek
         , testNullInput
         , testGenerator
+        , testGeneratorInstances
+        , testConsumer
         ]
 
 
@@ -130,3 +134,45 @@ testGenerator = testCase "internal/generator" $ do
     is <- fromGenerator $ sequence $
           Prelude.map ((>>= yield) . (liftIO . return)) [1..5::Int]
     toList is >>= assertEqual "generator" [1..5]
+
+
+------------------------------------------------------------------------------
+testGeneratorInstances :: Test
+testGeneratorInstances = testCase "internal/generatorInstances" $ do
+    fromGenerator g1 >>= toList
+                     >>= assertEqual "generator" [2,4..10]
+
+    fromGenerator g2 >>= toList
+                     >>= assertEqual "generator" [2,4..10]
+
+  where
+    g1 = do
+        l <- fmap (map (*2)) $ return [1..5::Int]
+        fmap id $ sequence_ $ Prelude.map yield l
+
+    g2 = pure id <*> g1
+
+
+------------------------------------------------------------------------------
+testConsumer :: Test
+testConsumer = testCase "internal/consumer" $ do
+    is  <- fromList [1..10::Int]
+    ref <- newIORef 0
+    os  <- fromConsumer (fmap id (pure id <*> c ref))
+    connect is os
+    readIORef ref >>= assertEqual "sum" (sum [1..10])
+
+    -- should be nullsink after receiving Nothing
+    write (Just 2) os
+    readIORef ref >>= assertEqual "sum" (sum [1..10])
+
+    is2 <- fromList [1..10::Int]
+    os2 <- fromConsumer (return ())
+    connect is2 os2
+
+  where
+    c ref = await >>= maybe (return ())
+                            (\x -> do
+                                 !t <- liftIO $ readIORef ref
+                                 liftIO $ writeIORef ref $! t + x
+                                 c ref)
