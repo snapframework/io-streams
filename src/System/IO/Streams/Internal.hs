@@ -597,11 +597,6 @@ makeOutputStream f = sinkToStream s
 -- For performance reasons, this library provides non-thread-safe streams by
 -- default. Use the @locking@ functions to convert these streams into slightly
 -- slower, but thread-safe, equivalents.
---
--- TODO: Perhaps distinguish the two types of input streams using types?
---
--- COMMENT(greg): if we do that then we need to factor InputStream and
--- OutputStream into a typeclass
 lockingInputStream :: InputStream a -> IO (InputStream a)
 lockingInputStream s = do
     mv <- newMVar $! ()
