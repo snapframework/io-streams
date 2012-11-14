@@ -7,6 +7,8 @@ module System.IO.Streams.Combinators
  ( -- * Folds
    inputFoldM
  , outputFoldM
+ , fold
+ , foldM
  , any
  , all
  , maximum
@@ -83,7 +85,7 @@ import System.IO.Streams.Internal ( InputStream
                                   )
 
 ------------------------------------------------------------------------------
--- | A side-effecting fold over an 'OutputStream'.
+-- | A side-effecting fold over an 'OutputStream', as a stream transformer.
 --
 -- The IO action returned by 'outputFoldM' can be used to fetch the updated
 -- seed value. Example:
@@ -121,7 +123,7 @@ outputFoldM f initial stream = do
 
 
 ------------------------------------------------------------------------------
--- | A side-effecting fold over an 'InputStream'.
+-- | A side-effecting fold over an 'InputStream', as a stream transformer.
 --
 -- The IO action returned by 'inputFoldM' can be used to fetch the updated seed
 -- value. Example:
@@ -157,6 +159,44 @@ inputFoldM f initial stream = do
     rd ref = read stream >>= twiddle ref
 
     fetch ref = atomicModifyIORef ref $ \x -> (initial, x)
+
+
+------------------------------------------------------------------------------
+-- | A left fold over an input stream. The input stream is fully consumed. See
+-- 'Prelude.foldl'.
+--
+-- Example:
+--
+-- @
+-- ghci> 'System.IO.Streams.fromList' [1..10] >>= 'fold' (+) 0
+-- 55
+-- @
+fold :: (s -> a -> s)       -- ^ fold function
+     -> s                   -- ^ initial seed
+     -> InputStream a       -- ^ input stream
+     -> IO s
+fold f seed stream = go seed
+  where
+    go !s = read stream >>= maybe (return s) (go . f s)
+
+
+------------------------------------------------------------------------------
+-- | A side-effecting left fold over an input stream. The input stream is fully
+-- consumed. See 'Prelude.foldl'.
+--
+-- Example:
+--
+-- @
+-- ghci> 'System.IO.Streams.fromList' [1..10] >>= 'foldM' (\x y -> 'return' (x + y)) 0
+-- 55
+-- @
+foldM :: (s -> a -> IO s)       -- ^ fold function
+      -> s                      -- ^ initial seed
+      -> InputStream a          -- ^ input stream
+      -> IO s
+foldM f seed stream = go seed
+  where
+    go !s = read stream >>= maybe (return s) ((go =<<) . f s)
 
 
 ------------------------------------------------------------------------------
