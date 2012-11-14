@@ -7,6 +7,13 @@ module System.IO.Streams.Combinators
  ( -- * Folds
    inputFoldM
  , outputFoldM
+ , any
+ , all
+ , maximum
+ , minimum
+
+   -- * Unfolds
+ , unfoldM
 
    -- * Maps
  , map
@@ -30,6 +37,7 @@ module System.IO.Streams.Combinators
 
    -- * Zip and unzip
  , zipM
+ , zipWithM
  , unzipM
 
    -- * Utility
@@ -40,6 +48,7 @@ module System.IO.Streams.Combinators
 ------------------------------------------------------------------------------
 import Control.Concurrent.MVar    ( newMVar, withMVar )
 import Control.Monad              ( liftM, void, when )
+import Control.Monad.IO.Class     ( liftIO )
 import Data.Int                   ( Int64 )
 import Data.IORef                 ( atomicModifyIORef
                                   , modifyIORef
@@ -53,6 +62,9 @@ import Prelude             hiding ( filter
                                   , map
                                   , mapM
                                   , mapM_
+                                  , any , all
+                                  , maximum
+                                  , minimum
                                   , read
                                   )
 ------------------------------------------------------------------------------
@@ -66,6 +78,8 @@ import System.IO.Streams.Internal ( InputStream
                                   , sourceToStream
                                   , unRead
                                   , write
+                                  , fromGenerator
+                                  , yield
                                   )
 
 ------------------------------------------------------------------------------
@@ -144,6 +158,131 @@ inputFoldM f initial stream = do
 
     fetch ref = atomicModifyIORef ref $ \x -> (initial, x)
 
+
+------------------------------------------------------------------------------
+-- | @any predicate stream@ returns 'True' if any element in @stream@ matches
+-- the predicate.
+--
+-- 'any' consumes as few elements as possible, ending consumption if an element
+-- satisfies the predicate.
+--
+-- @
+-- ghci> is <- 'System.IO.Streams.List.fromList' [1, 2, 3]
+-- ghci> 'System.IO.Streams.Combinators.any' (> 0) is -- Consumes one element
+-- True
+-- ghci> 'System.IO.Streams.read' is
+-- Just 2
+-- ghci> 'System.IO.Streams.Combinators.any' even is -- Only 3 remains
+-- False
+-- @
+any :: (a -> Bool) -> InputStream a -> IO Bool
+any predicate stream = go
+  where
+    go = do
+        mElem <- read stream
+        case mElem of
+            Nothing -> return False
+            Just e  -> if predicate e then return True else go
+
+
+------------------------------------------------------------------------------
+-- | @all predicate stream@ returns 'True' if every element in @stream@ matches
+-- the predicate.
+--
+-- 'all' consumes as few elements as possible, ending consumption if any element
+-- fails the predicate.
+--
+-- @
+-- ghci> is <- 'System.IO.Streams.List.fromList' [1, 2, 3]
+-- ghci> 'System.IO.Streams.Combinators.all' (< 0) is -- Consumes one element
+-- False
+-- ghci> 'System.IO.Streams.read' is
+-- Just 2
+-- ghci> 'System.IO.Streams.Combinators.all' odd is -- Only 3 remains
+-- True
+-- @
+all :: (a -> Bool) -> InputStream a -> IO Bool
+all predicate stream = go
+  where
+    go = do
+        mElem <- read stream
+        case mElem of
+            Nothing -> return True
+            Just e  -> if predicate e then go else return False
+
+
+------------------------------------------------------------------------------
+-- | @maximum stream@ returns the greatest element in @stream@ or 'Nothing' if
+-- the stream is empty.
+--
+-- 'maximum' consumes the entire stream.
+--
+-- @
+-- ghci> is <- 'System.IO.Streams.List.fromList' [1, 2, 3]
+-- ghci> 'System.IO.Streams.Combinators.maximum' is
+-- 3
+-- ghci> 'System.IO.Streams.read' is -- The stream is now empty
+-- Nothing
+-- @
+maximum :: (Ord a) => InputStream a -> IO (Maybe a)
+maximum stream = do
+    mElem0 <- read stream
+    case mElem0 of
+        Nothing -> return Nothing
+        Just e  -> go e
+  where
+    go oldElem = do
+        mElem <- read stream
+        case mElem of
+            Nothing      -> return (Just oldElem)
+            Just newElem -> go (max oldElem newElem)
+
+
+------------------------------------------------------------------------------
+-- | @minimum stream@ returns the greatest element in @stream@
+--
+-- 'minimum' consumes the entire stream.
+--
+-- @
+-- ghci> is <- 'System.IO.Streams.List.fromList' [1, 2, 3]
+-- ghci> 'System.IO.Streams.Combinators.minimum' is
+-- 1
+-- ghci> 'System.IO.Streams.read' is -- The stream is now empty
+-- Nothing
+-- @
+minimum :: (Ord a) => InputStream a -> IO (Maybe a)
+minimum stream = do
+    mElem0 <- read stream
+    case mElem0 of
+        Nothing -> return Nothing
+        Just e  -> go e
+  where
+    go oldElem = do
+        mElem <- read stream
+        case mElem of
+            Nothing      -> return (Just oldElem)
+            Just newElem -> go (min oldElem newElem)
+
+
+------------------------------------------------------------------------------
+-- | @unfoldM f seed@ builds an 'InputStream' from successively applying @f@ to
+-- the @seed@ value, continuing if @f@ produces 'Just' and halting on 'Nothing'.
+--
+-- @
+-- ghci> is <- 'System.IO.Streams.Combinators.unfoldM' (\n -> return $ if n < 3 then Just (n, n + 1) else Nothing) 0
+-- ghci> 'System.IO.Streams.List.toList' is
+-- [0, 1, 2]
+-- @
+unfoldM :: (b -> IO (Maybe (a, b))) -> b -> IO (InputStream a)
+unfoldM f seed = fromGenerator (go seed)
+  where
+    go oldSeed = do
+       m <- liftIO (f oldSeed)
+       case m of
+           Nothing           -> return ()
+           Just (a, newSeed) -> do
+               yield a
+               go newSeed
 
 ------------------------------------------------------------------------------
 -- | Maps a pure function over an 'InputStream'.
@@ -372,6 +511,20 @@ zipM src1 src2 = makeInputStream src
     src = read src1 >>= (maybe (return Nothing) $ \a ->
             read src2 >>= (maybe (unRead a src1 >> return Nothing) $ \b ->
               return $! Just $! (a, b)))
+
+
+------------------------------------------------------------------------------
+-- | Combines two input streams using the supplied monadic function. Continues
+-- yielding elements from both input streams until one of them finishes.
+zipWithM :: (a -> b -> IO c)
+         -> InputStream a
+         -> InputStream b
+         -> IO (InputStream c)
+zipWithM f src1 src2 = makeInputStream src
+  where
+    src = read src1 >>= (maybe (return Nothing) $ \a ->
+            read src2 >>= (maybe (unRead a src1 >> return Nothing) $ \b ->
+              f a b >>= \c -> return $! Just $! c ) )
 
 
 ------------------------------------------------------------------------------
