@@ -1,22 +1,21 @@
-{-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module System.IO.Streams.Tests.Zlib (tests) where
 
 ------------------------------------------------------------------------------
 import           Blaze.ByteString.Builder
-import qualified Codec.Compression.GZip as GZ
-import qualified Codec.Compression.Zlib as Z
-import           Control.Monad hiding (mapM)
-import           Data.ByteString.Char8 (ByteString)
-import qualified Data.ByteString.Char8 as S
-import qualified Data.ByteString.Lazy.Char8 as L
-import           Prelude hiding (mapM, read)
+import qualified Codec.Compression.GZip               as GZ
+import qualified Codec.Compression.Zlib               as Z
+import           Control.Monad                        hiding (mapM)
+import           Data.ByteString.Char8                (ByteString)
+import qualified Data.ByteString.Char8                as S
+import qualified Data.ByteString.Lazy.Char8           as L
+import           Prelude                              hiding (mapM, read)
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
 import           Test.Framework.Providers.QuickCheck2
-import           Test.HUnit hiding (Test)
-import           Test.QuickCheck hiding (output)
+import           Test.HUnit                           hiding (Test)
+import           Test.QuickCheck                      hiding (output)
 import           Test.QuickCheck.Monadic
 ------------------------------------------------------------------------------
 import           System.IO.Streams

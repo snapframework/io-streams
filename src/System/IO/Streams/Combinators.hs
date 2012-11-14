@@ -48,41 +48,21 @@ module System.IO.Streams.Combinators
  ) where
 
 ------------------------------------------------------------------------------
-import Control.Concurrent.MVar    ( newMVar, withMVar )
-import Control.Monad              ( liftM, void, when )
-import Control.Monad.IO.Class     ( liftIO )
-import Data.Int                   ( Int64 )
-import Data.IORef                 ( atomicModifyIORef
-                                  , modifyIORef
-                                  , newIORef
-                                  , readIORef
-                                  , writeIORef
-                                  )
-import Prelude             hiding ( filter
-                                  , drop
-                                  , take
-                                  , map
-                                  , mapM
-                                  , mapM_
-                                  , any , all
-                                  , maximum
-                                  , minimum
-                                  , read
-                                  )
+import           Control.Concurrent.MVar    (newMVar, withMVar)
+import           Control.Monad              (liftM, void, when)
+import           Control.Monad.IO.Class     (liftIO)
+import           Data.Int                   (Int64)
+import           Data.IORef                 (atomicModifyIORef, modifyIORef,
+                                             newIORef, readIORef, writeIORef)
+import           Prelude                    hiding (all, any, drop, filter, map,
+                                             mapM, mapM_, maximum, minimum,
+                                             read, take)
 ------------------------------------------------------------------------------
-import System.IO.Streams.Internal ( InputStream
-                                  , OutputStream
-                                  , Source(..)
-                                  , SP(..)
-                                  , makeInputStream
-                                  , makeOutputStream
-                                  , read
-                                  , sourceToStream
-                                  , unRead
-                                  , write
-                                  , fromGenerator
-                                  , yield
-                                  )
+import           System.IO.Streams.Internal (InputStream, OutputStream, SP (..),
+                                             Source (..), fromGenerator,
+                                             makeInputStream, makeOutputStream,
+                                             read, sourceToStream, unRead,
+                                             write, yield)
 
 ------------------------------------------------------------------------------
 -- | A side-effecting fold over an 'OutputStream', as a stream transformer.

@@ -1,20 +1,32 @@
-{-# LANGUAGE BangPatterns      #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE BangPatterns              #-}
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE OverloadedStrings         #-}
+{-# LANGUAGE RankNTypes                #-}
 
 module System.IO.Streams.Tests.Combinators (tests) where
 
 ------------------------------------------------------------------------------
 import           Control.Applicative
-import           Control.Monad hiding (filterM, mapM, mapM_)
+import           Control.Monad                        hiding (filterM, mapM,
+                                                       mapM_)
+import qualified Control.Monad                        as CM
 import           Data.IORef
-import           Data.List hiding (filter, drop, take)
+import           Data.List                            hiding (drop, filter,
+                                                       take)
+import           Prelude                              hiding (drop, filter,
+                                                       mapM, mapM_, read, take)
 import qualified Prelude
-import           Prelude hiding (filter, mapM, mapM_, read, drop, take)
-import           System.IO.Streams
-import qualified System.IO.Streams as S
+import           System.IO.Streams                    hiding (all, any, maximum,
+                                                       minimum)
+import qualified System.IO.Streams                    as S
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
-import           Test.HUnit hiding (Test)
+import           Test.Framework.Providers.QuickCheck2
+import           Test.HUnit                           hiding (Test)
+import           Test.QuickCheck                      hiding (output)
+import           Test.QuickCheck.Monadic
+------------------------------------------------------------------------------
+import           System.IO.Streams.Tests.Common
 ------------------------------------------------------------------------------
 
 tests :: [Test]
@@ -23,6 +35,9 @@ tests = [ testFilter
         , testFilterOutput
         , testFilterOutputM
         , testFoldMWorksTwice
+        , testFold
+        , testFoldM
+        , testPredicates
         , testMap
         , testContramap
         , testMapM
@@ -176,6 +191,43 @@ testFilterOutputM = testCase "combinators/filterOutputM" $ do
     is  <- fromList [1..10::Int]
     l   <- outputToList (\os -> filterOutputM (return . even) os >>= connect is)
     assertEqual "filterOutputM" (Prelude.filter even [1..10]) l
+
+
+------------------------------------------------------------------------------
+testFold :: Test
+testFold = testCase "combinators/fold" $ do
+    fromList [1..10::Int] >>= S.fold (+) 0
+                          >>= assertEqual "fold1" (sum [1..10])
+
+------------------------------------------------------------------------------
+testFoldM :: Test
+testFoldM = testCase "combinators/foldM" $ do
+    fromList [1..10::Int] >>= S.foldM ((return .) . (+)) 0
+                          >>= assertEqual "fold2" (sum [1..10])
+
+
+------------------------------------------------------------------------------
+data StreamPred = forall c . (Eq c, Show c) =>
+                  P ([Int] -> c, InputStream Int -> IO c, String)
+
+testPredicates :: Test
+testPredicates = testProperty "combinators/predicates" $ monadicIO $ forAllM arbitrary prop
+  where
+    predicates :: [StreamPred]
+    predicates = [ P (all even   , S.all even , "all"     )
+                 , P (any even   , S.any even , "any"     )
+                 , P (nl maximum , S.maximum  , "maximum" )
+                 , P (nl minimum , S.minimum  , "minimum" )
+                 ]
+
+    nl f l = if null l then Nothing else Just (f l)
+
+    prop :: [Int] -> PropertyM IO ()
+    prop l = liftQ $ CM.mapM_ (p l) predicates
+
+    p :: [Int] -> StreamPred -> IO ()
+    p l (P (pPred, pStream, name)) =
+        fromList l >>= pStream >>= assertEqual name (pPred l)
 
 
 ------------------------------------------------------------------------------
