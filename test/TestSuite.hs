@@ -1,15 +1,16 @@
 module Main where
 
-import Test.Framework (defaultMain, testGroup)
-import qualified System.IO.Streams.Tests.Attoparsec as Attoparsec
-import qualified System.IO.Streams.Tests.Builder as Builder
-import qualified System.IO.Streams.Tests.ByteString as ByteString
+import qualified System.IO.Streams.Tests.Attoparsec  as Attoparsec
+import qualified System.IO.Streams.Tests.Builder     as Builder
+import qualified System.IO.Streams.Tests.ByteString  as ByteString
 import qualified System.IO.Streams.Tests.Combinators as Combinators
-import qualified System.IO.Streams.Tests.File as File
-import qualified System.IO.Streams.Tests.Handle as Handle
-import qualified System.IO.Streams.Tests.Internal as Internal
-import qualified System.IO.Streams.Tests.List as List
-import qualified System.IO.Streams.Tests.Zlib as Zlib
+import qualified System.IO.Streams.Tests.File        as File
+import qualified System.IO.Streams.Tests.Handle      as Handle
+import qualified System.IO.Streams.Tests.Internal    as Internal
+import qualified System.IO.Streams.Tests.List        as List
+import qualified System.IO.Streams.Tests.Vector      as Vector
+import qualified System.IO.Streams.Tests.Zlib        as Zlib
+import           Test.Framework                      (defaultMain, testGroup)
 
 
 ------------------------------------------------------------------------------
@@ -24,5 +25,6 @@ main = defaultMain tests
             , testGroup "Tests.Handle" Handle.tests
             , testGroup "Tests.Internal" Internal.tests
             , testGroup "Tests.List" List.tests
+            , testGroup "Tests.Vector" Vector.tests
             , testGroup "Tests.Zlib" Zlib.tests
             ]
