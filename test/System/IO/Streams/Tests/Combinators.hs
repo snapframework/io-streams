@@ -37,6 +37,7 @@ tests = [ testFilter
         , testFoldMWorksTwice
         , testFold
         , testFoldM
+        , testUnfoldM
         , testPredicates
         , testMap
         , testContramap
@@ -45,6 +46,7 @@ tests = [ testFilter
         , testContramapM_
         , testSkipToEof
         , testZipM
+        , testZipWithM
         , testUnzipM
         , testTake
         , testDrop
@@ -207,6 +209,15 @@ testFoldM = testCase "combinators/foldM" $ do
 
 
 ------------------------------------------------------------------------------
+testUnfoldM :: Test
+testUnfoldM = testCase "combinators/unfoldM" $ do
+    S.unfoldM gen 0 >>= toList >>= assertEqual "unfold" result
+  where
+    gen !n = return $! if n < 10 then Just (n, n + 1) else Nothing
+    result = [0, 1 .. 9 :: Int]
+
+
+------------------------------------------------------------------------------
 data StreamPred = forall c . (Eq c, Show c) =>
                   P ([Int] -> c, InputStream Int -> IO c, String)
 
@@ -228,6 +239,25 @@ testPredicates = testProperty "combinators/predicates" $ monadicIO $ forAllM arb
     p :: [Int] -> StreamPred -> IO ()
     p l (P (pPred, pStream, name)) =
         fromList l >>= pStream >>= assertEqual name (pPred l)
+
+
+------------------------------------------------------------------------------
+testZipWithM :: Test
+testZipWithM = testCase "combinators/zipWithM" $ do
+    let l1 = [1 .. 10 :: Int]
+    let l2 = [2 .. 10 :: Int]
+
+    (join $ S.zipWithM ((return .) . (+)) <$> fromList l1 <*> fromList l2)
+        >>= toList >>= assertEqual "zipWith1" (zipWith (+) l1 l2)
+
+    (join $ S.zipWithM ((return .) . (+)) <$> fromList l2 <*> fromList l1)
+        >>= toList >>= assertEqual "zipWith1" (zipWith (+) l2 l1)
+    is1   <- fromList l1
+    is2   <- fromList l2
+    isZip <- S.zipWithM ((return .) . (+)) is1 is2
+
+    _     <- toList isZip
+    read is1 >>= assertEqual "remainder" (Just 10)
 
 
 ------------------------------------------------------------------------------

@@ -299,7 +299,7 @@ unfoldM f seed = fromGenerator (go seed)
     go oldSeed = do
        m <- liftIO (f oldSeed)
        case m of
-           Nothing           -> return ()
+           Nothing           -> return $! ()
            Just (a, newSeed) -> do
                yield a
                go newSeed
