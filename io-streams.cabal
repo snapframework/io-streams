@@ -100,6 +100,7 @@ Library
                      System.IO.Streams.Handle,
                      System.IO.Streams.File,
                      System.IO.Streams.List,
+                     System.IO.Streams.Vector,
                      System.IO.Streams.Zlib,
                      System.IO.Streams.Internal,
                      System.IO.Streams.Tutorial
@@ -156,6 +157,7 @@ Test-suite testsuite
                      System.IO.Streams.Handle,
                      System.IO.Streams.File,
                      System.IO.Streams.List,
+                     System.IO.Streams.Vector,
                      System.IO.Streams.Zlib,
                      System.IO.Streams.Internal,
                      System.IO.Streams.Internal.BoyerMooreHorspool

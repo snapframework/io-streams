@@ -15,27 +15,14 @@ module System.IO.Streams.List
  , listOutputStream
  ) where
 
-import Control.Concurrent.MVar    ( modifyMVar
-                                  , modifyMVar_
-                                  , newMVar
-                                  )
-import Control.Monad.IO.Class     ( MonadIO(..) )
-import Prelude hiding             ( read )
-import System.IO.Streams.Internal ( InputStream
-                                  , OutputStream
-                                  , Sink(..)
-                                  , SP(..)
-                                  , connect
-                                  , fromGenerator
-                                  , nullSink
-                                  , nullSource
-                                  , read
-                                  , sinkToStream
-                                  , sourceToStream
-                                  , withDefaultPushback
-                                  , write
-                                  , yield
-                                  )
+import           Control.Concurrent.MVar    (modifyMVar, modifyMVar_, newMVar)
+import           Control.Monad.IO.Class     (MonadIO (..))
+import           Prelude                    hiding (read)
+import           System.IO.Streams.Internal (InputStream, OutputStream, SP (..),
+                                             Sink (..), connect, fromGenerator,
+                                             nullSink, nullSource, read,
+                                             sinkToStream, sourceToStream,
+                                             withDefaultPushback, write, yield)
 
 
 ------------------------------------------------------------------------------
@@ -64,10 +51,12 @@ listOutputStream = do
     return (c, flush r)
 
   where
-    consumer r = Sink $ maybe (return nullSink)
-                              (\c -> do
-                                   modifyMVar_ r $ \dl -> return (dl . (c:))
-                                   return $ consumer r)
+    consumer r = go
+      where
+        go = Sink $ maybe (return nullSink)
+                          (\c -> do
+                               modifyMVar_ r $ \dl -> return (dl . (c:))
+                               return go)
 
     flush r = modifyMVar r $ \dl -> return (id, dl [])
 {-# INLINE listOutputStream #-}
@@ -123,7 +112,7 @@ chunkList n input = fromGenerator $ go n id
   where
     go !k dl | k <= 0    = yield (dl []) >> go n id
              | otherwise = do
-        liftIO (read input) >>= maybe finish chunk
+                   liftIO (read input) >>= maybe finish chunk
       where
         finish  = let l = dl []
                   in if null l then return $! () else yield l
