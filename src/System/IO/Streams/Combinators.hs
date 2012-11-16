@@ -71,10 +71,10 @@ import           System.IO.Streams.Internal (InputStream, OutputStream, SP (..),
 -- seed value. Example:
 --
 -- @
--- ghci> is <- 'System.IO.Streams.List.fromList' [1, 2, 3::Int]
--- ghci> (os, getList) <- 'System.IO.Streams.List.listOutputStream'
--- ghci> (os', getSeed) \<- 'outputFoldM' (\\x y -> return (x+y)) 0 os
--- ghci> 'System.IO.Streams.connect' is os'
+-- ghci> is <- Streams.'System.IO.Streams.List.fromList' [1, 2, 3::Int]
+-- ghci> (os, getList) <- Streams.'System.IO.Streams.List.listOutputStream'
+-- ghci> (os', getSeed) \<- Streams.'outputFoldM' (\\x y -> return (x+y)) 0 os
+-- ghci> Streams.'System.IO.Streams.connect' is os'
 -- ghci> getList
 -- [1,2,3]
 -- ghci> getSeed
@@ -109,9 +109,9 @@ outputFoldM f initial stream = do
 -- value. Example:
 --
 -- @
--- ghci> is <- 'System.IO.Streams.List.fromList' [1, 2, 3::Int]
--- ghci> (is', getSeed) \<- 'inputFoldM' (\\x y -> return (x+y)) 0 is
--- ghci> 'System.IO.Streams.List.toList' is'
+-- ghci> is <- Streams.'System.IO.Streams.List.fromList' [1, 2, 3::Int]
+-- ghci> (is', getSeed) \<- Streams.'inputFoldM' (\\x y -> return (x+y)) 0 is
+-- ghci> Streams.'System.IO.Streams.List.toList' is'
 -- [1,2,3]
 -- ghci> getSeed
 -- 6
@@ -148,7 +148,7 @@ inputFoldM f initial stream = do
 -- Example:
 --
 -- @
--- ghci> 'System.IO.Streams.fromList' [1..10] >>= 'fold' (+) 0
+-- ghci> Streams.'System.IO.Streams.fromList' [1..10] >>= Streams.'fold' (+) 0
 -- 55
 -- @
 fold :: (s -> a -> s)       -- ^ fold function
@@ -167,7 +167,7 @@ fold f seed stream = go seed
 -- Example:
 --
 -- @
--- ghci> 'System.IO.Streams.fromList' [1..10] >>= 'foldM' (\x y -> 'return' (x + y)) 0
+-- ghci> Streams.'System.IO.Streams.fromList' [1..10] >>= Streams.'foldM' (\x y -> 'return' (x + y)) 0
 -- 55
 -- @
 foldM :: (s -> a -> IO s)       -- ^ fold function
@@ -187,12 +187,12 @@ foldM f seed stream = go seed
 -- satisfies the predicate.
 --
 -- @
--- ghci> is <- 'System.IO.Streams.List.fromList' [1, 2, 3]
--- ghci> 'System.IO.Streams.Combinators.any' (> 0) is -- Consumes one element
+-- ghci> is <- Streams.'System.IO.Streams.List.fromList' [1, 2, 3]
+-- ghci> Streams.'System.IO.Streams.Combinators.any' (> 0) is    -- Consumes one element
 -- True
--- ghci> 'System.IO.Streams.read' is
+-- ghci> Streams.'System.IO.Streams.read' is
 -- Just 2
--- ghci> 'System.IO.Streams.Combinators.any' even is -- Only 3 remains
+-- ghci> Streams.'System.IO.Streams.Combinators.any' even is     -- Only 3 remains
 -- False
 -- @
 any :: (a -> Bool) -> InputStream a -> IO Bool
@@ -213,12 +213,12 @@ any predicate stream = go
 -- fails the predicate.
 --
 -- @
--- ghci> is <- 'System.IO.Streams.List.fromList' [1, 2, 3]
--- ghci> 'System.IO.Streams.Combinators.all' (< 0) is -- Consumes one element
+-- ghci> is <- Streams.'System.IO.Streams.List.fromList' [1, 2, 3]
+-- ghci> Streams.'System.IO.Streams.Combinators.all' (< 0) is    -- Consumes one element
 -- False
--- ghci> 'System.IO.Streams.read' is
+-- ghci> Streams.'System.IO.Streams.read' is
 -- Just 2
--- ghci> 'System.IO.Streams.Combinators.all' odd is -- Only 3 remains
+-- ghci> Streams.'System.IO.Streams.Combinators.all' odd is      -- Only 3 remains
 -- True
 -- @
 all :: (a -> Bool) -> InputStream a -> IO Bool
@@ -238,10 +238,10 @@ all predicate stream = go
 -- 'maximum' consumes the entire stream.
 --
 -- @
--- ghci> is <- 'System.IO.Streams.List.fromList' [1, 2, 3]
--- ghci> 'System.IO.Streams.Combinators.maximum' is
+-- ghci> is <- Streams.'System.IO.Streams.List.fromList' [1, 2, 3]
+-- ghci> Streams.'System.IO.Streams.Combinators.maximum' is
 -- 3
--- ghci> 'System.IO.Streams.read' is -- The stream is now empty
+-- ghci> Streams.'System.IO.Streams.read' is     -- The stream is now empty
 -- Nothing
 -- @
 maximum :: (Ord a) => InputStream a -> IO (Maybe a)
@@ -264,10 +264,10 @@ maximum stream = do
 -- 'minimum' consumes the entire stream.
 --
 -- @
--- ghci> is <- 'System.IO.Streams.List.fromList' [1, 2, 3]
--- ghci> 'System.IO.Streams.Combinators.minimum' is
+-- ghci> is <- Streams.'System.IO.Streams.List.fromList' [1, 2, 3]
+-- ghci> Streams.'System.IO.Streams.Combinators.minimum' is
 -- 1
--- ghci> 'System.IO.Streams.read' is -- The stream is now empty
+-- ghci> Streams.'System.IO.Streams.read' is    -- The stream is now empty
 -- Nothing
 -- @
 minimum :: (Ord a) => InputStream a -> IO (Maybe a)
@@ -286,12 +286,13 @@ minimum stream = do
 
 ------------------------------------------------------------------------------
 -- | @unfoldM f seed@ builds an 'InputStream' from successively applying @f@ to
--- the @seed@ value, continuing if @f@ produces 'Just' and halting on 'Nothing'.
+-- the @seed@ value, continuing if @f@ produces 'Just' and halting on
+-- 'Nothing'.
 --
 -- @
--- ghci> is <- 'System.IO.Streams.Combinators.unfoldM' (\n -> return $ if n < 3 then Just (n, n + 1) else Nothing) 0
--- ghci> 'System.IO.Streams.List.toList' is
--- [0, 1, 2]
+-- ghci> is \<- Streams.'System.IO.Streams.Combinators.unfoldM' (\n -> return $ if n < 3 then Just (n, n + 1) else Nothing) 0
+-- ghci> Streams.'System.IO.Streams.List.toList' is
+-- [0,1,2]
 -- @
 unfoldM :: (b -> IO (Maybe (a, b))) -> b -> IO (InputStream a)
 unfoldM f seed = fromGenerator (go seed)
@@ -311,9 +312,10 @@ unfoldM f seed = fromGenerator (go seed)
 --
 -- Satisfies the following laws:
 --
--- > map (g . f) === map f >=> map g
--- >
--- > map id === makeInputStream . read
+-- @
+-- Streams.'map' (g . f) === Streams.'map' f >=> Streams.'map' g
+-- Streams.'map' 'id' === Streams.'makeInputStream' . Streams.'read'
+-- @
 map :: (a -> b) -> InputStream a -> IO (InputStream b)
 map f s = makeInputStream g
   where
@@ -327,9 +329,10 @@ map f s = makeInputStream g
 --
 -- Satisfies the following laws:
 --
--- > mapM (f >=> g) === mapM f >=> mapM g
--- >
--- > mapM return === makeInputStream . read
+-- @
+-- Streams.'mapM' (f >=> g) === Streams.'mapM' f >=> Streams.'mapM' g
+-- Streams.'mapM' 'return' === Streams.'makeInputStream' . Streams.'read'
+-- @
 --
 mapM :: (a -> IO b) -> InputStream a -> IO (InputStream b)
 mapM f s = makeInputStream g
@@ -350,9 +353,9 @@ mapM f s = makeInputStream g
 -- Example:
 --
 -- @
--- ghci> 'System.IO.Streams.fromList' [1,2,3] >>=
---       'mapM_' ('putStrLn' . 'show' . (*2)) >>=
---       'System.IO.Streams.toList'
+-- ghci> Streams.'System.IO.Streams.fromList' [1,2,3] >>=
+--       Streams.'mapM_' ('putStrLn' . 'show' . (*2)) >>=
+--       Streams.'System.IO.Streams.toList'
 -- 2
 -- 4
 -- 6
@@ -373,9 +376,10 @@ mapM_ f s = makeInputStream $ do
 --
 -- Satisfies the following laws:
 --
--- > contramapM (g . f) === contramapM g >=> contramapM f
--- >
--- > contramapM id === return
+-- @
+-- Streams.'contramap' (g . f) === Streams.'contramap' g >=> Streams.'contramap' f
+-- Streams.'contramap' 'id' === 'return'
+-- @
 contramap :: (a -> b) -> OutputStream b -> IO (OutputStream a)
 contramap f s = makeOutputStream $ flip write s . fmap f
 
@@ -387,9 +391,10 @@ contramap f s = makeOutputStream $ flip write s . fmap f
 --
 -- Satisfies the following laws:
 --
--- > contramapM (f >=> g) = contramapM g >=> contramapM f
--- >
--- > contramapM return = return
+-- @
+-- Streams.'contramapM' (f >=> g) = Streams.'contramapM' g >=> Streams.'contramapM' f
+-- Streams.'contramapM' 'return' = 'return'
+-- @
 contramapM :: (a -> IO b) -> OutputStream b -> IO (OutputStream a)
 contramapM f s = makeOutputStream g
   where
@@ -401,7 +406,7 @@ contramapM f s = makeOutputStream g
 
 
 ------------------------------------------------------------------------------
--- | Contravariant counterpart to 'mapM_'.
+-- | Equivalent to 'mapM_' for output.
 --
 -- @contramapM f s@ passes all input to @s@ through the side-effecting IO
 -- action @f@.
@@ -431,8 +436,8 @@ skipToEof str = go
 -- Example:
 --
 -- @
--- ghci> 'System.IO.Streams.fromList' [\"the\", \"quick\", \"brown\", \"fox\"] >>=
---       'filterM' ('return' . (/= \"brown\")) >>= 'System.IO.Streams.toList'
+-- ghci> Streams.'System.IO.Streams.fromList' [\"the\", \"quick\", \"brown\", \"fox\"] >>=
+--       Streams.'filterM' ('return' . (/= \"brown\")) >>= Streams.'System.IO.Streams.toList'
 -- [\"the\",\"quick\",\"fox\"]
 -- @
 filterM :: (a -> IO Bool)
@@ -469,8 +474,8 @@ filterM p src = sourceToStream source
 -- Example:
 --
 -- @
--- ghci> 'System.IO.Streams.fromList' [\"the\", \"quick\", \"brown\", \"fox\"] >>=
---       'filter' (/= \"brown\") >>= 'System.IO.Streams.toList'
+-- ghci> Streams.'System.IO.Streams.fromList' [\"the\", \"quick\", \"brown\", \"fox\"] >>=
+--       Streams.'filter' (/= \"brown\") >>= Streams.'System.IO.Streams.toList'
 -- [\"the\",\"quick\",\"fox\"]
 -- @
 filter :: (a -> Bool)
@@ -507,8 +512,8 @@ filter p src = sourceToStream source
 --
 -- @
 -- ghci> import Control.Monad ((>=>))
--- ghci> is <- 'System.IO.Streams.List.fromList' [\"nom\", \"nom\", \"nom\"::'ByteString']
--- ghci> 'System.IO.Streams.List.outputToList' ('intersperse' \"burp!\" >=> 'System.IO.Streams.connect' is)
+-- ghci> is <- Streams.'System.IO.Streams.List.fromList' [\"nom\", \"nom\", \"nom\"::'ByteString']
+-- ghci> Streams.'System.IO.Streams.List.outputToList' (Streams.'intersperse' \"burp!\" >=> Streams.'System.IO.Streams.connect' is)
 -- [\"nom\",\"burp!\",\"nom\",\"burp!\",\"nom\"]
 -- @
 intersperse :: a -> OutputStream a -> IO (OutputStream a)

@@ -57,7 +57,7 @@
 --     is          \<- Streams.'System.IO.Streams.fromList' l
 --     (os0, grab) \<- Streams.'System.IO.Streams.listOutputStream'
 --     os          \<- Streams.'builderStream' os0
---     'System.IO.Streams.connect' is os >> grab
+--     Streams.'System.IO.Streams.connect' is os >> grab
 --
 -- ghci> example
 -- [\"the quick brown fox\",\"\",\"jumped over the\"]
@@ -71,38 +71,29 @@ module System.IO.Streams.Builder
  ) where
 
 ------------------------------------------------------------------------------
-import           Blaze.ByteString.Builder.Internal
-                   ( defaultBufferSize )
+import           Blaze.ByteString.Builder.Internal        (defaultBufferSize)
 ------------------------------------------------------------------------------
-import           Blaze.ByteString.Builder.Internal.Types
-                   ( Builder(..)
-                   , BuildSignal(..)
-                   , BufRange(..)
-                   , buildStep
-                   )
+import           Blaze.ByteString.Builder.Internal.Types  (BufRange (..),
+                                                           BuildSignal (..),
+                                                           Builder (..),
+                                                           buildStep)
 ------------------------------------------------------------------------------
-import           Blaze.ByteString.Builder.Internal.Buffer
-                   ( Buffer
-                   , BufferAllocStrategy
-                   , allNewBuffersStrategy
-                   , execBuildStep
-                   , reuseBufferStrategy
-                   , unsafeFreezeBuffer
-                   , unsafeFreezeNonEmptyBuffer
-                   , updateEndOfSlice
-                   )
+import           Blaze.ByteString.Builder.Internal.Buffer (Buffer,
+                                                           BufferAllocStrategy,
+                                                           allNewBuffersStrategy,
+                                                           execBuildStep,
+                                                           reuseBufferStrategy,
+                                                           unsafeFreezeBuffer,
+                                                           unsafeFreezeNonEmptyBuffer,
+                                                           updateEndOfSlice)
 ------------------------------------------------------------------------------
-import           Control.Monad         (when)
-import           Data.ByteString.Char8 (ByteString)
-import qualified Data.ByteString.Char8 as S
+import           Control.Monad                            (when)
+import           Data.ByteString.Char8                    (ByteString)
+import qualified Data.ByteString.Char8                    as S
 ------------------------------------------------------------------------------
-import           System.IO.Streams.Internal
-                   ( OutputStream
-                   , Sink(..)
-                   , nullSink
-                   , sinkToStream
-                   , write
-                   )
+import           System.IO.Streams.Internal               (OutputStream,
+                                                           Sink (..), nullSink,
+                                                           sinkToStream, write)
 
 
 ------------------------------------------------------------------------------

@@ -71,17 +71,13 @@ module System.IO.Streams.Internal
   ) where
 
 ------------------------------------------------------------------------------
-import           Control.Applicative    ( Applicative(..) )
-import           Control.Concurrent     ( newMVar, withMVar )
-import           Control.Monad          ( liftM )
-import           Control.Monad.IO.Class ( MonadIO(..) )
-import           Data.IORef             ( IORef
-                                        , newIORef
-                                        , readIORef
-                                        , writeIORef
-                                        )
-import           Data.Monoid            ( Monoid(..) )
-import           Prelude hiding         ( read )
+import           Control.Applicative    (Applicative (..))
+import           Control.Concurrent     (newMVar, withMVar)
+import           Control.Monad          (liftM)
+import           Control.Monad.IO.Class (MonadIO (..))
+import           Data.IORef             (IORef, newIORef, readIORef, writeIORef)
+import           Data.Monoid            (Monoid (..))
+import           Prelude                hiding (read)
 
 
 ------------------------------------------------------------------------------
@@ -99,7 +95,7 @@ data SP a b = SP !a !b
 -- All 'Source's define an optional push-back mechanism. You can assume that:
 --
 -- @
--- 'pushback' source c >>= 'produce' = 'return' (source, 'Just' c)
+-- Streams.'pushback' source c >>= Streams.'produce' = 'return' (source, 'Just' c)
 -- @
 --
 -- ... unless a 'Source' documents otherwise.
@@ -124,12 +120,17 @@ data Source c = Source {
 -- @
 -- g :: 'Generator' Int ()
 -- g = do
---     'yield' 1
---     'yield' 2
---     'yield' 3
+--     Streams.'yield' 1
+--     Streams.'yield' 2
+--     Streams.'yield' 3
+-- @
 --
--- m :: IO [Int]
--- m = 'fromGenerator' g >>= toList     \-\- value returned is [1,2,3]
+-- A 'Generator' can be turned into an 'InputStream' by calling
+-- 'fromGenerator':
+--
+-- @
+-- m :: 'IO' ['Int']
+-- m = Streams.'fromGenerator' g >>= Streams.'System.IO.Streams.toList'     \-\- value returned is [1,2,3]
 -- @
 --
 -- You can perform IO by calling 'liftIO', and turn a 'Generator' into an
@@ -376,6 +377,7 @@ singletonSource c = withDefaultPushback $ return $! SP nullSource (Just c)
 -- be wiser to go with that.
 
 
+------------------------------------------------------------------------------
 -- | An 'InputStream' generates values of type @c@ in the 'IO' monad.
 --
 --  Two primitive operations are defined on 'InputStream':
@@ -394,6 +396,8 @@ singletonSource c = withDefaultPushback $ return $! SP nullSource (Just c)
 -- resource acquisition/release semantics
 newtype InputStream  c = IS (IORef (Source c))
 
+
+------------------------------------------------------------------------------
 -- | An 'OutputStream' consumes values of type @c@ in the 'IO' monad.
 -- The only primitive operation defined on 'OutputStream' is:
 --
@@ -407,6 +411,7 @@ newtype InputStream  c = IS (IORef (Source c))
 -- this library will simply discard the extra input.)
 --
 newtype OutputStream c = OS (IORef (Sink   c))
+
 
 ------------------------------------------------------------------------------
 -- | Reads one value from an 'InputStream'.
@@ -427,7 +432,7 @@ read (IS ref) = do
 -- satisfy the following law, with the possible exception of side effects:
 --
 -- @
--- 'unRead' c stream >> 'read' stream === 'return' ('Just' c)
+-- Streams.'unRead' c stream >> Streams.'read' stream === 'return' ('Just' c)
 -- @
 --
 -- Note that this could be used to add values back to the stream that were not
@@ -483,7 +488,7 @@ appendInputStream s1 s2 = sourceToStream src1
 -- following law:
 --
 -- @
--- 'peek' stream >> 'read' stream === 'read' stream
+-- Streams.'peek' stream >> Streams.'read' stream === Streams.'read' stream
 -- @
 peek :: InputStream c -> IO (Maybe c)
 peek s = do
@@ -538,9 +543,11 @@ connectTo = flip connect
 -- 'connect' for the final 'InputStream' to finalize the 'OutputStream', like
 -- so:
 --
--- > do supply  input1 output
--- >    supply  input2 output
--- >    connect input3 output
+-- @
+-- do Streams.'supply'  input1 output
+--    Streams.'supply'  input2 output
+--    Streams.'connect' input3 output
+-- @
 --
 supply :: InputStream a -> OutputStream a -> IO ()
 supply p q = loop
@@ -666,5 +673,5 @@ atEOF s = read s >>= maybe (return True) (\k -> unRead k s >> return False)
 -- law:
 --
 -- @
--- 'unRead' c stream >> 'read' stream === 'return' ('Just' c)
+-- Streams.'unRead' c stream >> Streams.'read' stream === 'return' ('Just' c)
 -- @

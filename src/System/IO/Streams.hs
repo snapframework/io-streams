@@ -7,7 +7,7 @@
 -- It is recommended to import this module qualified, as follows:
 --
 -- @
--- import           "System.IO.Streams" ('InputStream', 'OutputStream')
+-- import           "System.IO.Streams" ('Generator', 'InputStream', 'OutputStream')
 -- import qualified "System.IO.Streams" as Streams
 -- @
 --
@@ -109,6 +109,6 @@ import           System.IO.Streams.Zlib
 -- end-of-stream 'Nothing' marker to appear at the output. Example:
 --
 -- @
--- ghci> ('fromGenerator' $ 'Control.Monad.sequence' $ Prelude.'Prelude.map' 'yield' [1..5::Int]) >>= 'toList'
+-- ghci> (Streams.'fromGenerator' $ 'Control.Monad.sequence' $ 'Prelude.map' Streams.'yield' [1..5::Int]) >>= Streams.'toList'
 -- [1,2,3,4,5]
 -- @

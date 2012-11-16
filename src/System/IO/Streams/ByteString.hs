@@ -43,54 +43,44 @@ module System.IO.Streams.ByteString
  ) where
 
 ------------------------------------------------------------------------------
-import           Control.Exception             ( Exception, throwIO )
-import           Control.Monad                 ( (>=>), when )
-import           Data.ByteString               ( ByteString )
-import qualified Data.ByteString.Char8         as S
-import qualified Data.ByteString.Lazy.Char8    as L
-import           Data.Char                     ( isSpace )
-import           Data.Int                      (Int64)
-import           Data.IORef                    ( newIORef
-                                               , readIORef
-                                               , writeIORef )
-import           Data.Time.Clock.POSIX         ( getPOSIXTime )
-import           Data.Typeable                 ( Typeable )
+import           Control.Exception                             (Exception,
+                                                                throwIO)
+import           Control.Monad                                 (when, (>=>))
+import           Data.ByteString                               (ByteString)
+import qualified Data.ByteString.Char8                         as S
+import qualified Data.ByteString.Lazy.Char8                    as L
+import           Data.Char                                     (isSpace)
+import           Data.Int                                      (Int64)
+import           Data.IORef                                    (newIORef,
+                                                                readIORef,
+                                                                writeIORef)
+import           Data.Time.Clock.POSIX                         (getPOSIXTime)
+import           Data.Typeable                                 (Typeable)
 
-import           Prelude hiding
-                   ( read
-                   , takeWhile
-                   , lines
-                   , unlines
-                   , words
-                   , unwords
-                   )
+import           Prelude                                       hiding (lines,
+                                                                read, takeWhile,
+                                                                unlines,
+                                                                unwords, words)
 ------------------------------------------------------------------------------
-import           System.IO.Streams.Combinators
-                   ( filterM
-                   , intersperse
-                   , outputFoldM
-                   )
-import           System.IO.Streams.Internal
-                   ( InputStream
-                   , OutputStream
-                   , SP(..)
-                   , Sink(..)
-                   , Source(..)
-                   , nullSink
-                   , nullSource
-                   , pushback
-                   , read
-                   , sinkToStream
-                   , sourceToStream
-                   , unRead
-                   , withDefaultPushback
-                   , write
-                   )
-import           System.IO.Streams.Internal.BoyerMooreHorspool
-                   ( MatchInfo(..)
-                   , search
-                   )
-import           System.IO.Streams.List        ( writeList )
+import           System.IO.Streams.Combinators                 (filterM,
+                                                                intersperse,
+                                                                outputFoldM)
+import           System.IO.Streams.Internal                    (InputStream,
+                                                                OutputStream,
+                                                                SP (..),
+                                                                Sink (..),
+                                                                Source (..),
+                                                                nullSink,
+                                                                nullSource,
+                                                                pushback, read,
+                                                                sinkToStream,
+                                                                sourceToStream,
+                                                                unRead,
+                                                                withDefaultPushback,
+                                                                write)
+import           System.IO.Streams.Internal.BoyerMooreHorspool (MatchInfo (..),
+                                                                search)
+import           System.IO.Streams.List                        (writeList)
 ------------------------------------------------------------------------------
 
 
@@ -115,18 +105,18 @@ writeLazyByteString = writeList . L.toChunks
 -- Example:
 --
 -- @
--- ghci> is <- 'System.IO.Streams.fromList' [\"abc\", \"def\", \"ghi\"::ByteString]
--- ghci> (is', getCount) <- 'countInput' is
--- ghci> 'read' is'
+-- ghci> is <- Streams.'System.IO.Streams.fromList' [\"abc\", \"def\", \"ghi\"::ByteString]
+-- ghci> (is', getCount) <- Streams.'countInput' is
+-- ghci> Streams.'read' is'
 -- Just \"abc\"
 -- ghci> getCount
 -- 3
--- ghci> 'unRead' \"bc\" is'
+-- ghci> Streams.'unRead' \"bc\" is'
 -- ghci> getCount
 -- 1
--- ghci> 'System.IO.Streams.peek' is
+-- ghci> Streams.'System.IO.Streams.peek' is
 -- Just \"bc\"
--- ghci> 'System.IO.Streams.toList' is'
+-- ghci> Streams.'System.IO.Streams.toList' is'
 -- [\"bc\",\"def\",\"ghi\"]
 -- ghci> getCount
 -- 9
@@ -176,9 +166,9 @@ countInput src = do
 -- Example:
 --
 -- @
--- ghci> (os :: OutputStream ByteString, getList) <- 'System.IO.Streams.listOutputStream'
--- ghci> (os', getCount) <- 'countOutput' os
--- ghci> 'System.IO.Streams.fromList' [\"abc\", \"def\", \"ghi\"] >>= 'System.IO.Streams.connectTo' os'
+-- ghci> (os :: OutputStream ByteString, getList) <- Streams.'System.IO.Streams.listOutputStream'
+-- ghci> (os', getCount) <- Streams.'countOutput' os
+-- ghci> Streams.'System.IO.Streams.fromList' [\"abc\", \"def\", \"ghi\"] >>= Streams.'System.IO.Streams.connectTo' os'
 -- ghci> getList
 -- [\"abc\",\"def\",\"ghi\"]
 -- ghci> getCount
@@ -204,24 +194,24 @@ countOutput = outputFoldM f 0
 -- Example:
 --
 -- @
--- ghci> is <- 'System.IO.Streams.fromList' [\"truncated\", \" string\"::ByteString]
--- ghci> is' <- 'takeBytes' 9 is
--- ghci> 'read' is'
+-- ghci> is <- Streams.'System.IO.Streams.fromList' [\"truncated\", \" string\"::ByteString]
+-- ghci> is' <- Streams.'takeBytes' 9 is
+-- ghci> Streams.'read' is'
 -- Just \"truncated\"
--- ghci> 'read' is'
+-- ghci> Streams.'read' is'
 -- Nothing
--- ghci> 'System.IO.Streams.peek' is
+-- ghci> Streams.'System.IO.Streams.peek' is
 -- Just \" string\"
--- ghci> 'unRead' \"cated\" is'
--- ghci> 'System.IO.Streams.peek' is
+-- ghci> Streams.'unRead' \"cated\" is'
+-- ghci> Streams.'System.IO.Streams.peek' is
 -- Just \"cated\"
--- ghci> 'System.IO.Streams.peek' is'
+-- ghci> Streams.'System.IO.Streams.peek' is'
 -- Just \"cated\"
--- ghci> 'read' is'
+-- ghci> Streams.'read' is'
 -- Just \"cated\"
--- ghci> 'read' is'
+-- ghci> Streams.'read' is'
 -- Nothing
--- ghci> 'read' is
+-- ghci> Streams.'read' is
 -- Just \" string\"
 -- @
 takeBytes :: Int64                        -- ^ maximum number of bytes to read
@@ -346,11 +336,11 @@ instance Exception ReadTooShortException
 -- /subsequent/ read will throw an exception. Example:
 --
 -- @
--- ghci> is \<- 'System.IO.Streams.fromList' [\"abc\", \"def\", \"ghi\"] >>=
---             'throwIfProducesMoreThan' 5
+-- ghci> is \<- Streams.'System.IO.Streams.fromList' [\"abc\", \"def\", \"ghi\"] >>=
+--             Streams.'throwIfProducesMoreThan' 5
 -- ghci> 'Control.Monad.replicateM' 2 ('read' is)
 -- [Just \"abc\",Just \"de\"]
--- ghci> 'read' is
+-- ghci> Streams.'read' is
 -- *** Exception: Too many bytes read
 -- @
 --
@@ -358,18 +348,18 @@ instance Exception ReadTooShortException
 -- upstream, modifying the count of taken bytes accordingly. Example:
 --
 -- @
--- ghci> is  <- 'System.IO.Streams.fromList' [\"abc\", \"def\", \"ghi\"]
--- ghci> is' <- 'throwIfProducesMoreThan' 5 is
--- ghci> 'read' is'
+-- ghci> is  <- Streams.'System.IO.Streams.fromList' [\"abc\", \"def\", \"ghi\"]
+-- ghci> is' <- Streams.'throwIfProducesMoreThan' 5 is
+-- ghci> Streams.'read' is'
 -- Just \"abc\"
--- ghci> 'unRead' \"xyz\" is'
--- ghci> 'System.IO.Streams.peek' is
+-- ghci> Streams.'unRead' \"xyz\" is'
+-- ghci> Streams.'System.IO.Streams.peek' is
 -- Just \"xyz\"
--- ghci> 'read' is
+-- ghci> Streams.'read' is
 -- Just \"xyz\"
--- ghci> 'read' is
+-- ghci> Streams.'read' is
 -- Just \"de\"
--- ghci> 'read' is
+-- ghci> Streams.'read' is
 -- *** Exception: Too many bytes read
 -- @
 --
@@ -413,9 +403,9 @@ throwIfProducesMoreThan k0 src = sourceToStream $ source k0
 -- Example:
 --
 -- @
--- ghci> 'System.IO.Streams.fromList' [\"long string\"] >>= 'readExactly' 6
+-- ghci> Streams.'System.IO.Streams.fromList' [\"long string\"] >>= Streams.'readExactly' 6
 -- \"long s\"
--- ghci> 'System.IO.Streams.fromList' [\"short\"] >>= 'readExactly' 6
+-- ghci> Streams.'System.IO.Streams.fromList' [\"short\"] >>= Streams.'readExactly' 6
 -- *** Exception: Short read, expected 6 bytes
 -- @
 --
@@ -463,9 +453,9 @@ takeBytesWhile p input = read input >>= maybe (return Nothing) (go id)
 -- Example:
 --
 -- @
--- ghci> (os :: OutputStream ByteString, getList) <- 'System.IO.Streams.listOutputStream'
--- ghci> os' <- 'giveBytes' 6 os
--- ghci> 'System.IO.Streams.fromList' [\"long \", \"string\"] >>= 'System.IO.Streams.connectTo' os'
+-- ghci> (os :: OutputStream ByteString, getList) <- Streams.'System.IO.Streams.listOutputStream'
+-- ghci> os' <- Streams.'giveBytes' 6 os
+-- ghci> Streams.'System.IO.Streams.fromList' [\"long \", \"string\"] >>= Streams.'System.IO.Streams.connectTo' os'
 -- ghci> getList
 -- [\"long \",\"s\"]
 -- @
@@ -506,13 +496,13 @@ giveBytes k0 str = sinkToStream $ sink k0
 -- Example:
 --
 -- @
--- ghci> (os :: OutputStream ByteString, getList) <- 'System.IO.Streams.listOutputStream'
--- ghci> os' <- 'throwIfConsumesMoreThan' 5 os
--- ghci> 'System.IO.Streams.fromList' [\"short\"] >>= 'System.IO.Streams.connectTo' os'
+-- ghci> (os :: OutputStream ByteString, getList) <- Streams.'System.IO.Streams.listOutputStream'
+-- ghci> os' <- Streams.'throwIfConsumesMoreThan' 5 os
+-- ghci> Streams.'System.IO.Streams.fromList' [\"short\"] >>= Streams.'System.IO.Streams.connectTo' os'
 -- ghci> getList
 -- [\"short\"]
--- ghci> os'' <- 'throwIfConsumesMoreThan' 5 os
--- ghci> 'System.IO.Streams.fromList' [\"long\", \"string\"] >>= 'System.IO.Streams.connectTo' os''
+-- ghci> os'' <- Streams.'throwIfConsumesMoreThan' 5 os
+-- ghci> Streams.'System.IO.Streams.fromList' [\"long\", \"string\"] >>= Streams.'System.IO.Streams.connectTo' os''
 -- *** Exception: Too many bytes written
 -- @
 throwIfConsumesMoreThan
