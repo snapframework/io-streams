@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns #-}
 
--- | List conversions and utilities
+-- | List conversions and utilities.
 
 module System.IO.Streams.List
  ( -- * List conversions
@@ -63,7 +63,10 @@ listOutputStream = do
 
 
 ------------------------------------------------------------------------------
--- | Drains an 'InputStream', converting it to a list.
+-- | Drains an 'InputStream', converting it to a list. N.B. that this function
+-- reads the entire 'InputStream' strictly into memory and as such is not
+-- recommended for streaming applications or where the size of the input is not
+-- bounded or known.
 toList :: InputStream a -> IO [a]
 toList is = outputToList (connect is)
 {-# INLINE toList #-}
@@ -90,7 +93,7 @@ outputToList f = do
 
 ------------------------------------------------------------------------------
 -- | Feeds a list to an 'OutputStream'. Does /not/ write an end-of-stream to
--- the list.
+-- the stream.
 writeList :: [a] -> OutputStream a -> IO ()
 writeList xs os = mapM_ (flip write os . Just) xs
 {-# INLINE writeList #-}
