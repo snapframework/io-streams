@@ -32,7 +32,13 @@ module System.IO.Streams.Core
    -- * Utility streams
  , nullInput
  , nullOutput
+
+   -- * Generator monad
+   -- $generator
+ , Generator
+ , fromGenerator
+ , yield
  ) where
 
-import           Prelude ()
+import           Prelude                    ()
 import           System.IO.Streams.Internal
