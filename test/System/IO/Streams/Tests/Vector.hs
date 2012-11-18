@@ -13,6 +13,9 @@ import           Test.HUnit                     hiding (Test)
 import qualified System.IO.Streams              as S
 import           System.IO.Streams.List
 import           System.IO.Streams.Vector
+------------------------------------------------------------------------------
+import           System.IO.Streams.Tests.Common (expectExceptionH)
+
 
 tests :: [Test]
 tests = [ testChunk
@@ -24,6 +27,10 @@ tests = [ testChunk
 
 testChunk :: Test
 testChunk = testCase "vector/chunkVector" $ do
+    let zeroLen :: IO ([V.Vector Int])
+        zeroLen = fromList [1..10::Int] >>= chunkVector 0 >>= toList
+    expectExceptionH zeroLen
+
     fromList [1..10 :: Int] >>= chunkVector 3
                             >>= toList
                             >>= assertEqual "chunkVector"
@@ -81,4 +88,4 @@ testFromTo = testCase "vector/fromVector" $ do
     fromVector vtest >>= toVector >>= assertEqual "f2" vtest
 
   where
-    vtest = V.fromList [1..10::Int]
+    vtest = V.fromList [1..100::Int]

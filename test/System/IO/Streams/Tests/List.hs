@@ -1,16 +1,17 @@
-{-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module System.IO.Streams.Tests.List (tests) where
 
 ------------------------------------------------------------------------------
-import           Control.Monad hiding (mapM)
-import           Prelude hiding (mapM, read)
+import           Control.Monad                  hiding (mapM)
+import           Prelude                        hiding (mapM, read)
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
-import           Test.HUnit hiding (Test)
+import           Test.HUnit                     hiding (Test)
 ------------------------------------------------------------------------------
 import           System.IO.Streams.List
+------------------------------------------------------------------------------
+import           System.IO.Streams.Tests.Common (expectExceptionH)
 
 tests :: [Test]
 tests = [ testChunkJoin ]
@@ -18,6 +19,8 @@ tests = [ testChunkJoin ]
 
 testChunkJoin :: Test
 testChunkJoin = testCase "list/chunkList and join" $ do
+    expectExceptionH (fromList [1..10::Int] >>= chunkList 0 >>= toList)
+
     fromList [1..10 :: Int] >>= chunkList 3
                             >>= toList
                             >>= assertEqual "chunkList" [ [1,2,3]

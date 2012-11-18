@@ -111,7 +111,9 @@ writeList xs os = mapM_ (flip write os . Just) xs
 chunkList :: Int                   -- ^ chunk size
           -> InputStream a         -- ^ stream to process
           -> IO (InputStream [a])
-chunkList n input = fromGenerator $ go n id
+chunkList n input = if n <= 0
+                      then error $ "chunkList: bad size: " ++ show n
+                      else fromGenerator $ go n id
   where
     go !k dl | k <= 0    = yield (dl []) >> go n id
              | otherwise = do
