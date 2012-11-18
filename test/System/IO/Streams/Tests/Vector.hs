@@ -17,6 +17,7 @@ import           System.IO.Streams.Vector
 import           System.IO.Streams.Tests.Common (expectExceptionH)
 
 
+------------------------------------------------------------------------------
 tests :: [Test]
 tests = [ testChunk
         , testWrite
@@ -25,6 +26,7 @@ tests = [ testChunk
         ]
 
 
+------------------------------------------------------------------------------
 testChunk :: Test
 testChunk = testCase "vector/chunkVector" $ do
     let zeroLen :: IO ([V.Vector Int])
