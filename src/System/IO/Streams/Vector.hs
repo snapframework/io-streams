@@ -9,17 +9,22 @@ module System.IO.Streams.Vector
    fromVector
  , toVector
  , outputToVector
+ , toMutableVector
+ , outputToMutableVector
  , writeVector
 
    -- * Utility
  , chunkVector
  , vectorOutputStream
+ , mutableVectorOutputStream
  ) where
 
 ------------------------------------------------------------------------------
 import           Control.Concurrent.MVar           (modifyMVar, modifyMVar_,
                                                     newMVar)
+import           Control.Monad                     ((>=>))
 import           Control.Monad.IO.Class            (MonadIO (..))
+import           Control.Monad.Primitive           (PrimState (..))
 import qualified Data.Vector.Fusion.Stream         as VS
 import qualified Data.Vector.Fusion.Stream.Monadic as SM
 import           Data.Vector.Generic               (Vector (..))
@@ -46,11 +51,21 @@ fromVector = fromGenerator . V.mapM_ yield
 -- not recommended for streaming applications or where the size of the input is
 -- not bounded or known.
 toVector :: Vector v a => InputStream a -> IO (v a)
-toVector input = (VM.munstream $ SM.unfoldrM go ()) >>= V.basicUnsafeFreeze
+toVector = toMutableVector >=> V.basicUnsafeFreeze
+{-# INLINE toVector #-}
+
+
+------------------------------------------------------------------------------
+-- | Drains an 'InputStream', converting it to a vector. N.B. that this
+-- function reads the entire 'InputStream' strictly into memory and as such is
+-- not recommended for streaming applications or where the size of the input is
+-- not bounded or known.
+toMutableVector :: VM.MVector v a => InputStream a -> IO (v (PrimState IO) a)
+toMutableVector input = VM.munstream $ SM.unfoldrM go ()
   where
     go !z = S.read input >>= maybe (return Nothing)
                                    (\x -> return $! Just (x, z))
-{-# INLINE toVector #-}
+{-# INLINE toMutableVector #-}
 
 
 ------------------------------------------------------------------------------
@@ -64,7 +79,24 @@ toVector input = (VM.munstream $ SM.unfoldrM go ()) >>= V.basicUnsafeFreeze
 -- is bounded and will fit in memory without issues.
 vectorOutputStream :: Vector v c => IO (OutputStream c, IO (v c))
 vectorOutputStream = do
-    r <- newMVar VS.empty
+    (os, flush) <- mutableVectorOutputStream
+    return $! (os, flush >>= V.basicUnsafeFreeze)
+{-# INLINE vectorOutputStream #-}
+
+
+------------------------------------------------------------------------------
+-- | 'mutableVectorOutputStream' returns an 'OutputStream' which stores values
+-- fed into it and an action which flushes all stored values to a vector.
+--
+-- The flush action resets the store.
+--
+-- Note that this function /will/ buffer any input sent to it on the heap.
+-- Please don't use this unless you're sure that the amount of input provided
+-- is bounded and will fit in memory without issues.
+mutableVectorOutputStream :: VM.MVector v c =>
+                             IO (OutputStream c, IO (v (PrimState IO) c))
+mutableVectorOutputStream = do
+    r <- newMVar SM.empty
     c <- sinkToStream $ consumer r
     return (c, flush r)
 
@@ -73,10 +105,36 @@ vectorOutputStream = do
       where
         go = Sink $ maybe (return nullSink)
                           (\c -> do
-                               modifyMVar_ r $ return . VS.cons c
+                               modifyMVar_ r $ return . SM.cons c
                                return go)
-    flush r = modifyMVar r $ \str -> return $! (VS.empty, V.unstreamR str)
-{-# INLINE vectorOutputStream #-}
+    flush r = modifyMVar r $ \str -> do
+                                v <- VM.munstreamR str
+                                return $! (SM.empty, v)
+{-# INLINE mutableVectorOutputStream #-}
+
+
+------------------------------------------------------------------------------
+-- | Given an IO action that requires an 'OutputStream', creates one and
+-- captures all the output the action sends to it as a mutable vector.
+--
+-- Example:
+--
+-- @
+-- ghci> import "Control.Applicative"
+-- ghci> import qualified "Data.Vector" as V
+-- ghci> (('connect' <$> 'System.IO.Streams.fromList' [1, 2, 3::'Int'])
+--        >>= 'outputToMutableVector'
+--        >>= V.'Data.Vector.freeze'
+-- fromList [1,2,3]
+-- @
+outputToMutableVector :: MVector v a =>
+                         (OutputStream a -> IO b)
+                      -> IO (v (PrimState IO) a)
+outputToMutableVector f = do
+    (os, getVec) <- mutableVectorOutputStream
+    _ <- f os
+    getVec
+{-# INLINE outputToMutableVector #-}
 
 
 ------------------------------------------------------------------------------
@@ -92,10 +150,7 @@ vectorOutputStream = do
 -- fromList [1,2,3]
 -- @
 outputToVector :: Vector v a => (OutputStream a -> IO b) -> IO (v a)
-outputToVector f = do
-    (os, getVec) <- vectorOutputStream
-    _ <- f os
-    getVec
+outputToVector = outputToMutableVector >=> V.basicUnsafeFreeze
 {-# INLINE outputToVector #-}
 
 
