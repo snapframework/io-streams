@@ -56,7 +56,7 @@ toVector = toMutableVector >=> V.basicUnsafeFreeze
 
 
 ------------------------------------------------------------------------------
--- | Drains an 'InputStream', converting it to a vector. N.B. that this
+-- | Drains an 'InputStream', converting it to a mutable vector. N.B. that this
 -- function reads the entire 'InputStream' strictly into memory and as such is
 -- not recommended for streaming applications or where the size of the input is
 -- not bounded or known.
