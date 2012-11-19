@@ -76,13 +76,6 @@ Description:
 Extra-Source-Files:  CONTRIBUTORS
 
 ------------------------------------------------------------------------------
-Flag portable
-  Description: Compile in cross-platform mode. No platform-specific code or
-               optimizations such as C routines will be used.
-  Default: False
-
-
-------------------------------------------------------------------------------
 Library
   hs-source-dirs:    src
   Default-language:  Haskell2010
@@ -124,13 +117,6 @@ Library
     DeriveDataTypeable,
     GeneralizedNewtypeDeriving,
     OverloadedStrings
-
-  if flag(portable) || os(windows)
-    cpp-options: -DPORTABLE
-  else
-    build-depends: bytestring-mmap >= 0.2 && <0.3,
-                   unix            >= 2.5 && <3.0
-
 
 ------------------------------------------------------------------------------
 Test-suite testsuite
@@ -187,12 +173,6 @@ Test-suite testsuite
                      test-framework-hunit       >= 0.2.7    && <0.3,
                      test-framework-quickcheck2 >= 0.2.12.1 && <0.3,
                      zlib                       >= 0.5      && <0.6
-
-  if flag(portable) || os(windows)
-    cpp-options: -DPORTABLE
-  else
-    build-depends: bytestring-mmap >= 0.2 && <0.3,
-                   unix            >= 2.5 && <3.0
 
   other-extensions:
     BangPatterns,
