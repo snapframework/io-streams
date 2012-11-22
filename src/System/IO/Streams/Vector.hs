@@ -125,7 +125,7 @@ vfAdd vfi@(VectorFillInfo v iRef szRef) !x = do
 
     grow sz = do
         let !sz' = sz * 2
-        v' <- VM.unsafeGrow v sz'
+        v' <- VM.unsafeGrow v sz
         writeIORef szRef sz'
         vfAdd (vfi { _vec = v' }) x
 
@@ -169,9 +169,9 @@ mutableVectorOutputStream = do
 -- @
 -- ghci> import "Control.Applicative"
 -- ghci> import qualified "Data.Vector" as V
--- ghci> (('connect' <$> 'System.IO.Streams.fromList' [1, 2, 3::'Int'])
---        >>= 'outputToMutableVector'
---        >>= V.'Data.Vector.freeze'
+-- ghci> ('connect' \<\$\> 'System.IO.Streams.fromList' [1, 2, 3::'Int'])
+--        \>\>= 'outputToMutableVector'
+--        \>\>= V.'Data.Vector.freeze'
 -- fromList [1,2,3]
 -- @
 outputToMutableVector :: MVector v a =>

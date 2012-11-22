@@ -34,7 +34,6 @@ module System.IO.Streams.Core
  , nullOutput
 
    -- * Generator monad
-   -- $generator
  , Generator
  , fromGenerator
  , yield
