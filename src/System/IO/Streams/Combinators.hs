@@ -624,9 +624,9 @@ unzipM os = do
 -- ghci> is <- Streams.'fromList' [1..9::Int]
 -- ghci> is' <- Streams.'take' 1 is
 -- ghci> Streams.'read' is'
--- 'Just' 1
+-- Just 1
 -- ghci> Streams.'read' is'
--- 'Nothing'
+-- Nothing
 -- ghci> Streams.'System.IO.Streams.peek' is
 -- Just 2
 -- ghci> Streams.'unRead' 11 is'
