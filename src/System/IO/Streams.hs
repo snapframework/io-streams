@@ -14,6 +14,8 @@
 -- For an in-depth tutorial on how to use @io-streams@, please see the
 -- "System.IO.Streams.Tutorial" module.
 --
+-- Is there a function missing from this library? Interested in contributing?
+-- Send a pull request to <http://github.com/snapframework/io-streams>.
 module System.IO.Streams
  ( -- * Stream types
    InputStream
