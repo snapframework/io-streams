@@ -98,6 +98,12 @@ import           System.IO.Streams.Internal               (OutputStream,
 
 ------------------------------------------------------------------------------
 -- | Converts a 'ByteString' sink into a 'Builder' sink.
+--
+-- Note that if the generated builder receives a
+-- 'Blaze.ByteString.Builder.flush', by convention it will send an empty string
+-- to the supplied @'OutputStream' 'ByteString'@ to indicate that any output
+-- buffers are to be flushed.
+--
 builderStream :: OutputStream ByteString -> IO (OutputStream Builder)
 builderStream = builderStreamWith (allNewBuffersStrategy defaultBufferSize)
 
@@ -115,6 +121,7 @@ builderStream = builderStreamWith (allNewBuffersStrategy defaultBufferSize)
 -- If you /must/ retain copies of these values, then please use
 -- 'Data.ByteString.copy' to ensure that you have a fresh copy of the
 -- underlying string.
+--
 unsafeBuilderStream :: IO Buffer
                     -> OutputStream ByteString
                     -> IO (OutputStream Builder)
@@ -122,9 +129,6 @@ unsafeBuilderStream = builderStreamWith . reuseBufferStrategy
 
 
 ------------------------------------------------------------------------------
--- Note: will not yield empty string unless it wants downstream to flush. TODO:
--- document flush semantics
---
 -- | A customized version of 'builderStream', using the specified
 -- 'BufferAllocStrategy'.
 builderStreamWith :: BufferAllocStrategy

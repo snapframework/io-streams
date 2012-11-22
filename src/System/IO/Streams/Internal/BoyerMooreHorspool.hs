@@ -7,32 +7,28 @@ module System.IO.Streams.Internal.BoyerMooreHorspool
   ) where
 
 ------------------------------------------------------------------------------
-import qualified Data.ByteString.Char8       as S
 import           Data.ByteString.Char8       (ByteString)
+import qualified Data.ByteString.Char8       as S
 import           Data.ByteString.Unsafe      as S
-import           Data.Monoid                 ( mappend, mconcat )
+import           Data.Monoid                 (mappend, mconcat)
 import qualified Data.Vector.Unboxed         as V
 import qualified Data.Vector.Unboxed.Mutable as MV
 import           Prelude                     hiding (last, read)
 ------------------------------------------------------------------------------
-import           System.IO.Streams.Internal
-                   ( InputStream
-                   , SP(..)
-                   , nullSource
-                   , produce
-                   , read
-                   , singletonSource
-                   , sourceToStream
-                   , withDefaultPushback
-                   )
+import           System.IO.Streams.Internal  (InputStream, SP (..), nullSource,
+                                              produce, read, singletonSource,
+                                              sourceToStream,
+                                              withDefaultPushback)
 
 ------------------------------------------------------------------------------
+-- | 'MatchInfo' provides match information when performing string search.
 data MatchInfo = Match   {-# UNPACK #-} !ByteString
                | NoMatch {-# UNPACK #-} !ByteString
   deriving (Show, Eq)
 
 
 ------------------------------------------------------------------------------
+-- | Does the given needle match the haystack over the given ranges of indices?
 matches :: ByteString     -- ^ needle
         -> Int            -- ^ needle start
         -> Int            -- ^ needle end (inclusive)
@@ -210,12 +206,3 @@ search needle stream = do
                 l  = S.length x
                 r  = k - l
                 d' = dlist . (x:)
-
-{-
-------------------------------------------------------------------------------
-testIt :: ByteString -> [ByteString] -> IO [MatchInfo]
-testIt needle haystacks = do
-    s1 <- fromList haystacks
-    s2 <- boyerMooreHorspool needle s1
-    toList s2
--}

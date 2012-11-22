@@ -19,6 +19,10 @@ module System.IO.Streams
    InputStream
  , OutputStream
 
+
+   -- ** A note about resource acquisition\/release semantics
+   -- $resource
+
    -- * Creating streams
  , makeInputStream
  , makeOutputStream
@@ -112,3 +116,22 @@ import           System.IO.Streams.Zlib
 -- ghci> (Streams.'fromGenerator' $ 'Control.Monad.sequence' $ 'Prelude.map' Streams.'yield' [1..5::Int]) >>= Streams.'toList'
 -- [1,2,3,4,5]
 -- @
+
+
+------------------------------------------------------------------------------
+-- $resource
+-- #resource#
+--
+-- In general, the convention within this library is that input and output
+-- streams do not deal with resource acquisition\/release semantics, with rare
+-- exceptions like 'System.IO.Streams.withFileAsInput'. For example, sending
+-- \"end-of-stream\" to an 'OutputStream' wrapped around a 'System.IO.Handle'
+-- doesn't cause the handle to be closed. You can think of streams as little
+-- state machines that are attached to the underlying resources, and the
+-- finalization\/release of these resources is up to you.
+--
+-- This means that you can use standard Haskell idioms like
+-- 'Control.Exception.bracket' to handle resource acquisition and cleanup in an
+-- exception-safe way.
+--
+

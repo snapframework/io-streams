@@ -553,6 +553,8 @@ zipWithM f src1 src2 = makeInputStream src
 
 
 ------------------------------------------------------------------------------
+-- | Filters output to be sent to the given 'OutputStream' using a pure
+-- function. See 'filter'.
 filterOutput :: (a -> Bool) -> OutputStream a -> IO (OutputStream a)
 filterOutput p output = makeOutputStream chunk
   where
@@ -561,6 +563,8 @@ filterOutput p output = makeOutputStream chunk
 
 
 ------------------------------------------------------------------------------
+-- | Filters output to be sent to the given 'OutputStream' using a predicate
+-- function in IO. See 'filterM'.
 filterOutputM :: (a -> IO Bool) -> OutputStream a -> IO (OutputStream a)
 filterOutputM p output = makeOutputStream chunk
   where
@@ -608,6 +612,38 @@ unzipM os = do
 
 
 ------------------------------------------------------------------------------
+-- | Wraps an 'InputStream', producing a new 'InputStream' that will produce at
+-- most @n@ items, subsequently yielding end-of-stream forever.
+--
+-- Items pushed back to the returned 'InputStream' will be propagated upstream,
+-- modifying the count of taken items accordingly.
+--
+-- Example:
+--
+-- @
+-- ghci> is <- Streams.'fromList' [1..9::Int]
+-- ghci> is' <- Streams.'take' 1 is
+-- ghci> Streams.'read' is'
+-- 'Just' 1
+-- ghci> Streams.'read' is'
+-- 'Nothing'
+-- ghci> Streams.'System.IO.Streams.peek' is
+-- Just 2
+-- ghci> Streams.'unRead' 11 is'
+-- ghci> Streams.'System.IO.Streams.peek' is
+-- Just 11
+-- ghci> Streams.'System.IO.Streams.peek' is'
+-- Just 11
+-- ghci> Streams.'read' is'
+-- Just 11
+-- ghci> Streams.'read' is'
+-- Nothing
+-- ghci> Streams.'read' is
+-- Just 2
+-- ghci> Streams.'toList' is
+-- [3,4,5,6,7,8,9]
+-- @
+--
 take :: Int64 -> InputStream a -> IO (InputStream a)
 take k0 input = sourceToStream $ source k0
   where
@@ -624,6 +660,11 @@ take k0 input = sourceToStream $ source k0
 
 
 ------------------------------------------------------------------------------
+-- | Wraps an 'InputStream', producing a new 'InputStream' that will drop the
+-- first @n@ items produced by the wrapped stream. See 'Prelude.drop'.
+--
+-- Items pushed back to the returned 'InputStream' will be propagated upstream,
+-- modifying the count of dropped items accordingly.
 drop :: Int64 -> InputStream a -> IO (InputStream a)
 drop k0 input = sourceToStream $ source k0
   where
@@ -648,6 +689,10 @@ drop k0 input = sourceToStream $ source k0
 
 
 ------------------------------------------------------------------------------
+-- | Wraps an 'OutputStream', producing a new 'OutputStream' that will pass at
+-- most @n@ items on to the wrapped stream, subsequently ignoring the rest of
+-- the input.
+--
 give :: Int64 -> OutputStream a -> IO (OutputStream a)
 give k output = newIORef k >>= makeOutputStream . chunk
   where
@@ -661,6 +706,10 @@ give k output = newIORef k >>= makeOutputStream . chunk
 
 
 ------------------------------------------------------------------------------
+-- | Wraps an 'OutputStream', producing a new 'OutputStream' that will ignore
+-- the first @n@ items received, subsequently passing the rest of the input on
+-- to the wrapped stream.
+--
 ignore :: Int64 -> OutputStream a -> IO (OutputStream a)
 ignore k output = newIORef k >>= makeOutputStream . chunk
   where

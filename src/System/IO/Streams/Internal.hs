@@ -85,8 +85,6 @@ import           Prelude                hiding (read)
 data SP a b = SP !a !b
 
 ------------------------------------------------------------------------------
--- TODO: Define the rest of the laws, which are basically the State monad laws
---
 -- | A 'Source' generates values of type @c@ in the 'IO' monad.
 --
 -- 'Source's wrap ordinary values in a 'Just' and signal end-of-stream by
@@ -362,19 +360,16 @@ singletonSource c = withDefaultPushback $ return $! SP nullSource (Just c)
 
 
 ------------------------------------------------------------------------------
+-- A note for readers: why are we using IORef inside InputStream and
+-- OutputStream instead of MVar?
+--
 -- A modifyMVar takes about 35ns to run on my Macbook, and the equivalent
 -- readIORef/writeIORef pair takes 6ns.
 --
 -- Given that we'll be composing these often, we'll give up thread safety in
 -- order to gain a 6x performance improvement. If you want thread-safe access
 -- to a stream, you can use lockingInputStream or lockingOutputStream.
-
---newtype InputStream  c = IS (MVar (Source c))
---newtype OutputStream c = OS (MVar (Sink   c))
-
--- TODO(gdc): IORef obviously faster here, but lose thread safety. Decide what
--- to do based on benchmark data. If MVar is not appreciably slower, it should
--- be wiser to go with that.
+------------------------------------------------------------------------------
 
 
 ------------------------------------------------------------------------------
@@ -392,8 +387,6 @@ singletonSource c = withDefaultPushback $ return $! SP nullSource (Just c)
 --
 -- @'unRead' c stream >> 'read' stream === 'return' ('Just' c)@
 --
--- TODO: make it clear here that in general, InputStreams do not deal with
--- resource acquisition/release semantics
 newtype InputStream  c = IS (IORef (Source c))
 
 

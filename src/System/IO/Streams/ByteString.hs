@@ -242,17 +242,27 @@ takeBytes k0 src = sourceToStream $ source k0
 
 
 ------------------------------------------------------------------------------
--- TODO: docs
+-- | Splits an 'InputStream' over 'ByteString's using a delimiter predicate.
 --
--- Notes:
---   * pushback *not* propagated upstream
+-- Note that:
 --
---   * may hold an unbounded amount of the bytestring in memory waiting for the
---     function to return true, not to be used in unsafe contexts
+--   * data pushed back with 'unRead' is *not* propagated upstream here.
 --
---   * delimiter NOT included in the output
+--   * the resulting 'InputStream' may hold an unbounded amount of the
+--     bytestring in memory waiting for the function to return true, so this
+--     function should not be used in unsafe contexts.
 --
---   * consecutive delimiters not split
+--   * the delimiter is NOT included in the output.
+--
+--   * consecutive delimiters are not merged.
+--
+-- Example:
+--
+-- @
+-- ghci> Streams.'System.IO.Streams.fromList' [\"the quick br\", \"own  fox\"::'ByteString'] >>=
+--       Streams.'splitOn' (== \' \') >>= Streams.'System.IO.Streams.toList'
+-- [\"the\",\"quick\",\"brown\",\"\",\"fox\"]
+-- @
 --
 splitOn :: (Char -> Bool)               -- ^ predicate used to break the input
                                         -- stream into chunks
@@ -276,28 +286,36 @@ splitOn p is = sourceToStream $ withDefaultPushback newChunk
 
 
 ------------------------------------------------------------------------------
--- TODO: doc
+-- | Splits a bytestring 'InputStream' into lines. See 'splitOn' and
+-- 'Prelude.lines'.
 lines :: InputStream ByteString -> IO (InputStream ByteString)
 lines = splitOn (== '\n')
 
 
 ------------------------------------------------------------------------------
--- TODO: doc
+-- | Splits a bytestring 'InputStream' into words. See 'splitOn' and
+-- 'Prelude.words'.
 words :: InputStream ByteString -> IO (InputStream ByteString)
 words = splitOn isSpace >=> filterM (return . not . S.all isSpace)
 
 
 ------------------------------------------------------------------------------
+-- | Intersperses string chunks sent to the given 'OutputStream' with newlines.
+-- See 'intersperse' and 'Prelude.unlines'.
 unlines :: OutputStream ByteString -> IO (OutputStream ByteString)
 unlines = intersperse "\n"
 
 
 ------------------------------------------------------------------------------
+-- | Intersperses string chunks sent to the given 'OutputStream' with spaces.
+-- See 'intersperse' and 'Prelude.unwords'.
 unwords :: OutputStream ByteString -> IO (OutputStream ByteString)
 unwords = intersperse " "
 
 
 ------------------------------------------------------------------------------
+-- | Thrown by 'throwIfProducesMoreThan' when too many bytes were read from the
+-- original 'InputStream'.
 data TooManyBytesReadException = TooManyBytesReadException deriving (Typeable)
 
 instance Show TooManyBytesReadException where
@@ -307,6 +325,8 @@ instance Exception TooManyBytesReadException
 
 
 ------------------------------------------------------------------------------
+-- | Thrown by 'throwIfConsumesMoreThan' when too many bytes were sent to the
+-- produced 'OutputStream'.
 data TooManyBytesWrittenException =
     TooManyBytesWrittenException deriving (Typeable)
 
@@ -317,6 +337,7 @@ instance Exception TooManyBytesWrittenException
 
 
 ------------------------------------------------------------------------------
+-- | Thrown by 'readExactly' when not enough bytes were available on the input.
 data ReadTooShortException = ReadTooShortException Int deriving (Typeable)
 
 instance Show ReadTooShortException where
@@ -523,11 +544,15 @@ throwIfConsumesMoreThan k0 str = sinkToStream $ sink k0
                              else write mb str >> return (sink k')
 
 ------------------------------------------------------------------------------
+-- | Gets the current posix time
 getTime :: IO Double
 getTime = realToFrac `fmap` getPOSIXTime
 
 
 ------------------------------------------------------------------------------
+-- | Thrown by 'throwIfTooSlow' if input is not being produced fast enough by
+-- the given 'InputStream'.
+--
 data RateTooSlowException = RateTooSlowException deriving (Typeable)
 instance Show RateTooSlowException where
     show RateTooSlowException = "Input rate too slow"
@@ -577,8 +602,8 @@ throwIfTooSlow !bump !minRate !minSeconds' !stream = do
                             let !delta = now - startTime
                             let !newBytes = nb + slen
                             when (delta > minSeconds + 1 &&
-                                  fromIntegral newBytes /
-                                     (delta-minSeconds) < minRate) $
+                                  (fromIntegral newBytes /
+                                    (delta - minSeconds)) < minRate) $
                                 throwIO RateTooSlowException
 
                             -- otherwise, bump the timeout and return the input

@@ -125,6 +125,17 @@ chunkList n input = if n <= 0
 
 
 ------------------------------------------------------------------------------
+-- | Given an input stream containing lists, produces a new input stream that
+-- will yield the concatenation of these lists. See 'Prelude.concat'.
+--
+-- Example:
+--
+-- @
+-- ghci> Streams.'fromList' [[1,2,3::Int], [4,5,6]] >>=
+--       Streams.'concatLists' >>=
+--       Streams.'toList'
+-- [1,2,3,4,5,6]
+-- @
 concatLists :: InputStream [a] -> IO (InputStream a)
 concatLists input = fromGenerator go
   where
