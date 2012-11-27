@@ -13,25 +13,17 @@ module System.IO.Streams.Internal.Attoparsec
   ) where
 
 ------------------------------------------------------------------------------
-import           Control.Exception                ( Exception, throwIO )
-import           Control.Monad                    ( when )
-import           Data.Attoparsec.ByteString.Char8 ( IResult(..)
-                                                  , Parser
-                                                  , Result
-                                                  , eitherResult
-                                                  , feed
-                                                  , parse
-                                                  )
-import           Data.ByteString.Char8            ( ByteString )
+import           Control.Exception                (Exception, throwIO)
+import           Control.Monad                    (when)
+import           Data.Attoparsec.ByteString.Char8 (IResult (..), Parser, Result,
+                                                   eitherResult, feed, parse)
+import           Data.ByteString.Char8            (ByteString)
 import qualified Data.ByteString.Char8            as S
-import           Data.Typeable                    ( Typeable )
-import           Prelude                   hiding ( read )
+import           Data.Typeable                    (Typeable)
+import           Prelude                          hiding (read)
 ------------------------------------------------------------------------------
-import           System.IO.Streams.Internal       ( InputStream
-                                                  , makeInputStream
-                                                  , read
-                                                  , unRead
-                                                  )
+import           System.IO.Streams.Internal       (InputStream, makeInputStream,
+                                                   read, unRead)
 
 ------------------------------------------------------------------------------
 -- | An exception raised when parsing fails.
@@ -77,9 +69,12 @@ parseFromStreamInternal :: (Parser r -> ByteString -> Result r)
                         -> Parser r
                         -> InputStream ByteString
                         -> IO r
-parseFromStreamInternal parseFunc feedFunc parser is = do
-    read is >>= maybe (finish $ parseFunc parser "")
-                      (go . parseFunc parser)
+parseFromStreamInternal parseFunc feedFunc parser is =
+    read is >>=
+    maybe (finish $ parseFunc parser "")
+          (\s -> if S.null s
+                   then parseFromStreamInternal parseFunc feedFunc parser is
+                   else go $! parseFunc parser s)
   where
     leftover x = when (not $ S.null x) $ unRead x is
 
@@ -93,7 +88,10 @@ parseFromStreamInternal parseFunc feedFunc parser is = do
 
     go r@(Fail x _ _) = leftover x >> err r
     go (Done x r)     = leftover x >> return r
-    go r              = read is >>= maybe (finish r) (go . feedFunc r)
+    go r              = read is >>= maybe (finish r)
+                                          (\s -> if S.null s
+                                                   then go r
+                                                   else go $! feedFunc r s)
 
 
 ------------------------------------------------------------------------------

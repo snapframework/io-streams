@@ -5,14 +5,14 @@ module System.IO.Streams.Tests.Attoparsec (tests) where
 ------------------------------------------------------------------------------
 import           Control.Monad
 import           Data.Attoparsec.ByteString.Char8
-import           Data.ByteString.Char8            ( ByteString )
-import           Prelude                   hiding ( takeWhile )
-import           Test.Framework
-import           Test.Framework.Providers.HUnit
-import           Test.HUnit                hiding ( Test )
+import           Data.ByteString.Char8                 (ByteString)
+import           Prelude                               hiding (takeWhile)
 import           System.IO.Streams
 import           System.IO.Streams.Internal.Attoparsec
 import           System.IO.Streams.Tests.Common
+import           Test.Framework
+import           Test.Framework.Providers.HUnit
+import           Test.HUnit                            hiding (Test)
 ------------------------------------------------------------------------------
 
 tests :: [Test]
@@ -20,6 +20,7 @@ tests = [ testParseFromStream
         , testParseFromStreamError
         , testParseFromStreamError2
         , testPartialParse
+        , testEmbeddedNull
         , testTrivials
         ]
 
@@ -94,3 +95,16 @@ testPartialParse = testCase "attoparsec/partialParse" $ do
 testTrivials :: Test
 testTrivials = testCase "attoparsec/trivials" $ do
     coverTypeableInstance (undefined :: ParseException)
+
+
+------------------------------------------------------------------------------
+testEmbeddedNull :: Test
+testEmbeddedNull = testCase "attoparsec/embeddedNull" $ do
+    is <- fromList ["", "1", "23", "", ", 4", ", 5, 6, 7"]
+    x0 <- parseFromStream testParser is
+
+    assertEqual "first parse" (Just 123) x0
+
+    l  <- parserToInputStream testParser is >>= toList
+
+    assertEqual "rest" [4, 5, 6, 7] l
