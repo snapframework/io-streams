@@ -84,8 +84,8 @@ preserve their handle-like API. For example, you can map a function over an
 stream that returns transformed values:
 
 @
-ghci> oldHandle <- S.'System.IO.Streams.fromList' [1, 2, 3]
-ghci> newHandle <- S.'System.IO.Streams.mapM' (\x -> 'return' (x * 10)) oldHandle
+ghci> oldHandle \<- S.'System.IO.Streams.List.fromList' [1, 2, 3]
+ghci> newHandle \<- S.'System.IO.Streams.Combinators.mapM' (\\x -\> 'return' (x * 10)) oldHandle
 ghci> S.'System.IO.Streams.read' newHandle
 10
 ghci> -- We can still view the stream through the old handle
@@ -164,7 +164,7 @@ import "System.IO.Streams" ('System.IO.Streams.OutputStream')
 import qualified "System.IO.Streams" as Streams
 \
 writeConsole :: 'IO' ('System.IO.Streams.OutputStream' 'Data.ByteString.ByteString')
-writeConsole = Streams.'System.IO.Streams.makeOutputStream' $ \m -> case m of
+writeConsole = Streams.'System.IO.Streams.makeOutputStream' $ \\m -> case m of
     'Just' bs -> S.'Data.ByteString.putStrLn' bs
     'Nothing' -> 'return' ()
 @
@@ -216,10 +216,10 @@ import qualified "System.IO.Streams" as Streams
 import "System.IO" ('System.IO.IOMode'('System.IO.WriteMode'))
 
 main = do
-   Streams.'System.IO.Streams.withFileAsOutput' \"out.txt\" 'System.IO.WriteMode' $ \outStream ->
-   Streams.'System.IO.Streams.withFileAsInput'  \"in1.txt\" $ \inStream1 ->
-   Streams.'System.IO.Streams.withFileAsInput'  \"in2.txt\" $ \inStream2 ->
-   Streams.'System.IO.Streams.withFileAsInput'  \"in3.txt\" $ \inStream3 ->
+   Streams.'System.IO.Streams.withFileAsOutput' \"out.txt\" 'System.IO.WriteMode' $ \\outStream ->
+   Streams.'System.IO.Streams.withFileAsInput'  \"in1.txt\" $ \\inStream1 ->
+   Streams.'System.IO.Streams.withFileAsInput'  \"in2.txt\" $ \\inStream2 ->
+   Streams.'System.IO.Streams.withFileAsInput'  \"in3.txt\" $ \\inStream3 ->
    Streams.'System.IO.Streams.supply'  inStream1 outStream
    Streams.'System.IO.Streams.supply'  inStream2 outStream
    Streams.'System.IO.Streams.connect' inStream2 outStream
@@ -288,7 +288,7 @@ import qualified "System.IO.Streams" as Streams
 import qualified "System.IO.Streams.File" as Streams
 
 main =
-    'System.IO.withFile' \"test.txt\" 'System.IO.ReadMode' $ \handle -> do
+    'System.IO.withFile' \"test.txt\" 'System.IO.ReadMode' $ \\handle -> do
         stream <- Streams.'System.IO.Streams.handleToInputStream' handle
         mBytes <- Streams.'System.IO.Streams.read' stream
         case mBytes of
