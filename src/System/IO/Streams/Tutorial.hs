@@ -84,8 +84,8 @@ preserve their handle-like API. For example, you can map a function over an
 stream that returns transformed values:
 
 @
-ghci> oldHandle <- S.'System.IO.Streams.fromList' [1, 2, 3]
-ghci> newHandle <- S.'System.IO.Streams.mapM' (\x -> 'return' (x * 10)) oldHandle
+ghci> oldHandle \<- S.'System.IO.Streams.List.fromList' [1, 2, 3]
+ghci> newHandle \<- S.'System.IO.Streams.Combinators.mapM' (\\x -\> 'return' (x * 10)) oldHandle
 ghci> S.'System.IO.Streams.read' newHandle
 10
 ghci> -- We can still view the stream through the old handle
