@@ -105,19 +105,25 @@ vfNew initialSize = do
 vfFinish :: MVector v a =>
             VectorFillInfo v a
          -> IO (v (PrimState IO) a)
-vfFinish (VectorFillInfo v i _) = liftM (flip VM.unsafeTake v) $ readIORef i
-
+vfFinish vfi = liftM (flip VM.unsafeTake v) $ readIORef i
+  where
+    v = _vec vfi
+    i = _idx vfi
 
 ------------------------------------------------------------------------------
 vfAdd :: MVector v a =>
          VectorFillInfo v a
       -> a
       -> IO (VectorFillInfo v a)
-vfAdd vfi@(VectorFillInfo v iRef szRef) !x = do
+vfAdd vfi !x = do
     i  <- readIORef iRef
     sz <- readIORef szRef
     if i < sz then add i else grow sz
   where
+    v     = _vec vfi
+    iRef  = _idx vfi
+    szRef = _sz vfi
+
     add i = do
         VM.unsafeWrite v i x
         writeIORef iRef $! i + 1

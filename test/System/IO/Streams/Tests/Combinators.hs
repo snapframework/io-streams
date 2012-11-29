@@ -12,9 +12,11 @@ import           Control.Monad                        hiding (filterM, mapM,
 import qualified Control.Monad                        as CM
 import           Data.IORef
 import           Data.List                            hiding (drop, filter,
-                                                       take)
+                                                       take, unzip, zip,
+                                                       zipWith)
 import           Prelude                              hiding (drop, filter,
-                                                       mapM, mapM_, read, take)
+                                                       mapM, mapM_, read, take,
+                                                       unzip, zip, zipWith)
 import qualified Prelude
 import           System.IO.Streams                    hiding (all, any, maximum,
                                                        minimum)
@@ -45,9 +47,10 @@ tests = [ testFilter
         , testMapM_
         , testContramapM_
         , testSkipToEof
-        , testZipM
+        , testZip
+        , testZipWith
         , testZipWithM
-        , testUnzipM
+        , testUnzip
         , testTake
         , testDrop
         , testGive
@@ -248,10 +251,10 @@ testZipWithM = testCase "combinators/zipWithM" $ do
     let l2 = [2 .. 10 :: Int]
 
     (join $ S.zipWithM ((return .) . (+)) <$> fromList l1 <*> fromList l2)
-        >>= toList >>= assertEqual "zipWith1" (zipWith (+) l1 l2)
+        >>= toList >>= assertEqual "zipWith1" (Prelude.zipWith (+) l1 l2)
 
     (join $ S.zipWithM ((return .) . (+)) <$> fromList l2 <*> fromList l1)
-        >>= toList >>= assertEqual "zipWith1" (zipWith (+) l2 l1)
+        >>= toList >>= assertEqual "zipWith1" (Prelude.zipWith (+) l2 l1)
     is1   <- fromList l1
     is2   <- fromList l2
     isZip <- S.zipWithM ((return .) . (+)) is1 is2
@@ -261,41 +264,60 @@ testZipWithM = testCase "combinators/zipWithM" $ do
 
 
 ------------------------------------------------------------------------------
-testZipM :: Test
-testZipM = testCase "combinators/zipM" $ do
+testZipWith :: Test
+testZipWith = testCase "combinators/zipWith" $ do
     let l1 = [1 .. 10 :: Int]
     let l2 = [2 .. 10 :: Int]
 
-    (join $ zipM <$> fromList l1 <*> fromList l2) >>= toList
-        >>= assertEqual "zip1" (l1 `zip` l2)
+    (join $ S.zipWith (+) <$> fromList l1 <*> fromList l2)
+        >>= toList >>= assertEqual "zipWith1" (Prelude.zipWith (+) l1 l2)
 
-    (join $ zipM <$> fromList l2 <*> fromList l1) >>= toList
-        >>= assertEqual "zip2" (l2 `zip` l1)
-
+    (join $ S.zipWith (+) <$> fromList l2 <*> fromList l1)
+        >>= toList >>= assertEqual "zipWith1" (Prelude.zipWith (+) l2 l1)
     is1   <- fromList l1
     is2   <- fromList l2
-    isZip <- zipM is1 is2
+    isZip <- S.zipWith (+) is1 is2
 
     _     <- toList isZip
     read is1 >>= assertEqual "remainder" (Just 10)
 
 
 ------------------------------------------------------------------------------
-testUnzipM :: Test
-testUnzipM = testCase "combinators/unzipM" $ do
+testZip :: Test
+testZip = testCase "combinators/zip" $ do
+    let l1 = [1 .. 10 :: Int]
+    let l2 = [2 .. 10 :: Int]
+
+    (join $ zip <$> fromList l1 <*> fromList l2) >>= toList
+        >>= assertEqual "zip1" (Prelude.zip l1 l2)
+
+    (join $ zip <$> fromList l2 <*> fromList l1) >>= toList
+        >>= assertEqual "zip2" (Prelude.zip l2 l1)
+
+    is1   <- fromList l1
+    is2   <- fromList l2
+    isZip <- zip is1 is2
+
+    _     <- toList isZip
+    read is1 >>= assertEqual "remainder" (Just 10)
+
+
+------------------------------------------------------------------------------
+testUnzip :: Test
+testUnzip = testCase "combinators/unzip" $ do
     let l1 = [1 .. 10 :: Int]
         l2 = [2 .. 10 :: Int]
-        l  = l1 `zip` l2
+        l  = Prelude.zip l1 l2
 
-    (is1, is2) <- fromList l >>= unzipM
-    toList is1 >>= assertEqual "unzip1-a" (fst $ unzip l)
-    toList is2 >>= assertEqual "unzip1-b" (snd $ unzip l)
+    (is1, is2) <- fromList l >>= unzip
+    toList is1 >>= assertEqual "unzip1-a" (fst $ Prelude.unzip l)
+    toList is2 >>= assertEqual "unzip1-b" (snd $ Prelude.unzip l)
     read is1 >>= assertEqual "unzip1-read-a" Nothing
     read is2 >>= assertEqual "unzip1-read-b" Nothing
 
-    (is3, is4) <- fromList l >>= unzipM
-    toList is4 >>= assertEqual "unzip2-b" (snd $ unzip l)
-    toList is3 >>= assertEqual "unzip2-a" (fst $ unzip l)
+    (is3, is4) <- fromList l >>= unzip
+    toList is4 >>= assertEqual "unzip2-b" (snd $ Prelude.unzip l)
+    toList is3 >>= assertEqual "unzip2-a" (fst $ Prelude.unzip l)
     read is4 >>= assertEqual "unzip2-read-b" Nothing
     read is3 >>= assertEqual "unzip2-read" Nothing
 

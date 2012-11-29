@@ -38,9 +38,10 @@ module System.IO.Streams.Combinators
  , ignore
 
    -- * Zip and unzip
- , zipM
+ , zip
+ , zipWith
  , zipWithM
- , unzipM
+ , unzip
 
    -- * Utility
  , intersperse
@@ -56,7 +57,7 @@ import           Data.IORef                 (atomicModifyIORef, modifyIORef,
                                              newIORef, readIORef, writeIORef)
 import           Prelude                    hiding (all, any, drop, filter, map,
                                              mapM, mapM_, maximum, minimum,
-                                             read, take)
+                                             read, take, unzip, zip, zipWith)
 ------------------------------------------------------------------------------
 import           System.IO.Streams.Internal (InputStream, OutputStream, SP (..),
                                              Source (..), fromGenerator,
@@ -530,12 +531,26 @@ intersperse sep os = newIORef False >>= makeOutputStream . f
 ------------------------------------------------------------------------------
 -- | Combines two input streams. Continues yielding elements from both input
 -- streams until one of them finishes.
-zipM :: InputStream a -> InputStream b -> IO (InputStream (a, b))
-zipM src1 src2 = makeInputStream src
+zip :: InputStream a -> InputStream b -> IO (InputStream (a, b))
+zip src1 src2 = makeInputStream src
   where
     src = read src1 >>= (maybe (return Nothing) $ \a ->
             read src2 >>= (maybe (unRead a src1 >> return Nothing) $ \b ->
               return $! Just $! (a, b)))
+
+
+------------------------------------------------------------------------------
+-- | Combines two input streams using the supplied function. Continues yielding
+-- elements from both input streams until one of them finishes.
+zipWith :: (a -> b -> c)
+        -> InputStream a
+        -> InputStream b
+        -> IO (InputStream c)
+zipWith f src1 src2 = makeInputStream src
+  where
+    src = read src1 >>= (maybe (return Nothing) $ \a ->
+            read src2 >>= (maybe (unRead a src1 >> return Nothing) $ \b ->
+              return $! Just $! f a b ) )
 
 
 ------------------------------------------------------------------------------
@@ -582,8 +597,8 @@ filterOutputM p output = makeOutputStream chunk
 -- stream.
 --
 -- Access to the original stream is thread safe, i.e. guarded by a lock.
-unzipM :: InputStream (a, b) -> IO (InputStream a, InputStream b)
-unzipM os = do
+unzip :: InputStream (a, b) -> IO (InputStream a, InputStream b)
+unzip os = do
     lock <- newMVar $! ()
     buf1 <- newIORef id
     buf2 <- newIORef id
