@@ -22,6 +22,9 @@ module System.IO.Streams.Tutorial (
 
     -- * Thread Safety
     -- $threadsafety
+
+    -- * Examples
+    -- $examples
     ) where
 
 {-  NOTE: Please stick to the {- -} comment style until the tutorial stabilizes
@@ -203,7 +206,7 @@ exclusively with the given 'System.IO.Streams.InputStream' and passes along the
 end-of-stream notification to the 'System.IO.Streams.OutputStream'.
 
 'System.IO.Streams.supply' feeds the 'System.IO.Streams.OutputStream'
-non-exclusively with the given 'System.IO.Streams.InputStream', but does not
+non-exclusively with the given 'System.IO.Streams.InputStream' and does not
 pass along the end-of-stream notification to the
 'System.IO.Streams.OutputStream'.
 
@@ -369,8 +372,50 @@ take care to not save the reference to the previous stream.
              might encounter without this protection. -}
 -}
 
-{- NOTE: Should there be some sort of concluding section? -}
+{- $examples
+    The following examples show how to use the standard library to implement
+    traditional command-line utilities:
 
-{- TODO:
-   Type-check examples
+    {- NOTE: Bug in "wc Bytes" -}
+
+> import Control.Monad ((>=>), join)
+> import qualified Data.ByteString.Char8 as S
+> import Data.Int (Int64)
+> import Data.Monoid ((<>))
+> import System.IO.Streams (InputStream)
+> import qualified System.IO.Streams as Streams
+> import System.IO
+> 
+> len :: InputStream a -> IO Int64
+> len = Streams.fold (\n _ -> n + 1) 0
+> 
+> data Option = Bytes | Words | Lines
+> 
+> wc :: Option -> FilePath -> IO ()
+> wc opt file = withFile file ReadMode $
+>     Streams.handleToInputStream >=> count >=> print
+>   where
+>     count = case opt of
+>         Bytes -> join . fmap snd . Streams.countInput
+>         Words -> Streams.words >=> len
+>         Lines -> Streams.lines >=> len
+> 
+> grep :: S.ByteString -> FilePath -> IO ()
+> grep pattern file = withFile file ReadMode $ \h -> do
+>     is <- Streams.handleToInputStream h >>=
+>           Streams.lines                 >>=
+>           Streams.filter (S.isInfixOf pattern)
+>     os <- Streams.handleToOutputStream stdout >>= Streams.unlines
+>     Streams.connect is os
+> 
+> nl :: FilePath -> IO ()
+> nl file = withFile file ReadMode $ \h -> do
+>     nats <- Streams.fromList [1..]
+>     ls   <- Streams.handleToInputStream h >>= Streams.lines
+>     is   <- Streams.zipWith
+>                 (\n bs -> S.pack (show n) <> B.pack " " <> bs)
+>                 nats
+>                 ls
+>     os   <- Streams.handleToOutputStream stdout >>= Streams.unlines
+>     Streams.connect is os
 -}
