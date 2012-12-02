@@ -3,17 +3,21 @@ module System.IO.Streams.Handle
  ( -- * Handle conversions
    handleToInputStream
  , handleToOutputStream
+ , stdin
+ , stdout
+ , stderr
  ) where
 
+import           Data.ByteString            (ByteString)
 import qualified Data.ByteString            as S
-import           Data.ByteString            ( ByteString )
-import           System.IO                  ( Handle, hFlush )
+import           System.IO                  (Handle, hFlush)
+import qualified System.IO                  as IO
+import           System.IO.Unsafe           (unsafePerformIO)
 ------------------------------------------------------------------------------
-import           System.IO.Streams.Internal ( InputStream
-                                            , OutputStream
-                                            , makeInputStream
-                                            , makeOutputStream
-                                            )
+import           System.IO.Streams.Internal (InputStream, OutputStream,
+                                             lockingInputStream,
+                                             lockingOutputStream,
+                                             makeInputStream, makeOutputStream)
 
 
 ------------------------------------------------------------------------------
@@ -40,3 +44,23 @@ handleToOutputStream h = makeOutputStream f
     f (Just x) = if S.null x
                    then hFlush h
                    else S.hPut h x
+
+
+------------------------------------------------------------------------------
+-- | An 'InputStream' for 'IO.stdin'.
+stdin :: InputStream ByteString
+stdin = unsafePerformIO (handleToInputStream IO.stdin >>= lockingInputStream)
+
+
+------------------------------------------------------------------------------
+-- | An 'OutputStream' for 'IO.stdout'.
+stdout :: OutputStream ByteString
+stdout = unsafePerformIO (handleToOutputStream IO.stdout >>=
+                          lockingOutputStream)
+
+
+------------------------------------------------------------------------------
+-- | An 'OutputStream' for 'IO.stderr'.
+stderr :: OutputStream ByteString
+stderr = unsafePerformIO (handleToOutputStream IO.stderr >>=
+                          lockingOutputStream)
