@@ -1,3 +1,9 @@
+{-# LANGUAGE CPP         #-}
+
+#if __GLASGOW_HASKELL__ >= 702
+{-# LANGUAGE Trustworthy #-}
+#endif
+
 -- | Input and output streams for file 'Handle's.
 module System.IO.Streams.Handle
  ( -- * Handle conversions
@@ -17,7 +23,8 @@ import           System.IO.Unsafe           (unsafePerformIO)
 import           System.IO.Streams.Internal (InputStream, OutputStream,
                                              lockingInputStream,
                                              lockingOutputStream,
-                                             makeInputStream, makeOutputStream)
+                                             makeInputStream,
+                                             makeOutputStream)
 
 
 ------------------------------------------------------------------------------
