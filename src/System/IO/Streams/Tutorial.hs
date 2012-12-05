@@ -376,8 +376,6 @@ take care to not save the reference to the previous stream.
     The following examples show how to use the standard library to implement
     traditional command-line utilities:
 
-    {- NOTE: Bug in "wc Bytes" -}
-
 > import Control.Monad ((>=>), join)
 > import qualified Data.ByteString.Char8 as S
 > import Data.Int (Int64)
@@ -385,20 +383,26 @@ take care to not save the reference to the previous stream.
 > import System.IO.Streams (InputStream)
 > import qualified System.IO.Streams as Streams
 > import System.IO
+> import Prelude hiding (head)
+> 
+> {- 'len' and 'drain' should probably be standard library functions -}
 > 
 > len :: InputStream a -> IO Int64
 > len = Streams.fold (\n _ -> n + 1) 0
 > 
-> data Option = Bytes | Words | Lines
+> drain :: InputStream a -> IO ()
+> drain is = go where
+>     go = do
+>         m <- Streams.read is
+>         case m of
+>             Nothing -> return ()
+>             Just _  -> go
 > 
-> wc :: Option -> FilePath -> IO ()
-> wc opt file = withFile file ReadMode $
->     Streams.handleToInputStream >=> count >=> print
->   where
->     count = case opt of
->         Bytes -> join . fmap snd . Streams.countInput
->         Words -> Streams.words >=> len
->         Lines -> Streams.lines >=> len
+> cat :: FilePath -> IO ()
+> cat file = withFile file ReadMode $ \h -> do
+>     is <- Streams.handleToInputStream h
+>     os <- Streams.handleToOutputStream stdout
+>     Streams.connect is os
 > 
 > grep :: S.ByteString -> FilePath -> IO ()
 > grep pattern file = withFile file ReadMode $ \h -> do
@@ -408,14 +412,53 @@ take care to not save the reference to the previous stream.
 >     os <- Streams.handleToOutputStream stdout >>= Streams.unlines
 >     Streams.connect is os
 > 
+> data Option = Bytes | Words | Lines
+> 
+> wc :: Option -> FilePath -> IO ()
+> wc opt file = withFile file ReadMode $
+>     Streams.handleToInputStream >=> count >=> print
+>   where
+>     count = case opt of
+>         Bytes -> \is -> do
+>             (is', cnt) <- Streams.countInput is
+>             drain is'
+>             cnt
+>         Words -> Streams.words >=> len
+>         Lines -> Streams.lines >=> len
+> 
 > nl :: FilePath -> IO ()
 > nl file = withFile file ReadMode $ \h -> do
 >     nats <- Streams.fromList [1..]
 >     ls   <- Streams.handleToInputStream h >>= Streams.lines
 >     is   <- Streams.zipWith
->                 (\n bs -> S.pack (show n) <> B.pack " " <> bs)
+>                 (\n bs -> S.pack (show n) <> S.pack " " <> bs)
 >                 nats
 >                 ls
 >     os   <- Streams.handleToOutputStream stdout >>= Streams.unlines
+>     Streams.connect is os
+> 
+> head :: Int64 -> FilePath -> IO ()
+> head n file = withFile file ReadMode $ \h -> do
+>     is <- Streams.handleToInputStream h >>= Streams.lines >>= Streams.take n
+>     os <- Streams.handleToOutputStream stdout >>= Streams.unlines
+>     Streams.connect is os
+> 
+> {- NOTE: Perhaps there should be a combinator that does the equivalent of the
+>          UNIX tail command, namely keep all but the last N elements. -}
+> 
+> paste :: FilePath -> FilePath -> IO ()
+> paste file1 file2 =
+>     withFile file1 ReadMode $ \h1 ->
+>     withFile file2 ReadMode $ \h2 -> do
+>     is1 <- Streams.handleToInputStream h1 >>= Streams.lines
+>     is2 <- Streams.handleToInputStream h2 >>= Streams.lines
+>     isT <- Streams.zipWith (\l1 l2 -> l1 <> S.pack "\t" <> l2) is1 is2
+>     os  <- Streams.handleToOutputStream stdout >>= Streams.unlines
+>     Streams.connect isT os
+> 
+> yes :: IO ()
+> yes = do
+>     is <- Streams.fromList (repeat (S.pack "y"))
+>     os <- Streams.handleToOutputStream stdout >>= Streams.unlines
 >     Streams.connect is os
 -}
