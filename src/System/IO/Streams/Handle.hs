@@ -57,6 +57,7 @@ handleToOutputStream h = makeOutputStream f
 -- | An 'InputStream' for 'IO.stdin'.
 stdin :: InputStream ByteString
 stdin = unsafePerformIO (handleToInputStream IO.stdin >>= lockingInputStream)
+{-# NOINLINE stdin #-}
 
 
 ------------------------------------------------------------------------------
@@ -64,6 +65,7 @@ stdin = unsafePerformIO (handleToInputStream IO.stdin >>= lockingInputStream)
 stdout :: OutputStream ByteString
 stdout = unsafePerformIO (handleToOutputStream IO.stdout >>=
                           lockingOutputStream)
+{-# NOINLINE stdout #-}
 
 
 ------------------------------------------------------------------------------
@@ -71,3 +73,4 @@ stdout = unsafePerformIO (handleToOutputStream IO.stdout >>=
 stderr :: OutputStream ByteString
 stderr = unsafePerformIO (handleToOutputStream IO.stderr >>=
                           lockingOutputStream)
+{-# NOINLINE stderr #-}
