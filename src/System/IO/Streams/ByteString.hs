@@ -86,6 +86,11 @@ import           System.IO.Streams.List                        (writeList)
 
 ------------------------------------------------------------------------------
 -- | Writes a lazy 'ByteString' to an 'OutputStream'.
+--
+-- Example:
+--
+-- > ghci> Streams.handleToOutputStream stdout >>= Streams.writeLazyByteString "Test\n"
+-- > Test
 writeLazyByteString :: L.ByteString             -- ^ string to write to output
                     -> OutputStream ByteString  -- ^ output stream
                     -> IO ()
@@ -288,6 +293,12 @@ splitOn p is = sourceToStream $ withDefaultPushback newChunk
 ------------------------------------------------------------------------------
 -- | Splits a bytestring 'InputStream' into lines. See 'splitOn' and
 -- 'Prelude.lines'.
+--
+-- Example:
+--
+-- > ghci> is <- Streams.fromList ["Hello,\n world!"] >>= Streams.lines
+-- > ghci> replicateM 3 (Streams.read is)
+-- > [Just "Hello", Just ", world!", Nothing]
 lines :: InputStream ByteString -> IO (InputStream ByteString)
 lines = splitOn (== '\n')
 
@@ -295,6 +306,12 @@ lines = splitOn (== '\n')
 ------------------------------------------------------------------------------
 -- | Splits a bytestring 'InputStream' into words. See 'splitOn' and
 -- 'Prelude.words'.
+--
+-- Example:
+--
+-- > ghci> is <- Streams.fromList ["Hello, world!"] >>= Streams.words
+-- > ghci> replicateM 3 (Streams.read is)
+-- > [Just "Hello,", Just "world!", Nothing]
 words :: InputStream ByteString -> IO (InputStream ByteString)
 words = splitOn isSpace >=> filterM (return . not . S.all isSpace)
 
@@ -454,6 +471,15 @@ readExactly n input = go id n
 -- Returns Nothing on end-of-stream, or @Just \"\"@ if the predicate is never
 -- satisfied. See 'Prelude.takeWhile' and 'Data.ByteString.Char8.takeWhile'.
 --
+-- Example:
+--
+-- > ghci> Streams.fromList ["Hello, world!"] >>= Streams.takeBytesWhile (/= ',')
+-- > Just "Hello"
+-- > ghci> import Data.Char
+-- > ghci> Streams.fromList ["7 Samurai"] >>= Streams.takeBytesWhile isAlpha
+-- > Just ""
+-- > ghci> Streams.fromList [] >>= Streams.takeBytesWhile isAlpha
+-- > Nothing
 takeBytesWhile :: (Char -> Bool)          -- ^ predicate
                -> InputStream ByteString  -- ^ input stream
                -> IO (Maybe ByteString)
@@ -569,8 +595,8 @@ instance Exception RateTooSlowException
 throwIfTooSlow
     :: IO ()                   -- ^ action to bump timeout
     -> Double                  -- ^ minimum data rate, in bytes per second
-    -> Int                     -- ^ amount of time to wait before data rate
-                               --   calculation takes effect
+    -> Int                     -- ^ amount of time in seconds to wait before
+                               --   data rate calculation takes effect
     -> InputStream ByteString  -- ^ input stream
     -> IO (InputStream ByteString)
 throwIfTooSlow !bump !minRate !minSeconds' !stream = do
