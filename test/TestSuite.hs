@@ -8,6 +8,7 @@ import qualified System.IO.Streams.Tests.File        as File
 import qualified System.IO.Streams.Tests.Handle      as Handle
 import qualified System.IO.Streams.Tests.Internal    as Internal
 import qualified System.IO.Streams.Tests.List        as List
+import qualified System.IO.Streams.Tests.Text        as Text
 import qualified System.IO.Streams.Tests.Vector      as Vector
 import qualified System.IO.Streams.Tests.Zlib        as Zlib
 import           Test.Framework                      (defaultMain, testGroup)
@@ -25,6 +26,7 @@ main = defaultMain tests
             , testGroup "Tests.Handle" Handle.tests
             , testGroup "Tests.Internal" Internal.tests
             , testGroup "Tests.List" List.tests
+            , testGroup "Tests.Text" Text.tests
             , testGroup "Tests.Vector" Vector.tests
             , testGroup "Tests.Zlib" Zlib.tests
             ]
