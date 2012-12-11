@@ -5,29 +5,27 @@ module System.IO.Streams.Tests.ByteString (tests) where
 ------------------------------------------------------------------------------
 import           Control.Concurrent
 import           Control.Monad
-import           Data.ByteString.Char8 (ByteString)
-import qualified Data.ByteString.Char8 as S
-import qualified Data.ByteString.Lazy.Char8 as L
-import           Data.List hiding (takeWhile, lines, unlines, unwords, words)
+import           Data.ByteString.Char8                (ByteString)
+import qualified Data.ByteString.Char8                as S
+import qualified Data.ByteString.Lazy.Char8           as L
+import           Data.List                            hiding (lines,
+                                                       takeWhile, unlines,
+                                                       unwords, words)
 import           Data.Monoid
-import           Prelude hiding
-                   ( read
-                   , takeWhile
-                   , lines
-                   , unlines
-                   , unwords
-                   , words
-                   , unwords
-                   )
+import           Prelude                              hiding (lines, read,
+                                                       takeWhile, unlines,
+                                                       unwords, unwords,
+                                                       words)
 import qualified Prelude
-import           System.IO.Streams hiding (filter, intersperse, mapM_)
+import           System.IO.Streams                    hiding (filter,
+                                                       intersperse, mapM_)
+import           System.IO.Streams.Tests.Common
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
 import           Test.Framework.Providers.QuickCheck2
-import           Test.QuickCheck hiding (output)
+import           Test.HUnit                           hiding (Test)
+import           Test.QuickCheck                      hiding (output)
 import           Test.QuickCheck.Monadic
-import           Test.HUnit hiding (Test)
-import           System.IO.Streams.Tests.Common
 ------------------------------------------------------------------------------
 
 tests :: [Test]
@@ -566,7 +564,7 @@ testLines = testCase "bytestring/testLines" $ do
 
     fromList ["ok", "cool"] >>=
       \is -> outputToList (\os -> unlines os >>= connect is) >>=
-      assertEqual "unlines" ["ok", "\n", "cool"]
+      assertEqual "unlines" ["ok", "\n", "cool", "\n"]
 
 
 ------------------------------------------------------------------------------

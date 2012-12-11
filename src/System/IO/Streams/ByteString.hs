@@ -58,9 +58,11 @@ import           Data.Time.Clock.POSIX                         (getPOSIXTime)
 import           Data.Typeable                                 (Typeable)
 
 import           Prelude                                       hiding (lines,
-                                                                read, takeWhile,
+                                                                read,
+                                                                takeWhile,
                                                                 unlines,
-                                                                unwords, words)
+                                                                unwords,
+                                                                words)
 ------------------------------------------------------------------------------
 import           System.IO.Streams.Combinators                 (filterM,
                                                                 intersperse,
@@ -69,15 +71,13 @@ import           System.IO.Streams.Internal                    (InputStream,
                                                                 OutputStream,
                                                                 SP (..),
                                                                 Sink (..),
-                                                                Source (..),
-                                                                makeOutputStream,
+                                                                Source (..), makeOutputStream,
                                                                 nullSink,
                                                                 nullSource,
-                                                                pushback, read,
-                                                                sinkToStream,
-                                                                sourceToStream,
-                                                                unRead,
-                                                                withDefaultPushback,
+                                                                pushback,
+                                                                read,
+                                                                sinkToStream, sourceToStream,
+                                                                unRead, withDefaultPushback,
                                                                 write)
 import           System.IO.Streams.Internal.BoyerMooreHorspool (MatchInfo (..),
                                                                 search)
@@ -324,7 +324,7 @@ unlines :: OutputStream ByteString -> IO (OutputStream ByteString)
 unlines os = makeOutputStream $ \m -> do
     write m os
     case m of
-        Nothing -> return ()
+        Nothing -> return $! ()
         Just _  -> write (Just "\n") os
 
 
