@@ -70,6 +70,7 @@ import           System.IO.Streams.Internal                    (InputStream,
                                                                 SP (..),
                                                                 Sink (..),
                                                                 Source (..),
+                                                                makeOutputStream,
                                                                 nullSink,
                                                                 nullSource,
                                                                 pushback, read,
@@ -320,7 +321,11 @@ words = splitOn isSpace >=> filterM (return . not . S.all isSpace)
 -- | Intersperses string chunks sent to the given 'OutputStream' with newlines.
 -- See 'intersperse' and 'Prelude.unlines'.
 unlines :: OutputStream ByteString -> IO (OutputStream ByteString)
-unlines = intersperse "\n"
+unlines os = makeOutputStream $ \m -> do
+    write m os
+    case m of
+        Nothing -> return ()
+        Just _  -> write (Just "\n") os
 
 
 ------------------------------------------------------------------------------
