@@ -339,7 +339,7 @@ unlines :: OutputStream ByteString -> IO (OutputStream ByteString)
 unlines os = makeOutputStream $ \m -> do
     write m os
     case m of
-        Nothing -> return $! ()
+        Nothing -> return ()
         Just _  -> write (Just "\n") os
 
 
