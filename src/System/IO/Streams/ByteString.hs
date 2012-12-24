@@ -90,8 +90,10 @@ import           System.IO.Streams.List                        (writeList)
 --
 -- Example:
 --
--- > ghci> Streams.handleToOutputStream stdout >>= Streams.writeLazyByteString "Test\n"
--- > Test
+-- @
+-- ghci> Streams.'writeLazyByteString' \"Test\\n\" Streams.'System.IO.Streams.stdout'
+-- Test
+-- @
 writeLazyByteString :: L.ByteString             -- ^ string to write to output
                     -> OutputStream ByteString  -- ^ output stream
                     -> IO ()
@@ -297,9 +299,11 @@ splitOn p is = sourceToStream $ withDefaultPushback newChunk
 --
 -- Example:
 --
--- > ghci> is <- Streams.fromList ["Hello,\n world!"] >>= Streams.lines
--- > ghci> replicateM 3 (Streams.read is)
--- > [Just "Hello", Just ", world!", Nothing]
+-- @
+-- ghci> is \<- Streams.'System.IO.Streams.fromList' [\"Hello,\\n world!\"] >>= Streams.'lines'
+-- ghci> replicateM 3 (Streams.'read' is)
+-- [Just \"Hello\", Just \", world!\", Nothing]
+-- @
 lines :: InputStream ByteString -> IO (InputStream ByteString)
 lines = splitOn (== '\n')
 
@@ -310,9 +314,11 @@ lines = splitOn (== '\n')
 --
 -- Example:
 --
--- > ghci> is <- Streams.fromList ["Hello, world!"] >>= Streams.words
--- > ghci> replicateM 3 (Streams.read is)
--- > [Just "Hello,", Just "world!", Nothing]
+-- @
+-- ghci> is \<- Streams.'System.IO.Streams.fromList' [\"Hello, world!\"] >>= Streams.'words'
+-- ghci> replicateM 3 (Streams.'read' is)
+-- [Just \"Hello,\", Just \"world!\", Nothing]
+-- @
 words :: InputStream ByteString -> IO (InputStream ByteString)
 words = splitOn isSpace >=> filterM (return . not . S.all isSpace)
 
@@ -320,6 +326,15 @@ words = splitOn isSpace >=> filterM (return . not . S.all isSpace)
 ------------------------------------------------------------------------------
 -- | Intersperses string chunks sent to the given 'OutputStream' with newlines.
 -- See 'intersperse' and 'Prelude.unlines'.
+--
+-- @
+-- ghci> os <- Streams.'unlines' Streams.'System.IO.Streams.stdout'
+-- ghci> Streams.'write' (Just \"Hello,\") os
+-- Hello
+-- ghci> Streams.'write' Nothing os
+-- ghci> Streams.'write' (Just \"world!\") os
+-- world!
+-- @
 unlines :: OutputStream ByteString -> IO (OutputStream ByteString)
 unlines os = makeOutputStream $ \m -> do
     write m os
@@ -331,6 +346,12 @@ unlines os = makeOutputStream $ \m -> do
 ------------------------------------------------------------------------------
 -- | Intersperses string chunks sent to the given 'OutputStream' with spaces.
 -- See 'intersperse' and 'Prelude.unwords'.
+--
+-- @
+-- ghci> os <- Streams.'unwords' Streams.'System.IO.Streams.stdout'
+-- ghci> forM_ [Just \"Hello,\", Nothing, Just \"world!\\n\"] $ \w -> Streams.'write' w os
+-- Hello, world!
+-- @
 unwords :: OutputStream ByteString -> IO (OutputStream ByteString)
 unwords = intersperse " "
 
@@ -478,13 +499,15 @@ readExactly n input = go id n
 --
 -- Example:
 --
--- > ghci> Streams.fromList ["Hello, world!"] >>= Streams.takeBytesWhile (/= ',')
--- > Just "Hello"
--- > ghci> import Data.Char
--- > ghci> Streams.fromList ["7 Samurai"] >>= Streams.takeBytesWhile isAlpha
--- > Just ""
--- > ghci> Streams.fromList [] >>= Streams.takeBytesWhile isAlpha
--- > Nothing
+-- @
+-- ghci> Streams.'System.IO.Streams.fromList' [\"Hello, world!\"] >>= Streams.'takeBytesWhile' (/= ',')
+-- Just \"Hello\"
+-- ghci> import Data.Char
+-- ghci> Streams.'System.IO.Streams.fromList' [\"7 Samurai\"] >>= Streams.'takeBytesWhile' isAlpha
+-- Just \"\"
+-- ghci> Streams.'System.IO.Streams.fromList' [] >>= Streams.'takeBytesWhile' isAlpha
+-- Nothing
+-- @
 takeBytesWhile :: (Char -> Bool)          -- ^ predicate
                -> InputStream ByteString  -- ^ input stream
                -> IO (Maybe ByteString)
