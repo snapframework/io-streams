@@ -17,9 +17,9 @@ module System.IO.Streams.File
 import           Control.Monad              (unless)
 import           Data.ByteString            (ByteString)
 import           Data.Int                   (Int64)
-import           System.IO                  (IOMode (ReadMode),
+import           System.IO                  (BufferMode, IOMode (ReadMode),
                                              SeekMode (AbsoluteSeek), hSeek,
-                                             withBinaryFile)
+                                             hSetBuffering, withBinaryFile)
 ------------------------------------------------------------------------------
 import           System.IO.Streams.Handle
 import           System.IO.Streams.Internal (InputStream, OutputStream)
@@ -74,7 +74,9 @@ unsafeWithFileAsInputStartingAt = withFileAsInputStartingAt
 withFileAsOutput
     :: FilePath                           -- ^ file to open
     -> IOMode                             -- ^ mode to write in
+    -> BufferMode                         -- ^ should we buffer the output?
     -> (OutputStream ByteString -> IO a)  -- ^ function to run
     -> IO a
-withFileAsOutput fp mode m =
-    withBinaryFile fp mode ((m =<<) . handleToOutputStream)
+withFileAsOutput fp iomode buffermode m = withBinaryFile fp iomode $ \h -> do
+    hSetBuffering h buffermode
+    handleToOutputStream h >>= m

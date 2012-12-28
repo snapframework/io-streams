@@ -6,20 +6,20 @@ module System.IO.Streams.Tests.File (tests) where
 ------------------------------------------------------------------------------
 import           Control.Concurrent
 import           Control.Exception
-import           Control.Monad hiding (mapM)
-import           Data.ByteString.Char8 (ByteString)
-import qualified Data.ByteString.Char8 as S
-import qualified Data.ByteString.Lazy.Char8 as L
+import           Control.Monad                  hiding (mapM)
+import           Data.ByteString.Char8          (ByteString)
+import qualified Data.ByteString.Char8          as S
+import qualified Data.ByteString.Lazy.Char8     as L
 import           Data.List
-import           Prelude hiding (mapM, read)
+import           Prelude                        hiding (mapM, read)
 import           System.Directory
 import           System.FilePath
 import           System.IO
-import           System.IO.Streams hiding (intersperse, mapM_)
+import           System.IO.Streams              hiding (intersperse, mapM_)
 import           System.IO.Streams.Internal
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
-import           Test.HUnit hiding (Test)
+import           Test.HUnit                     hiding (Test)
 ------------------------------------------------------------------------------
 import           System.IO.Streams.Tests.Common
 
@@ -60,7 +60,7 @@ testFiles = testCase "file/files" $ do
                   removeDirectory "tmp"
 
     tst mode n = do
-        withFileAsOutput (fn n) mode $ \os -> do
+        withFileAsOutput (fn n) mode (BlockBuffering $ Just 2048) $ \os -> do
             let l = "" : (intersperse " " ["the", "quick", "brown", "fox"])
             fromList l >>= connectTo os
 
@@ -88,7 +88,7 @@ testBigFiles = testCase "file/bigFiles" $ do
         let l = L.take testSz $ L.cycle $
                 L.fromChunks (intersperse " " ["the", "quick", "brown", "fox"])
 
-        withFileAsOutput fn WriteMode $ \os -> do
+        withFileAsOutput fn WriteMode NoBuffering $ \os -> do
             fromList [S.concat $ L.toChunks l] >>= connectTo os
 
         l1 <- liftM L.fromChunks $ withFileAsInput fn toList
