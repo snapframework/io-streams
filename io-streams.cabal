@@ -129,7 +129,8 @@ Test-suite testsuite
   Main-is:           TestSuite.hs
   Default-language:  Haskell2010
 
-  Other-modules:     System.IO.Streams.Tests.Builder,
+  Other-modules:     System.IO.Streams.Tests.Attoparsec,
+                     System.IO.Streams.Tests.Builder,
                      System.IO.Streams.Tests.ByteString,
                      System.IO.Streams.Tests.Combinators,
                      System.IO.Streams.Tests.Common,
@@ -139,6 +140,7 @@ Test-suite testsuite
                      System.IO.Streams.Tests.List,
                      System.IO.Streams.Tests.Network,
                      System.IO.Streams.Tests.Text,
+                     System.IO.Streams.Tests.Vector,
                      System.IO.Streams.Tests.Zlib,
                      System.IO.Streams,
                      System.IO.Streams.Attoparsec,
@@ -151,9 +153,11 @@ Test-suite testsuite
                      System.IO.Streams.File,
                      System.IO.Streams.List,
                      System.IO.Streams.Network,
+                     System.IO.Streams.Text,
                      System.IO.Streams.Vector,
                      System.IO.Streams.Zlib,
                      System.IO.Streams.Internal,
+                     System.IO.Streams.Internal.Attoparsec,
                      System.IO.Streams.Internal.BoyerMooreHorspool
 
 
