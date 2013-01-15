@@ -13,7 +13,7 @@ import qualified System.IO.Streams.Internal as Streams
 
 
 ------------------------------------------------------------------------------
--- | Converts a 'Socket' to an 'InputStream'\/'OutputStream' pair. Note that,
+-- | Converts a 'Socket' to an 'InputStream' \/ 'OutputStream' pair. Note that,
 -- as is usually the case in @io-streams@, writing a 'Nothing' to the generated
 -- 'OutputStream' does not cause the underlying 'Socket' to be closed.
 socketToStreams :: Socket
