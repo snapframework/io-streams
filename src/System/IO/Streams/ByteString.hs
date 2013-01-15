@@ -304,6 +304,9 @@ splitOn p is = sourceToStream $ withDefaultPushback newChunk
 -- ghci> replicateM 3 (Streams.'read' is)
 -- [Just \"Hello\", Just \", world!\", Nothing]
 -- @
+--
+-- Note that this may increase the chunk size if the input contains extremely
+-- long lines.
 lines :: InputStream ByteString -> IO (InputStream ByteString)
 lines = splitOn (== '\n')
 
@@ -319,6 +322,9 @@ lines = splitOn (== '\n')
 -- ghci> replicateM 3 (Streams.'read' is)
 -- [Just \"Hello,\", Just \"world!\", Nothing]
 -- @
+--
+-- Note that this may increase the chunk size if the input contains extremely
+-- long words.
 words :: InputStream ByteString -> IO (InputStream ByteString)
 words = splitOn isSpace >=> filterM (return . not . S.all isSpace)
 
