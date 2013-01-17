@@ -24,6 +24,7 @@ module System.IO.Streams.Internal
   , nullSource
   , nullSink
   , singletonSource
+  , simpleSource
 
     -- * Input and output streams
   , InputStream(..)
@@ -42,6 +43,7 @@ module System.IO.Streams.Internal
   , makeInputStream
   , makeOutputStream
   , appendInputStream
+  , concatInputStreams
 
     -- * Connecting streams
   , connect
@@ -73,7 +75,7 @@ module System.IO.Streams.Internal
 ------------------------------------------------------------------------------
 import           Control.Applicative    (Applicative (..))
 import           Control.Concurrent     (newMVar, withMVar)
-import           Control.Monad          (liftM)
+import           Control.Monad          (liftM, (>=>))
 import           Control.Monad.IO.Class (MonadIO (..))
 import           Data.IORef             (IORef, newIORef, readIORef, writeIORef)
 import           Data.Monoid            (Monoid (..))
@@ -149,6 +151,7 @@ generatorBind (Generator m) f = Generator (m >>= either step value)
   where
     step (SP v r) = return $! Left $! SP v (generatorBind r f)
     value = unG .  f
+{-# INLINE generatorBind #-}
 
 
 ------------------------------------------------------------------------------
@@ -202,7 +205,19 @@ generatorToSource (Generator m) = withDefaultPushback go
 ------------------------------------------------------------------------------
 -- | Turns a 'Generator' into an 'InputStream'.
 fromGenerator :: Generator r a -> IO (InputStream r)
-fromGenerator = sourceToStream . generatorToSource
+fromGenerator (Generator m) = do
+    ref <- newIORef (Just m)
+    makeInputStream $! go ref
+  where
+    go ref = readIORef ref >>=
+             maybe (return Nothing)
+                   (\n -> n >>= either step finish)
+      where
+        step (SP v gen) = do
+            writeIORef ref $! Just $! unG gen
+            return $! Just v
+
+        finish _ = writeIORef ref Nothing >> return Nothing
 
 
 ------------------------------------------------------------------------------
@@ -342,6 +357,35 @@ withDefaultPushback prod = let s = Source prod (defaultPushback s)
 
 
 ------------------------------------------------------------------------------
+-- | If you have just an @IO (Maybe c)@ action and are happy with the default
+-- pushback behaviour, this function is slightly more efficient than
+-- using 'withDefaultPushback'. (It allocates less.)
+simpleSource :: IO (Maybe c) -> IO (Source c)
+simpleSource m = newIORef [] >>= \ref ->
+    let s       = Source prod pb
+        prod    = pop ref >>= maybe prodM prodP
+        prodM   = m >>= \x -> return $! SP s x
+        prodP c = return $! SP s (Just c)
+        pb c    = modifyRef ref (c:) >> return s
+    in return $! s
+
+  where
+    {-# INLINE pop #-}
+    pop ref = readIORef ref >>= \l ->
+              case l of
+                []     -> return Nothing
+                (x:xs) -> writeIORef ref xs >> (return $! Just x)
+
+
+------------------------------------------------------------------------------
+{-# INLINE modifyRef #-}
+modifyRef :: IORef a -> (a -> a) -> IO ()
+modifyRef ref f = do
+    x <- readIORef ref
+    writeIORef ref $! f x
+
+
+------------------------------------------------------------------------------
 -- | An empty source that immediately yields 'Nothing'.
 nullSource :: Source c
 nullSource = withDefaultPushback (return $! SP nullSource Nothing)
@@ -452,6 +496,35 @@ sinkToStream = liftM OS . newIORef
 
 
 ------------------------------------------------------------------------------
+-- | 'concatInputStreams' concatenates a list of 'InputStream's, analogous to
+-- ('++') for lists.
+--
+-- Subsequent 'InputStream's continue where the previous one 'InputStream'
+-- ends.
+--
+-- Note: values pushed back to the 'InputStream' returned by
+-- 'concatInputStreams' are not propagated to any of the source
+-- 'InputStream's.
+concatInputStreams :: [InputStream a] -> IO (InputStream a)
+concatInputStreams inputStreams = do
+    ref <- newIORef inputStreams
+    makeInputStream $! run ref
+
+  where
+    run ref = go
+      where
+        go = do
+            streams <- readIORef ref
+            case streams of
+              []       -> return Nothing
+              (s:rest) -> do
+                  next <- read s
+                  case next of
+                    Nothing -> writeIORef ref rest >> go
+                    Just _  -> return next
+
+
+------------------------------------------------------------------------------
 -- | 'appendInputStream' concatenates two 'InputStream's, analogous to ('++')
 -- for lists.
 --
@@ -460,18 +533,7 @@ sinkToStream = liftM OS . newIORef
 -- Note: values pushed back to 'appendInputStream' are not propagated to either
 -- wrapped 'InputStream'.
 appendInputStream :: InputStream a -> InputStream a -> IO (InputStream a)
-appendInputStream s1 s2 = sourceToStream src1
-  where
-    src1 = withDefaultPushback read1
-    src2 = withDefaultPushback read2
-
-    read1 = do
-        x <- read s1
-        maybe read2 (const $! return $! SP src1 x) x
-
-    read2 = do
-        x <- read s2
-        return $! SP src2 x
+appendInputStream s1 s2 = concatInputStreams [s1, s2]
 
 
 ------------------------------------------------------------------------------
@@ -567,15 +629,7 @@ supplyTo = flip supply
 -- from the 'InputStream'. The given action is extended with the default
 -- pushback mechanism (see "System.IO.Streams.Internal#pushback").
 makeInputStream :: IO (Maybe a) -> IO (InputStream a)
-makeInputStream m = sourceToStream s
-  where
-    s = Source { produce = do
-                     x <- m
-                     return $! maybe (SP nullSource Nothing)
-                                     (const $ SP s x)
-                                     x
-               , pushback = defaultPushback s
-               }
+makeInputStream = simpleSource >=> sourceToStream
 {-# INLINE makeInputStream #-}
 
 

@@ -18,48 +18,38 @@ module System.IO.Streams.Zlib
  ) where
 
 ------------------------------------------------------------------------------
-import           Blaze.ByteString.Builder (fromByteString)
+import           Blaze.ByteString.Builder                 (fromByteString)
 ------------------------------------------------------------------------------
-import           Blaze.ByteString.Builder.Internal
-                   ( Builder
-                   , defaultBufferSize
-                   , flush
-                   )
+import           Blaze.ByteString.Builder.Internal        (Builder,
+                                                           defaultBufferSize,
+                                                           flush)
 ------------------------------------------------------------------------------
-import           Blaze.ByteString.Builder.Internal.Buffer ( allocBuffer )
+import           Blaze.ByteString.Builder.Internal.Buffer (allocBuffer)
 ------------------------------------------------------------------------------
-import           Codec.Zlib
-                   ( Deflate
-                   , Inflate
-                   , WindowBits(..)
-                   , feedInflate
-                   , feedDeflate
-                   , finishDeflate
-                   , finishInflate
-                   , flushDeflate
-                   , flushInflate
-                   , initDeflate
-                   , initInflate
-                   )
+import           Codec.Zlib                               (Deflate, Inflate,
+                                                           Popper,
+                                                           WindowBits (..),
+                                                           feedDeflate,
+                                                           feedInflate,
+                                                           finishDeflate,
+                                                           finishInflate,
+                                                           flushDeflate,
+                                                           flushInflate,
+                                                           initDeflate,
+                                                           initInflate)
 ------------------------------------------------------------------------------
-import           Control.Monad   (liftM)
-import qualified Data.ByteString as S
-import           Data.ByteString (ByteString)
-import           Prelude         hiding (read)
+import           Data.ByteString                          (ByteString)
+import qualified Data.ByteString                          as S
+import           Data.IORef                               (newIORef, readIORef,
+                                                           writeIORef)
+import           Prelude                                  hiding (read)
 ------------------------------------------------------------------------------
-import           System.IO.Streams.Builder (unsafeBuilderStream)
-import           System.IO.Streams.Internal
-                   ( InputStream
-                   , OutputStream
-                   , SP(..)
-                   , makeOutputStream
-                   , nullSource
-                   , produce
-                   , read
-                   , sourceToStream
-                   , withDefaultPushback
-                   , write
-                   )
+import           System.IO.Streams.Builder                (unsafeBuilderStream)
+import           System.IO.Streams.Internal               (InputStream,
+                                                           OutputStream,
+                                                           makeInputStream,
+                                                           makeOutputStream,
+                                                           read, write)
 
 
 ------------------------------------------------------------------------------
@@ -87,28 +77,42 @@ decompress input = initInflate compressBits >>= inflate input
 ------------------------------------------------------------------------------
 -- Note: bytes pushed back to this input stream are not propagated back to the
 -- source InputStream.
+data IS = Input
+        | Popper Popper
+        | Done
+
 inflate :: InputStream ByteString -> Inflate -> IO (InputStream ByteString)
-inflate input state = sourceToStream source
+inflate input state = do
+    ref <- newIORef Input
+    makeInputStream $ stream ref
+
   where
-    source  = withDefaultPushback $ read input >>= maybe eof chunk
-    eof     = do
-        x <- finishInflate state
-        if (not $ S.null x)
-          then return $! SP nullSource (Just x)
-          else return $! SP nullSource Nothing
-
-    chunk s =
-        if S.null s
-          then do
-              out <- liftM Just $ flushInflate state
-              return $! SP source out
-          else feedInflate state s >>= popAll
-
-    popAll popper = go
+    stream ref = go
       where
-        go = popper >>=
-             maybe (produce source)
-                   (\s -> return $! SP (withDefaultPushback go) (Just s))
+        go = readIORef ref >>= \st ->
+             case st of
+               Input    -> read input >>= maybe eof chunk
+               Popper p -> pop p
+               Done     -> return Nothing
+
+        eof = do
+            x <- finishInflate state
+            writeIORef ref Done
+            if (not $ S.null x)
+              then return $! Just x
+              else return Nothing
+
+        chunk s =
+            if S.null s
+              then do
+                  out <- flushInflate state
+                  return $! Just out
+              else feedInflate state s >>= \popper -> do
+                  writeIORef ref $ Popper popper
+                  pop popper
+
+        pop popper = popper >>= maybe backToInput (return . Just)
+        backToInput = writeIORef ref Input >> read input >>= maybe eof chunk
 
 
 ------------------------------------------------------------------------------

@@ -17,21 +17,23 @@ module System.IO.Streams.List
 
 import           Control.Concurrent.MVar    (modifyMVar, modifyMVar_, newMVar)
 import           Control.Monad.IO.Class     (MonadIO (..))
+import           Data.IORef                 (newIORef, readIORef, writeIORef)
 import           Prelude                    hiding (read)
-import           System.IO.Streams.Internal (InputStream, OutputStream, SP (..),
-                                             Sink (..), connect, fromGenerator,
-                                             nullSink, nullSource, read,
-                                             sinkToStream, sourceToStream,
-                                             withDefaultPushback, write, yield)
+import           System.IO.Streams.Internal (InputStream, OutputStream,Sink (..), connect, fromGenerator,
+                                             makeInputStream, nullSink,
+                                             read, sinkToStream,
+                                              write, yield)
 
 
 ------------------------------------------------------------------------------
 -- | Transforms a list into an 'InputStream' that produces no side effects.
 fromList :: [c] -> IO (InputStream c)
-fromList = sourceToStream . f
+fromList inp = newIORef inp >>= makeInputStream . f
   where
-    f []     = withDefaultPushback $ return $! SP (nullSource) Nothing
-    f (x:xs) = withDefaultPushback $ return $! SP (f xs) (Just x)
+    f ref = readIORef ref >>= \l ->
+            case l of
+              []     -> return Nothing
+              (x:xs) -> writeIORef ref xs >> return (Just x)
 {-# INLINE fromList #-}
 
 

@@ -41,6 +41,8 @@ module System.IO.Streams
  , connectTo
  , supply
  , supplyTo
+ , appendInputStream
+ , concatInputStreams
 
    -- * Thread safety \/ concurrency
  , lockingInputStream

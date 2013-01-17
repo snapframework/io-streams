@@ -165,8 +165,8 @@ search needle stream = do
 
     --------------------------------------------------------------------------
     produceMatch nomatch aftermatch = do
-        let s1 = singletonSource $ NoMatch nomatch
-        let s2 = singletonSource $ Match needle
+        let !s1 = singletonSource $! NoMatch nomatch
+        let !s2 = singletonSource $! Match needle
         let s3 = withDefaultPushback $ startSearch aftermatch
 
         produce $ mconcat $ if S.null nomatch

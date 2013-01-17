@@ -49,20 +49,19 @@ import           Control.Monad                                 (when, (>=>))
 import           Data.ByteString                               (ByteString)
 import qualified Data.ByteString.Char8                         as S
 import qualified Data.ByteString.Lazy.Char8                    as L
+import qualified Data.ByteString.Unsafe                        as S
 import           Data.Char                                     (isSpace)
 import           Data.Int                                      (Int64)
-import           Data.IORef                                    (newIORef,
+import           Data.IORef                                    (IORef, newIORef,
                                                                 readIORef,
                                                                 writeIORef)
 import           Data.Time.Clock.POSIX                         (getPOSIXTime)
 import           Data.Typeable                                 (Typeable)
 
 import           Prelude                                       hiding (lines,
-                                                                read,
-                                                                takeWhile,
+                                                                read, takeWhile,
                                                                 unlines,
-                                                                unwords,
-                                                                words)
+                                                                unwords, words)
 ------------------------------------------------------------------------------
 import           System.IO.Streams.Combinators                 (filterM,
                                                                 intersperse,
@@ -71,18 +70,23 @@ import           System.IO.Streams.Internal                    (InputStream,
                                                                 OutputStream,
                                                                 SP (..),
                                                                 Sink (..),
-                                                                Source (..), makeOutputStream,
+                                                                Source (..),
+                                                                makeInputStream, makeOutputStream,
                                                                 nullSink,
-                                                                nullSource,
-                                                                pushback,
-                                                                read,
-                                                                sinkToStream, sourceToStream,
-                                                                unRead, withDefaultPushback,
-                                                                write)
+                                                                pushback, read,
+                                                                sinkToStream,
+                                                                sourceToStream,
+                                                                unRead, write)
 import           System.IO.Streams.Internal.BoyerMooreHorspool (MatchInfo (..),
                                                                 search)
 import           System.IO.Streams.List                        (writeList)
 ------------------------------------------------------------------------------
+
+{-# INLINE modifyRef #-}
+modifyRef :: IORef a -> (a -> a) -> IO ()
+modifyRef ref f = do
+    x <- readIORef ref
+    writeIORef ref $! f x
 
 
 ------------------------------------------------------------------------------
@@ -137,12 +141,6 @@ countInput src = do
     return $! (stream, readIORef ref)
 
   where
-    -- strict modify necessary here, also don't care about CAS overhead in this
-    -- case.
-    modify ref f = do
-        !c <- readIORef ref
-        writeIORef ref $! f c
-
     eof !ref = return $! SP (eofSrc ref) Nothing
 
     eofSrc !ref = Source {
@@ -152,7 +150,7 @@ countInput src = do
 
     pb !ref !s = do
         unRead s src
-        modify ref $ \x -> x - (toEnum $ S.length s)
+        modifyRef ref $ \x -> x - (toEnum $ S.length s)
         return $! source ref
 
     source ref = Source {
@@ -162,7 +160,7 @@ countInput src = do
       where
         chunk s = let !l = toEnum $ S.length s
                   in do
-                      modify ref (+ l)
+                      modifyRef ref (+ l)
                       return $! SP (source ref) (Just s)
 
 
@@ -276,21 +274,36 @@ splitOn :: (Char -> Bool)               -- ^ predicate used to break the input
                                         -- stream into chunks
         -> InputStream ByteString       -- ^ input stream
         -> IO (InputStream ByteString)
-splitOn p is = sourceToStream $ withDefaultPushback newChunk
+splitOn p is = do
+    ref <- newIORef id
+    makeInputStream $ start ref
   where
-    newChunk = read is >>=
-               maybe (return (SP nullSource Nothing)) (go id . Just)
+    start ref = go
+      where
+        go  = read is >>= maybe end chunk
 
-    go !dl Nothing = return $! SP nullSource (Just $! S.concat $! dl [])
+        end = do
+            dl <- readIORef ref
+            case dl [] of
+              [] -> return Nothing
+              xs -> writeIORef ref id >>
+                    (return $! Just $! S.concat xs)
 
-    go !dl (Just s) = do
-        let (a,b) = S.break p s
-        if S.null b
-          then read is >>= go (dl . (a:))
-          else do
-              let b'   = S.drop 1 b
-              let rest = withDefaultPushback $ go id (Just b')
-              return $! SP rest $! Just $! S.concat $! dl [a]
+        chunk s = let (a, b) = S.break p s
+                  in if S.null b
+                       then modifyRef ref (\f -> f . (a:)) >> go
+                       else do
+                         let !b' = S.unsafeDrop 1 b
+                         dl <- readIORef ref
+
+                         if S.null b'
+                           then do
+                             writeIORef ref ("" :)
+                             return $ Just $! S.concat $ dl [a]
+                           else do
+                             writeIORef ref id
+                             unRead b' is
+                             return $ Just $! S.concat $ dl [a]
 
 
 ------------------------------------------------------------------------------
@@ -602,6 +615,7 @@ throwIfConsumesMoreThan k0 str = sinkToStream $ sink k0
                         in if k' < 0
                              then throwIO TooManyBytesWrittenException
                              else write mb str >> return (sink k')
+
 
 ------------------------------------------------------------------------------
 -- | Gets the current posix time
