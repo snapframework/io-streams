@@ -77,7 +77,8 @@ import           Control.Applicative    (Applicative (..))
 import           Control.Concurrent     (newMVar, withMVar)
 import           Control.Monad          (liftM, (>=>))
 import           Control.Monad.IO.Class (MonadIO (..))
-import           Data.IORef             (IORef, newIORef, readIORef, writeIORef)
+import           Data.IORef             (IORef, newIORef, readIORef,
+                                         writeIORef)
 import           Data.Monoid            (Monoid (..))
 import           Prelude                hiding (read)
 
@@ -364,7 +365,8 @@ simpleSource :: IO (Maybe c) -> IO (Source c)
 simpleSource m = newIORef [] >>= \ref ->
     let s       = Source prod pb
         prod    = pop ref >>= maybe prodM prodP
-        prodM   = m >>= \x -> return $! SP s x
+        prodM   = m >>= \x -> return $!
+                              maybe (SP nullSource Nothing) (const $ SP s x) x
         prodP c = return $! SP s (Just c)
         pb c    = modifyRef ref (c:) >> return s
     in return $! s

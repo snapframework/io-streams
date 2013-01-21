@@ -56,6 +56,7 @@ testParseFromStream = testCase "attoparsec/parseFromStream" $ do
     l  <- parserToInputStream testParser is >>= toList
 
     assertEqual "rest" [4, 5, 6, 7] l
+    toList is >>= assertEqual "double eof" []
 
 
 ------------------------------------------------------------------------------
