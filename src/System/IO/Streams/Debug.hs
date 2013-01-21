@@ -25,9 +25,12 @@ debugByteStringInputStream name debugStream inputStream =
         Streams.write (Just $ describe m) debugStream
         return $! Streams.SP source m
 
-    pb c = Streams.unRead c inputStream >> return source
+    pb c = do
+        let s = S.concat [name, ": pushback: ", condense c, "\n"]
+        Streams.write (Just s) debugStream
+        Streams.unRead c inputStream >> return source
 
-    describe m = S.concat [ name, ": got ", describeChunk m, "\n" ]
+    describe m = S.concat [name, ": got ", describeChunk m, "\n"]
 
     describeChunk Nothing = "EOF"
     describeChunk (Just s) = S.concat [ "chunk of length "
