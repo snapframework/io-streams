@@ -5,14 +5,14 @@ module System.IO.Streams.Tests.Internal (tests) where
 
 ------------------------------------------------------------------------------
 import           Control.Applicative
-import           Control.Monad hiding (mapM)
-import           Control.Monad.IO.Class (liftIO)
+import           Control.Monad                  hiding (mapM)
+import           Control.Monad.IO.Class         (liftIO)
 import           Data.IORef
 import           Data.Monoid
-import           Prelude hiding (mapM, read)
+import           Prelude                        hiding (mapM, read)
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
-import           Test.HUnit hiding (Test)
+import           Test.HUnit                     hiding (Test)
 ------------------------------------------------------------------------------
 import           System.IO.Streams.Internal
 import           System.IO.Streams.List
@@ -26,6 +26,7 @@ tests = [ testSourceConcat
         , testNullInput
         , testGenerator
         , testGeneratorInstances
+        , testGeneratorSource
         , testConsumer
         ]
 
@@ -134,6 +135,17 @@ testGenerator = testCase "internal/generator" $ do
     is <- fromGenerator $ sequence $
           Prelude.map ((>>= yield) . (liftIO . return)) [1..5::Int]
     toList is >>= assertEqual "generator" [1..5]
+    read is >>= assertEqual "read after EOF" Nothing
+
+
+------------------------------------------------------------------------------
+testGeneratorSource :: Test
+testGeneratorSource = testCase "internal/generatorSource" $ do
+    let src = generatorToSource $ sequence $
+              Prelude.map ((>>= yield) . (liftIO . return)) [1..5::Int]
+    is  <- sourceToStream src
+    toList is >>= assertEqual "generator" [1..5]
+    read is >>= assertEqual "read after EOF" Nothing
 
 
 ------------------------------------------------------------------------------

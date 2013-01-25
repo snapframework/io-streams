@@ -207,18 +207,16 @@ generatorToSource (Generator m) = withDefaultPushback go
 -- | Turns a 'Generator' into an 'InputStream'.
 fromGenerator :: Generator r a -> IO (InputStream r)
 fromGenerator (Generator m) = do
-    ref <- newIORef (Just m)
+    ref <- newIORef m
     makeInputStream $! go ref
   where
-    go ref = readIORef ref >>=
-             maybe (return Nothing)
-                   (\n -> n >>= either step finish)
+    go ref = readIORef ref >>= (\n -> n >>= either step finish)
       where
         step (SP v gen) = do
-            writeIORef ref $! Just $! unG gen
+            writeIORef ref $! unG gen
             return $! Just v
 
-        finish _ = writeIORef ref Nothing >> return Nothing
+        finish _ = return Nothing
 
 
 ------------------------------------------------------------------------------
