@@ -22,6 +22,7 @@ System.IO.Streams.Tests.Builder
 System.IO.Streams.Tests.ByteString
 System.IO.Streams.Tests.Combinators
 System.IO.Streams.Tests.Common
+System.IO.Streams.Tests.Debug
 System.IO.Streams.Tests.File
 System.IO.Streams.Tests.Handle
 System.IO.Streams.Tests.Internal
