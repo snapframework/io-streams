@@ -2,8 +2,9 @@ Name:                io-streams
 Version:             1.0
 License:             BSD3
 License-file:        LICENSE
-Category:            Data
+Category:            Data, Network, IO-Streams
 Build-type:          Simple
+Maintainer:          Gregory Collins <greg@gregorycollins.net>
 Cabal-version:       >= 1.10
 Synopsis:            Simple, composable, and easy-to-use stream I/O
 Description:
@@ -80,7 +81,7 @@ Library
   hs-source-dirs:    src
   Default-language:  Haskell2010
 
-  ghc-options:       -O2 -Wall -fwarn-tabs -funbox-strict-fields -threaded
+  ghc-options:       -O2 -Wall -fwarn-tabs -funbox-strict-fields
                      -fno-warn-unused-do-bind
 
   ghc-prof-options:  -prof -auto-all
@@ -205,3 +206,7 @@ Test-suite testsuite
     OverloadedStrings,
     RankNTypes,
     Trustworthy
+
+source-repository head
+  type:     git
+  location: git://github.com/snapframework/io-streams.git
