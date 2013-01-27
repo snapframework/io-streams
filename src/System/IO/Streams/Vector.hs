@@ -103,7 +103,7 @@ toMutableVectorSized :: VM.MVector v a =>
                      -> IO (v (PrimState IO) a)
 toMutableVectorSized initialSize input = vfNew initialSize >>= go
   where
-    go vfi = S.read input >>= maybe (vfFinish vfi) (vfAdd vfi >=> go)
+    go vfi = S.read input >>= maybe (vfFinish vfi) (vfAppend vfi >=> go)
 {-# INLINE toMutableVectorSized #-}
 
 
@@ -147,6 +147,8 @@ vectorOutputStreamSized n = do
 data VectorFillInfo v c = VectorFillInfo {
       _vec :: !(v (PrimState IO) c)
     , _idx :: {-# UNPACK #-} !(IORef Int)
+
+    -- TODO: vector contains its own size
     , _sz  :: {-# UNPACK #-} !(IORef Int)
     }
 
@@ -171,11 +173,11 @@ vfFinish vfi = liftM (flip VM.unsafeTake v) $ readIORef i
 
 
 ------------------------------------------------------------------------------
-vfAdd :: MVector v a =>
+vfAppend :: MVector v a =>
          VectorFillInfo v a
       -> a
       -> IO (VectorFillInfo v a)
-vfAdd vfi !x = do
+vfAppend vfi !x = do
     i  <- readIORef iRef
     sz <- readIORef szRef
     if i < sz then add i else grow sz
@@ -193,7 +195,7 @@ vfAdd vfi !x = do
         let !sz' = sz * 2
         v' <- VM.unsafeGrow v sz
         writeIORef szRef sz'
-        vfAdd (vfi { _vec = v' }) x
+        vfAppend (vfi { _vec = v' }) x
 
 
 ------------------------------------------------------------------------------
@@ -226,7 +228,7 @@ mutableVectorOutputStreamSized initialSize = do
       where
         go = Sink $ maybe (return nullSink)
                           (\c -> do
-                               modifyMVar_ r $ flip vfAdd c
+                               modifyMVar_ r $ flip vfAppend c
                                return go)
     flush r = modifyMVar r $ \vfi -> do
                                 !v   <- vfFinish vfi
@@ -324,7 +326,7 @@ chunkVector n input = if n <= 0
             if V.null v then return $! () else yield v
 
         chunk x = do
-            !vfi' <- liftIO $ vfAdd vfi x
+            !vfi' <- liftIO $ vfAppend vfi x
             go (k - 1) vfi'
 {-# INLINE chunkVector #-}
 

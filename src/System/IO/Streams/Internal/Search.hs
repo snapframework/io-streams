@@ -1,7 +1,7 @@
 {-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module System.IO.Streams.Internal.BoyerMooreHorspool
+module System.IO.Streams.Internal.Search
   ( search
   , MatchInfo(..)
   ) where
@@ -15,9 +15,9 @@ import qualified Data.Vector.Unboxed         as V
 import qualified Data.Vector.Unboxed.Mutable as MV
 import           Prelude                     hiding (last, read)
 ------------------------------------------------------------------------------
-import           System.IO.Streams.Internal  (InputStream, SP (..), nullSource,
-                                              produce, read, singletonSource,
-                                              sourceToStream,
+import           System.IO.Streams.Internal  (InputStream, SP (..),
+                                              nullSource, produce, read,
+                                              singletonSource, sourceToStream,
                                               withDefaultPushback)
 
 ------------------------------------------------------------------------------

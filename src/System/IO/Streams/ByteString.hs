@@ -43,43 +43,36 @@ module System.IO.Streams.ByteString
  ) where
 
 ------------------------------------------------------------------------------
-import           Control.Exception                             (Exception,
-                                                                throwIO)
-import           Control.Monad                                 (when, (>=>))
-import           Data.ByteString                               (ByteString)
-import qualified Data.ByteString.Char8                         as S
-import qualified Data.ByteString.Lazy.Char8                    as L
-import qualified Data.ByteString.Unsafe                        as S
-import           Data.Char                                     (isSpace)
-import           Data.Int                                      (Int64)
-import           Data.IORef                                    (IORef, newIORef,
-                                                                readIORef,
-                                                                writeIORef)
-import           Data.Time.Clock.POSIX                         (getPOSIXTime)
-import           Data.Typeable                                 (Typeable)
+import           Control.Exception                 (Exception, throwIO)
+import           Control.Monad                     (when, (>=>))
+import           Data.ByteString                   (ByteString)
+import qualified Data.ByteString.Char8             as S
+import qualified Data.ByteString.Lazy.Char8        as L
+import qualified Data.ByteString.Unsafe            as S
+import           Data.Char                         (isSpace)
+import           Data.Int                          (Int64)
+import           Data.IORef                        (IORef, newIORef,
+                                                    readIORef, writeIORef)
+import           Data.Time.Clock.POSIX             (getPOSIXTime)
+import           Data.Typeable                     (Typeable)
 
-import           Prelude                                       hiding (lines,
-                                                                read, takeWhile,
-                                                                unlines,
-                                                                unwords, words)
+import           Prelude                           hiding (lines, read,
+                                                    takeWhile, unlines,
+                                                    unwords, words)
 ------------------------------------------------------------------------------
-import           System.IO.Streams.Combinators                 (filterM,
-                                                                intersperse,
-                                                                outputFoldM)
-import           System.IO.Streams.Internal                    (InputStream,
-                                                                OutputStream,
-                                                                SP (..),
-                                                                Sink (..),
-                                                                Source (..),
-                                                                makeInputStream, makeOutputStream,
-                                                                nullSink,
-                                                                pushback, read,
-                                                                sinkToStream,
-                                                                sourceToStream,
-                                                                unRead, write)
-import           System.IO.Streams.Internal.BoyerMooreHorspool (MatchInfo (..),
-                                                                search)
-import           System.IO.Streams.List                        (writeList)
+import           System.IO.Streams.Combinators     (filterM, intersperse,
+                                                    outputFoldM)
+import           System.IO.Streams.Internal        (InputStream, OutputStream,
+                                                    SP (..), Sink (..),
+                                                    Source (..),
+                                                    makeInputStream,
+                                                    makeOutputStream,
+                                                    nullSink, pushback, read,
+                                                    sinkToStream,
+                                                    sourceToStream, unRead,
+                                                    write)
+import           System.IO.Streams.Internal.Search (MatchInfo (..), search)
+import           System.IO.Streams.List            (writeList)
 ------------------------------------------------------------------------------
 
 {-# INLINE modifyRef #-}
