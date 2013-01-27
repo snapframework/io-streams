@@ -39,23 +39,39 @@ import qualified System.IO.Streams.Internal  as S
 ------------------------------------------------------------------------------
 -- | Transforms a vector into an 'InputStream' that yields each of the values
 -- in the vector in turn.
+--
+-- @
+-- ghci> import "Control.Monad"
+-- ghci> import qualified "System.IO.Streams" as Streams
+-- ghci> import qualified "Data.Vector" as V
+-- ghci> let v = V.'fromList' [1, 2]
+-- ghci> is <- Streams.'fromVector' v
+-- ghci> 'replicateM' 3 (Streams.'read' is)
+-- [Just 1,Just 2,Nothing]
+-- @
 fromVector :: Vector v a => v a -> IO (InputStream a)
 fromVector = fromGenerator . V.mapM_ yield
 {-# INLINE fromVector #-}
 
 
 ------------------------------------------------------------------------------
--- | Drains an 'InputStream', converting it to a vector. N.B. that this
+-- | Drains an 'InputStream', converting it to a vector. Note that this
 -- function reads the entire 'InputStream' strictly into memory and as such is
 -- not recommended for streaming applications or where the size of the input is
 -- not bounded or known.
+--
+-- @
+-- ghci> is <- Streams.'Streams.fromList' [(1::Int)..4]
+-- ghci> Streams.'toVector' is :: 'IO' (V.'Vector' Int)
+-- fromList [1,2,3,4]
+-- @
 toVector :: Vector v a => InputStream a -> IO (v a)
 toVector = toMutableVector >=> V.basicUnsafeFreeze
 {-# INLINE toVector #-}
 
 
 ------------------------------------------------------------------------------
--- | Drains an 'InputStream', converting it to a mutable vector. N.B. that this
+-- | Drains an 'InputStream', converting it to a mutable vector. Note that this
 -- function reads the entire 'InputStream' strictly into memory and as such is
 -- not recommended for streaming applications or where the size of the input is
 -- not bounded or known.
@@ -77,6 +93,19 @@ toMutableVector input = vfNew initialSize >>= go
 -- Note that this function /will/ buffer any input sent to it on the heap.
 -- Please don't use this unless you're sure that the amount of input provided
 -- is bounded and will fit in memory without issues.
+--
+-- @
+-- ghci> (os, flush) <- Streams.'vectorOutputStream' :: IO ('OutputStream' Int, IO (V.'Vector' Int))
+-- ghci> Streams.'Streams.write' (Just 1) os
+-- ghci> Streams.'Streams.write' (Just 2) os
+-- ghci> flush
+-- fromList [1,2]
+-- ghci> Streams.'Streams.write' (Just 3) os
+-- ghci> Streams.'Streams.write' Nothing  os
+-- ghci> Streams.'Streams.write' (Just 4) os
+-- ghci> flush
+-- fromList [3]
+-- @
 vectorOutputStream :: Vector v c => IO (OutputStream c, IO (v c))
 vectorOutputStream = do
     (os, flush) <- mutableVectorOutputStream
@@ -174,7 +203,6 @@ mutableVectorOutputStream = do
 --
 -- @
 -- ghci> import "Control.Applicative"
--- ghci> import qualified "Data.Vector" as V
 -- ghci> ('connect' \<\$\> 'System.IO.Streams.fromList' [1, 2, 3::'Int'])
 --        \>\>= 'outputToMutableVector'
 --        \>\>= V.'Data.Vector.freeze'
@@ -197,7 +225,6 @@ outputToMutableVector f = do
 -- Example:
 --
 -- @
--- ghci> import "Control.Applicative"
 -- ghci> (('connect' <$> 'System.IO.Streams.fromList' [1, 2, 3]) >>= 'outputToVector')
 --           :: IO ('Data.Vector.Vector' Int)
 -- fromList [1,2,3]
@@ -243,6 +270,16 @@ chunkVector n input = if n <= 0
 ------------------------------------------------------------------------------
 -- | Feeds a vector to an 'OutputStream'. Does /not/ write an end-of-stream to
 -- the stream.
+--
+-- @
+-- ghci> let v = V.'fromList' [1..4] :: V.'Vector' Int
+-- ghci> os \<- Streams.'unlines' Streams.'stdout' >>= Streams.'Streams.contramap' (S.pack . show) :: IO ('OutputStream' Int)
+-- ghci> Streams.'writeVector' v os
+-- 1
+-- 2
+-- 3
+-- 4
+-- @
 writeVector :: Vector v a => v a -> OutputStream a -> IO ()
 writeVector v out = V.mapM_ (flip S.write out . Just) v
 {-# INLINE writeVector #-}
