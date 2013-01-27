@@ -23,6 +23,8 @@ tests = [ testChunk
         , testWrite
         , testVectorOutputStream
         , testFromTo
+        , testOutputToMutableVector
+        , testToMutableVector
         ]
 
 
@@ -75,11 +77,13 @@ testVectorOutputStream = testCase "vector/vectorOutputStream" $ test1 >> test2
         flush >>= assertEqual "v2" V.empty
 
     test2 = do
-        (os, flush) <- vectorOutputStream
+        (os, flush) <- mutableVectorOutputStream
         fromList [1,2,3::Int] >>= S.supplyTo os
-        flush >>= assertEqual "v1" (V.fromList [1,2,3::Int])
+        flush >>= V.unsafeFreeze
+              >>= assertEqual "v1" (V.fromList [1,2,3::Int])
         S.write (Just 4) os
-        flush >>= assertEqual "v2" (V.singleton (4::Int))
+        flush >>= V.unsafeFreeze
+              >>= assertEqual "v2" (V.singleton (4::Int))
 
 
 ------------------------------------------------------------------------------
@@ -91,3 +95,21 @@ testFromTo = testCase "vector/fromVector" $ do
 
   where
     vtest = V.fromList [1..100::Int]
+
+
+------------------------------------------------------------------------------
+testOutputToMutableVector :: Test
+testOutputToMutableVector = testCase "vector/outputToMutableVector" $ do
+    is <- S.fromList [1::Int,2,3]
+    outputToMutableVector (S.connect is)
+        >>= V.unsafeFreeze
+        >>= assertEqual "outputToMutableVector" (V.fromList [1,2,3])
+
+
+------------------------------------------------------------------------------
+testToMutableVector :: Test
+testToMutableVector = testCase "vector/toMutableVector" $ do
+    is <- S.fromList [1::Int,2,3]
+    toMutableVector is
+        >>= V.unsafeFreeze
+        >>= assertEqual "toMutableVector" (V.fromList [1,2,3])

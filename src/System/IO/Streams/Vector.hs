@@ -8,19 +8,26 @@ module System.IO.Streams.Vector
  ( -- * Vector conversions
    fromVector
  , toVector
+ , toVectorSized
  , outputToVector
+ , outputToVectorSized
  , toMutableVector
+ , toMutableVectorSized
  , outputToMutableVector
+ , outputToMutableVectorSized
  , writeVector
 
    -- * Utility
  , chunkVector
  , vectorOutputStream
+ , vectorOutputStreamSized
  , mutableVectorOutputStream
+ , mutableVectorOutputStreamSized
  ) where
 
 ------------------------------------------------------------------------------
-import           Control.Concurrent.MVar     (modifyMVar, modifyMVar_, newMVar)
+import           Control.Concurrent.MVar     (modifyMVar, modifyMVar_,
+                                              newMVar)
 import           Control.Monad               (liftM, (>=>))
 import           Control.Monad.IO.Class      (MonadIO (..))
 import           Control.Monad.Primitive     (PrimState (..))
@@ -44,10 +51,10 @@ import qualified System.IO.Streams.Internal  as S
 -- ghci> import "Control.Monad"
 -- ghci> import qualified "System.IO.Streams" as Streams
 -- ghci> import qualified "Data.Vector" as V
--- ghci> let v = V.'fromList' [1, 2]
+-- ghci> let v = V.'Data.Vector.fromList' [1, 2]
 -- ghci> is <- Streams.'fromVector' v
--- ghci> 'replicateM' 3 (Streams.'read' is)
--- [Just 1,Just 2,Nothing]
+-- ghci> 'Control.Monad.replicateM' 3 (Streams.'read' is)
+-- ['Just' 1,'Just' 2,'Nothing']
 -- @
 fromVector :: Vector v a => v a -> IO (InputStream a)
 fromVector = fromGenerator . V.mapM_ yield
@@ -66,8 +73,16 @@ fromVector = fromGenerator . V.mapM_ yield
 -- fromList [1,2,3,4]
 -- @
 toVector :: Vector v a => InputStream a -> IO (v a)
-toVector = toMutableVector >=> V.basicUnsafeFreeze
+toVector = toVectorSized dEFAULT_BUFSIZ
 {-# INLINE toVector #-}
+
+
+------------------------------------------------------------------------------
+-- | Like 'toVector', but allows control over how large the vector buffer is to
+-- start with.
+toVectorSized :: Vector v a => Int -> InputStream a -> IO (v a)
+toVectorSized n = toMutableVectorSized n >=> V.basicUnsafeFreeze
+{-# INLINE toVectorSized #-}
 
 
 ------------------------------------------------------------------------------
@@ -76,12 +91,20 @@ toVector = toMutableVector >=> V.basicUnsafeFreeze
 -- not recommended for streaming applications or where the size of the input is
 -- not bounded or known.
 toMutableVector :: VM.MVector v a => InputStream a -> IO (v (PrimState IO) a)
-toMutableVector input = vfNew initialSize >>= go
-  where
-    initialSize = 64
+toMutableVector = toMutableVectorSized dEFAULT_BUFSIZ
 
+
+------------------------------------------------------------------------------
+-- | Like 'toMutableVector', but allows control over how large the vector
+-- buffer is to start with.
+toMutableVectorSized :: VM.MVector v a =>
+                        Int            -- ^ initial size of the vector buffer
+                     -> InputStream a
+                     -> IO (v (PrimState IO) a)
+toMutableVectorSized initialSize input = vfNew initialSize >>= go
+  where
     go vfi = S.read input >>= maybe (vfFinish vfi) (vfAdd vfi >=> go)
-{-# INLINE toMutableVector #-}
+{-# INLINE toMutableVectorSized #-}
 
 
 ------------------------------------------------------------------------------
@@ -107,10 +130,17 @@ toMutableVector input = vfNew initialSize >>= go
 -- fromList [3]
 -- @
 vectorOutputStream :: Vector v c => IO (OutputStream c, IO (v c))
-vectorOutputStream = do
-    (os, flush) <- mutableVectorOutputStream
-    return $! (os, flush >>= V.basicUnsafeFreeze)
+vectorOutputStream = vectorOutputStreamSized dEFAULT_BUFSIZ
 {-# INLINE vectorOutputStream #-}
+
+
+------------------------------------------------------------------------------
+-- | Like 'vectorOutputStream', but allows control over how large the vector
+-- buffer is to start with.
+vectorOutputStreamSized :: Vector v c => Int -> IO (OutputStream c, IO (v c))
+vectorOutputStreamSized n = do
+    (os, flush) <- mutableVectorOutputStreamSized n
+    return $! (os, flush >>= V.basicUnsafeFreeze)
 
 
 ------------------------------------------------------------------------------
@@ -138,6 +168,7 @@ vfFinish vfi = liftM (flip VM.unsafeTake v) $ readIORef i
   where
     v = _vec vfi
     i = _idx vfi
+
 
 ------------------------------------------------------------------------------
 vfAdd :: MVector v a =>
@@ -176,8 +207,17 @@ vfAdd vfi !x = do
 -- is bounded and will fit in memory without issues.
 mutableVectorOutputStream :: VM.MVector v c =>
                              IO (OutputStream c, IO (v (PrimState IO) c))
-mutableVectorOutputStream = do
-    r <- vfNew 32 >>= newMVar
+mutableVectorOutputStream = mutableVectorOutputStreamSized dEFAULT_BUFSIZ
+
+
+------------------------------------------------------------------------------
+-- | Like 'mutableVectorOutputStream', but allows control over how large the
+-- vector buffer is to start with.
+mutableVectorOutputStreamSized :: VM.MVector v c =>
+                                  Int
+                               -> IO (OutputStream c, IO (v (PrimState IO) c))
+mutableVectorOutputStreamSized initialSize = do
+    r <- vfNew initialSize >>= newMVar
     c <- sinkToStream $ consumer r
     return (c, flush r)
 
@@ -190,7 +230,7 @@ mutableVectorOutputStream = do
                                return go)
     flush r = modifyMVar r $ \vfi -> do
                                 !v   <- vfFinish vfi
-                                vfi' <- vfNew 32
+                                vfi' <- vfNew initialSize
                                 return $! (vfi', v)
 {-# INLINE mutableVectorOutputStream #-}
 
@@ -211,11 +251,22 @@ mutableVectorOutputStream = do
 outputToMutableVector :: MVector v a =>
                          (OutputStream a -> IO b)
                       -> IO (v (PrimState IO) a)
-outputToMutableVector f = do
-    (os, getVec) <- mutableVectorOutputStream
+outputToMutableVector = outputToMutableVectorSized dEFAULT_BUFSIZ
+{-# INLINE outputToMutableVector #-}
+
+
+------------------------------------------------------------------------------
+-- | Like 'outputToMutableVector', but allows control over how large the vector
+-- buffer is to start with.
+outputToMutableVectorSized :: MVector v a =>
+                              Int
+                           -> (OutputStream a -> IO b)
+                           -> IO (v (PrimState IO) a)
+outputToMutableVectorSized n f = do
+    (os, getVec) <- mutableVectorOutputStreamSized n
     _ <- f os
     getVec
-{-# INLINE outputToMutableVector #-}
+{-# INLINE outputToMutableVectorSized #-}
 
 
 ------------------------------------------------------------------------------
@@ -230,8 +281,19 @@ outputToMutableVector f = do
 -- fromList [1,2,3]
 -- @
 outputToVector :: Vector v a => (OutputStream a -> IO b) -> IO (v a)
-outputToVector = outputToMutableVector >=> V.basicUnsafeFreeze
+outputToVector = outputToVectorSized dEFAULT_BUFSIZ
 {-# INLINE outputToVector #-}
+
+
+------------------------------------------------------------------------------
+-- | Like 'outputToVector', but allows control over how large the vector buffer
+-- is to start with.
+outputToVectorSized :: Vector v a =>
+                       Int
+                    -> (OutputStream a -> IO b)
+                    -> IO (v a)
+outputToVectorSized n = outputToMutableVectorSized n >=> V.basicUnsafeFreeze
+{-# INLINE outputToVectorSized #-}
 
 
 ------------------------------------------------------------------------------
@@ -283,3 +345,8 @@ chunkVector n input = if n <= 0
 writeVector :: Vector v a => v a -> OutputStream a -> IO ()
 writeVector v out = V.mapM_ (flip S.write out . Just) v
 {-# INLINE writeVector #-}
+
+
+------------------------------------------------------------------------------
+dEFAULT_BUFSIZ :: Int
+dEFAULT_BUFSIZ = 64
