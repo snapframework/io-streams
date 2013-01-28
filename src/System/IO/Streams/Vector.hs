@@ -68,7 +68,7 @@ fromVector = fromGenerator . V.mapM_ yield
 -- not bounded or known.
 --
 -- @
--- ghci> is <- Streams.'Streams.fromList' [(1::Int)..4]
+-- ghci> is <- Streams.'System.IO.Streams.fromList' [(1::Int)..4]
 -- ghci> Streams.'toVector' is :: 'IO' (V.'Vector' Int)
 -- fromList [1,2,3,4]
 -- @
@@ -119,13 +119,13 @@ toMutableVectorSized initialSize input = vfNew initialSize >>= go
 --
 -- @
 -- ghci> (os, flush) <- Streams.'vectorOutputStream' :: IO ('OutputStream' Int, IO (V.'Vector' Int))
--- ghci> Streams.'Streams.write' (Just 1) os
--- ghci> Streams.'Streams.write' (Just 2) os
+-- ghci> Streams.'System.IO.Streams.write' (Just 1) os
+-- ghci> Streams.'System.IO.Streams.write' (Just 2) os
 -- ghci> flush
 -- fromList [1,2]
--- ghci> Streams.'Streams.write' (Just 3) os
--- ghci> Streams.'Streams.write' Nothing  os
--- ghci> Streams.'Streams.write' (Just 4) os
+-- ghci> Streams.'System.IO.Streams.write' (Just 3) os
+-- ghci> Streams.'System.IO.Streams.write' Nothing  os
+-- ghci> Streams.'System.IO.Streams.write' (Just 4) os
 -- ghci> flush
 -- fromList [3]
 -- @
@@ -337,7 +337,7 @@ chunkVector n input = if n <= 0
 --
 -- @
 -- ghci> let v = V.'fromList' [1..4] :: V.'Vector' Int
--- ghci> os \<- Streams.'unlines' Streams.'stdout' >>= Streams.'Streams.contramap' (S.pack . show) :: IO ('OutputStream' Int)
+-- ghci> os \<- Streams.'unlines' Streams.'stdout' >>= Streams.'System.IO.Streams.contramap' (S.pack . show) :: IO ('OutputStream' Int)
 -- ghci> Streams.'writeVector' v os
 -- 1
 -- 2

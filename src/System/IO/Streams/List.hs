@@ -120,7 +120,7 @@ outputToList f = do
 -- the stream.
 --
 -- @
--- ghci> os \<- Streams.'unlines' Streams.'Streams.stdout' >>= Streams.'Streams.contramap' (S.pack . show) :: IO ('OutputStream' Int)
+-- ghci> os \<- Streams.'unlines' Streams.'System.IO.Streams.stdout' >>= Streams.'System.IO.Streams.contramap' (S.pack . show) :: IO ('OutputStream' Int)
 -- ghci> Streams.'writeList' [1, 2] os
 -- 1
 -- 2
