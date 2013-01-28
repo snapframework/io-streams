@@ -5,7 +5,8 @@
 -- data to an 'OutputStream' for debugging.
 
 module System.IO.Streams.Debug
- ( debugInput
+ ( -- * Debuggers
+   debugInput
  , debugOutput
  , debugInputBS
  , debugOutputBS

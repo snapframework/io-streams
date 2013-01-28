@@ -3,7 +3,8 @@
 {-# LANGUAGE BangPatterns       #-}
 
 module System.IO.Streams.Concurrent
- ( inputToChan
+ ( -- * Channel conversions
+   inputToChan
  , chanToInput
  , chanToOutput
  ) where

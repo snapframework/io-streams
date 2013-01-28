@@ -2,7 +2,8 @@
 
 -- | Stream primitives for decoding and encoding 'Text' values in UTF-8 format.
 module System.IO.Streams.Text
-  ( decodeUtf8
+  ( -- * Decoders and Encoders
+    decodeUtf8
   , decodeUtf8With
   , encodeUtf8
   ) where

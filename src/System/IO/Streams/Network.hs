@@ -1,6 +1,7 @@
 -- | Converting network 'Socket's to streams.
 module System.IO.Streams.Network
-  ( socketToStreams
+  ( -- * Sockets to Streams
+    socketToStreams
   ) where
 
 ------------------------------------------------------------------------------
