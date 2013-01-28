@@ -573,12 +573,14 @@ zipWithM f src1 src2 = makeInputStream src
 --
 -- Example:
 --
--- > ghci> import qualified Data.ByteString.Char8 as S
--- > ghci> os1 <- Streams.handleToOutputStream stdout >>= Streams.unlines
--- > ghci> os2 <- os1 >>= Streams.contramap (S.pack . show) >>= Streams.filterOutput even
--- > ghci> Streams.write (Just 3) os2
--- > ghci> Streams.write (Just 4) os2
--- > 4
+-- @
+-- ghci> import qualified "Data.ByteString.Char8" as S
+-- ghci> os1 \<- Streams.'System.IO.Streams.stdout' >>= Streams.'System.IO.Streams.unlines
+-- ghci> os2 \<- os1 >>= Streams.'contramap' (S.pack . show) >>= Streams.'filterOutput' even
+-- ghci> Streams.'write' (Just 3) os2
+-- ghci> Streams.'write' (Just 4) os2
+-- 4
+-- @
 {- Note: The example is a lie, because unlines has weird behavior -}
 filterOutput :: (a -> Bool) -> OutputStream a -> IO (OutputStream a)
 filterOutput p output = makeOutputStream chunk
@@ -593,17 +595,19 @@ filterOutput p output = makeOutputStream chunk
 --
 -- Example:
 --
--- > ghci> let check a = putStrLn a ("Allow " ++ show a ++ "?") >> readLn :: IO Bool
--- > ghci> import qualified Data.ByteString.Char8 as S
--- > ghci> os1 <- Streams.handleToOutputStream stdout >>= Streams.unlines
--- > ghci> os2 <- os1 >>= Streams.contramap (S.pack . show) >>= check
--- > ghci> Streams.write (Just 3) os2
--- > Allow 3?
--- > False<Enter>
--- > ghci> Streams.write (Just 4) os2
--- > Allow 4?
--- > True<Enter>
--- > 4
+-- @
+-- ghci> let check a = putStrLn a ("Allow " ++ show a ++ "?") >> readLn :: IO Bool
+-- ghci> import qualified Data.ByteString.Char8 as S
+-- ghci> os1 <- Streams.'System.IO.Streams.unlines' Streams.'System.IO.Streams.stdout'
+-- ghci> os2 \<- os1 >>= Streams.'contramap' (S.pack . show) >>= Streams.'filterOutputM' check
+-- ghci> Streams.'System.IO.Streams.write' (Just 3) os2
+-- Allow 3?
+-- False\<Enter>
+-- ghci> Streams.'System.IO.Streams.write' (Just 4) os2
+-- Allow 4?
+-- True\<Enter>
+-- 4
+-- @
 filterOutputM :: (a -> IO Bool) -> OutputStream a -> IO (OutputStream a)
 filterOutputM p output = makeOutputStream chunk
   where
