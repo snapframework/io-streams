@@ -27,6 +27,12 @@ import           System.IO.Streams.Internal (InputStream, OutputStream,Sink (..)
 
 ------------------------------------------------------------------------------
 -- | Transforms a list into an 'InputStream' that produces no side effects.
+--
+-- @
+-- ghci> is <- Streams.'fromList' [1, 2]
+-- ghci> 'replicateM' 3 (Streams.'read' is)
+-- [Just 1, Just 2, Nothing]
+-- @
 fromList :: [c] -> IO (InputStream c)
 fromList inp = newIORef inp >>= makeInputStream . f
   where
@@ -46,6 +52,16 @@ fromList inp = newIORef inp >>= makeInputStream . f
 -- Note that this function /will/ buffer any input sent to it on the heap.
 -- Please don't use this unless you're sure that the amount of input provided
 -- is bounded and will fit in memory without issues.
+--
+-- @
+-- ghci> (os, flush) <- Streams.'listOutputStream' :: IO ('OutputStream' Int, IO [Int])
+-- ghci> Streams.'writeList' [1, 2] os
+-- ghci> flush
+-- [1, 2]
+-- ghci> Streams.'writeList' [3, 4] os
+-- ghci> flush
+-- [3, 4]
+-- @
 listOutputStream :: IO (OutputStream c, IO [c])
 listOutputStream = do
     r <- newMVar id
@@ -69,6 +85,12 @@ listOutputStream = do
 -- reads the entire 'InputStream' strictly into memory and as such is not
 -- recommended for streaming applications or where the size of the input is not
 -- bounded or known.
+--
+-- @
+-- ghci> is <- Streams.'fromList' [1, 2]
+-- ghci> Streams.'toList' is
+-- [1, 2]
+-- @
 toList :: InputStream a -> IO [a]
 toList is = outputToList (connect is)
 {-# INLINE toList #-}
@@ -96,6 +118,16 @@ outputToList f = do
 ------------------------------------------------------------------------------
 -- | Feeds a list to an 'OutputStream'. Does /not/ write an end-of-stream to
 -- the stream.
+--
+-- @
+-- ghci> os \<- Streams.'unlines' Streams.'Streams.stdout' >>= Streams.'Streams.contramap' (S.pack . show) :: IO ('OutputStream' Int)
+-- ghci> Streams.'writeList' [1, 2] os
+-- 1
+-- 2
+-- ghci> Streams.'writeList' [3, 4] os
+-- 3
+-- 4
+-- @
 writeList :: [a] -> OutputStream a -> IO ()
 writeList xs os = mapM_ (flip write os . Just) xs
 {-# INLINE writeList #-}
