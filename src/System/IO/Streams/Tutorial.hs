@@ -27,14 +27,6 @@ module System.IO.Streams.Tutorial (
     -- $examples
     ) where
 
-{-  NOTE: Please stick to the {- -} comment style until the tutorial stabilizes
-    to make it easier for me to reformat the text. -}
-
-{-  NOTE: How liberal should I be with module imports for each example?  Should
-          I respecify the imports with each new section or always assume old
-          imports and only specify new ones as I proceed through the tutorial?
--}
-
 {- $introduction
 
 The @io-streams@ package defines two \"smart handles\" for stream processing:
@@ -228,10 +220,6 @@ main = do
    Streams.'System.IO.Streams.connect' inStream2 outStream
 @
 
-{- NOTE: Maybe shorten the "Streams" qualifier for this example because I want
-         the 'connect' vs 'supply' distinction to visually stand out on the last
-         three lines. -}
-
 The final 'System.IO.Streams.connect' seals the
 'System.IO.Streams.OutputStream' when the final 'System.IO.Streams.InputStream'
 terminates.
@@ -372,93 +360,82 @@ take care to not save the reference to the previous stream.
              might encounter without this protection. -}
 -}
 
-{- $examples
-    The following examples show how to use the standard library to implement
-    traditional command-line utilities:
-
-> import Control.Monad ((>=>), join)
-> import qualified Data.ByteString.Char8 as S
-> import Data.Int (Int64)
-> import Data.Monoid ((<>))
-> import System.IO.Streams (InputStream)
-> import qualified System.IO.Streams as Streams
-> import System.IO
-> import Prelude hiding (head)
-> 
-> {- 'len' and 'drain' should probably be standard library functions -}
-> 
-> len :: InputStream a -> IO Int64
-> len = Streams.fold (\n _ -> n + 1) 0
-> 
-> drain :: InputStream a -> IO ()
-> drain is = go where
->     go = do
->         m <- Streams.read is
->         case m of
->             Nothing -> return ()
->             Just _  -> go
-> 
-> cat :: FilePath -> IO ()
-> cat file = withFile file ReadMode $ \h -> do
->     is <- Streams.handleToInputStream h
->     os <- Streams.handleToOutputStream stdout
->     Streams.connect is os
-> 
-> grep :: S.ByteString -> FilePath -> IO ()
-> grep pattern file = withFile file ReadMode $ \h -> do
->     is <- Streams.handleToInputStream h >>=
->           Streams.lines                 >>=
->           Streams.filter (S.isInfixOf pattern)
->     os <- Streams.handleToOutputStream stdout >>= Streams.unlines
->     Streams.connect is os
-> 
-> data Option = Bytes | Words | Lines
-> 
-> wc :: Option -> FilePath -> IO ()
-> wc opt file = withFile file ReadMode $
->     Streams.handleToInputStream >=> count >=> print
->   where
->     count = case opt of
->         Bytes -> \is -> do
->             (is', cnt) <- Streams.countInput is
->             drain is'
->             cnt
->         Words -> Streams.words >=> len
->         Lines -> Streams.lines >=> len
-> 
-> nl :: FilePath -> IO ()
-> nl file = withFile file ReadMode $ \h -> do
->     nats <- Streams.fromList [1..]
->     ls   <- Streams.handleToInputStream h >>= Streams.lines
->     is   <- Streams.zipWith
->                 (\n bs -> S.pack (show n) <> S.pack " " <> bs)
->                 nats
->                 ls
->     os   <- Streams.handleToOutputStream stdout >>= Streams.unlines
->     Streams.connect is os
-> 
-> head :: Int64 -> FilePath -> IO ()
-> head n file = withFile file ReadMode $ \h -> do
->     is <- Streams.handleToInputStream h >>= Streams.lines >>= Streams.take n
->     os <- Streams.handleToOutputStream stdout >>= Streams.unlines
->     Streams.connect is os
-> 
-> {- NOTE: Perhaps there should be a combinator that does the equivalent of the
->          UNIX tail command, namely keep all but the last N elements. -}
-> 
-> paste :: FilePath -> FilePath -> IO ()
-> paste file1 file2 =
->     withFile file1 ReadMode $ \h1 ->
->     withFile file2 ReadMode $ \h2 -> do
->     is1 <- Streams.handleToInputStream h1 >>= Streams.lines
->     is2 <- Streams.handleToInputStream h2 >>= Streams.lines
->     isT <- Streams.zipWith (\l1 l2 -> l1 <> S.pack "\t" <> l2) is1 is2
->     os  <- Streams.handleToOutputStream stdout >>= Streams.unlines
->     Streams.connect isT os
-> 
-> yes :: IO ()
-> yes = do
->     is <- Streams.fromList (repeat (S.pack "y"))
->     os <- Streams.handleToOutputStream stdout >>= Streams.unlines
->     Streams.connect is os
--}
+-- $examples
+-- The following examples show how to use the standard library to implement
+-- traditional command-line utilities:
+-- 
+-- @
+--{-\# LANGUAGE OverloadedStrings #-}
+--
+--import Control.Monad ((>=>), join)
+--import qualified Data.ByteString.Char8 as S
+--import Data.Int (Int64)
+--import Data.Monoid ((\<>))
+--import "System.IO.Streams" ('System.IO.Streams.InputStream')
+--import qualified "System.IO.Streams" as Streams
+--import System.IO
+--import Prelude hiding (head)
+--
+--cat :: 'FilePath' -> IO ()
+--cat file = 'System.IO.withFile' file ReadMode $ \\h -> do
+--    is <- Streams.'System.IO.Streams.handleToInputStream' h
+--    Streams.'System.IO.Streams.connect' is Streams.'System.IO.Streams.stdout'
+--
+--grep :: S.'Data.ByteString.ByteString' -> 'FilePath' -> IO ()
+--grep pattern file = 'System.IO.withFile' file ReadMode $ \\h -> do
+--    is \<- Streams.'System.IO.Streams.handleToInputStream' h >>=
+--          Streams.'System.IO.Streams.lines'                 >>=
+--          Streams.'System.IO.Streams.filter' (S.isInfixOf pattern)
+--    os <- Streams.'System.IO.Streams.unlines' Streams.'System.IO.Streams.stdout'
+--    Streams.'System.IO.Streams.connect' is os
+--
+--data Option = Bytes | Words | Lines
+--
+--len :: 'System.IO.Streams.InputStream' a -> IO Int64
+--len = Streams.'System.IO.Streams.fold' (\\n _ -> n + 1) 0
+--
+--wc :: Option -> 'FilePath' -> IO ()
+--wc opt file = 'System.IO.withFile' file ReadMode $
+--    Streams.'System.IO.Streams.handleToInputStream' >=> count >=> print
+--  where
+--    count = case opt of
+--        Bytes -> \\is -> do
+--            (is', cnt) <- Streams.'System.IO.Streams.countInput' is
+--            Streams.'System.IO.Streams.skipToEof' is'
+--            cnt
+--        Words -> Streams.'System.IO.Streams.words' >=> len
+--        Lines -> Streams.'System.IO.STreams.lines' >=> len
+--
+--nl :: 'FilePath' -> IO ()
+--nl file = 'System.IO.withFile' file ReadMode $ \\h -> do
+--    nats <- Streams.'System.IO.Streams.fromList' [1..]
+--    ls   \<- Streams.'System.IO.Streams.handleToInputStream' h >>= Streams.'System.IO.Streams.lines'
+--    is   <- Streams.'System.IO.Streams.zipWith'
+--                (\\n bs -> S.pack (show n) \<> \" \" \<> bs)
+--                nats
+--                ls
+--    os   <- Streams.'System.IO.Streams.unlines' Streams.'System.IO.Streams.stdout'
+--    Streams.'System.IO.Streams.connect' is os
+--
+--head :: Int64 -> 'FilePath' -> IO ()
+--head n file = 'System.IO.withFile' file ReadMode $ \\h -> do
+--    is \<- Streams.'System.IO.Streams.handleToInputStream' h >>= Streams.'System.IO.Streams.lines' >>= Streams.'System.IO.Streams.take' n
+--    os <- Streams.'System.IO.Streams.unlines' Streams.'System.IO.Streams.stdout'
+--    Streams.'System.IO.Streams.connect' is os
+--
+--paste :: 'FilePath' -> 'FilePath' -> IO ()
+--paste file1 file2 =
+--    'System.IO.withFile' file1 ReadMode $ \\h1 ->
+--    'System.IO.withFile' file2 ReadMode $ \\h2 -> do
+--    is1 \<- Streams.'System.IO.Streams.handleToInputStream' h1 >>= Streams.'System.IO.Streams.lines'
+--    is2 \<- Streams.'System.IO.Streams.handleToInputStream' h2 >>= Streams.'System.IO.Streams.lines'
+--    isT \<- Streams.'System.IO.Streams.zipWith' (\\l1 l2 -> l1 \<> \"\\t\" \<> l2) is1 is2
+--    os  <- Streams.'System.IO.Streams.unlines' Streams.'System.IO.Streams.stdout'
+--    Streams.connect isT os
+--
+--yes :: IO ()
+--yes = do
+--    is <- Streams.fromList (repeat \"y\")
+--    os <- Streams.unlines Streams.stdout
+--    Streams.connect is os
+-- @
