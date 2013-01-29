@@ -1,6 +1,6 @@
 -- | Stream utilities for working with concurrent channels.
 
-{-# LANGUAGE BangPatterns       #-}
+{-# LANGUAGE BangPatterns #-}
 
 module System.IO.Streams.Concurrent
  ( -- * Channel conversions
@@ -11,24 +11,21 @@ module System.IO.Streams.Concurrent
  ) where
 
 ------------------------------------------------------------------------------
-import Control.Concurrent         ( forkIO )
-import Control.Concurrent.Chan    ( Chan, readChan, writeChan )
-import Control.Concurrent.MVar    ( newEmptyMVar, putMVar, takeMVar )
-import Control.Exception          ( mask, try, throwIO, SomeException)
-import Control.Monad              ( forM_ )
-import Data.Maybe                 ( isNothing )
-import Prelude             hiding ( read )
+import           Control.Concurrent         (forkIO)
+import           Control.Concurrent.Chan    (Chan, readChan, writeChan)
+import           Control.Concurrent.MVar    (modifyMVar, newEmptyMVar,
+                                             newMVar, putMVar, takeMVar)
+import           Control.Exception          (SomeException, mask, throwIO,
+                                             try)
+import           Control.Monad              (forM_)
+import           Data.Maybe                 (isNothing)
+import           Prelude                    hiding (read)
 ------------------------------------------------------------------------------
-import System.IO.Streams.Internal ( InputStream
-                                  , OutputStream
-                                  , SP (..)
-                                  , makeInputStream
-                                  , makeOutputStream
-                                  , nullSource
-                                  , sourceToStream
-                                  , withDefaultPushback
-                                  , read
-                                  )
+import           System.IO.Streams.Internal (InputStream, OutputStream,
+                                             SP (..), makeInputStream,
+                                             makeOutputStream, nullSource,
+                                             read, sourceToStream,
+                                             withDefaultPushback)
 
 ------------------------------------------------------------------------------
 -- | Writes the contents of an input stream to a channel until the input stream
@@ -62,16 +59,19 @@ chanToOutput = makeOutputStream . writeChan
 
 
 ------------------------------------------------------------------------------
--- | Concurrently merges two 'InputStream's combining values in the order they
--- become available
+-- | Concurrently merges a list of 'InputStream's, combining values in the
+-- order they become available.
 --
--- Does /not/ forward end-of-stream notifications
+-- Note: does /not/ forward individual end-of-stream notifications, the
+-- produced stream does not yield end-of-stream until all of the input streams
+-- have finished.
 --
 -- This traps exceptions in each concurrent thread and re-raises them in the
--- current thread
+-- current thread.
 concurrentMerge :: [InputStream a] -> IO (InputStream a)
 concurrentMerge iss = do
-    mv <- newEmptyMVar
+    mv    <- newEmptyMVar
+    nleft <- newMVar $! length iss
     mask $ \restore -> forM_ iss $ \is -> forkIO $ do
         let producer = do
                 emb <- try $ restore $ read is
@@ -79,13 +79,25 @@ concurrentMerge iss = do
                     Left exc       -> do
                         putMVar mv (Left (exc :: SomeException))
                         producer
-                    Right (Just a) -> do
-                        putMVar mv (Right a)
+                    Right x@(Just a) -> do
+                        putMVar mv (Right x)
                         producer
-                    Right Nothing  -> return ()
+                    Right Nothing  -> putMVar mv $! Right Nothing
         producer
-    makeInputStream $ do
+    makeInputStream $ chunk mv nleft
+
+  where
+    chunk mv nleft = do
         emb <- takeMVar mv
         case emb of
-            Left exc -> throwIO exc
-            Right a  -> return (Just a)
+            Left exc      -> throwIO exc
+            Right Nothing -> do
+                               b <- modifyMVar nleft $ \n ->
+                                    let !n' = n - 1
+                                    in return $! if n' == 0
+                                                   then (n', False)
+                                                   else (n', True)
+                               if b
+                                 then chunk mv nleft
+                                 else return Nothing
+            Right x       -> return x
