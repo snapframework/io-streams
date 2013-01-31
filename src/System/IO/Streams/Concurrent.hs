@@ -74,15 +74,12 @@ concurrentMerge iss = do
     nleft <- newMVar $! length iss
     mask $ \restore -> forM_ iss $ \is -> forkIO $ do
         let producer = do
-                emb <- try $ restore $ read is
-                case emb of
-                    Left exc       -> do
-                        putMVar mv (Left (exc :: SomeException))
-                        producer
-                    Right x@(Just a) -> do
-                        putMVar mv (Right x)
-                        producer
-                    Right Nothing  -> putMVar mv $! Right Nothing
+              emb <- try $ restore $ read is
+              case emb of
+                  Left exc      -> do putMVar mv (Left (exc :: SomeException))
+                                      producer
+                  Right Nothing -> putMVar mv $! Right Nothing
+                  Right x       -> putMVar mv (Right x) >> producer
         producer
     makeInputStream $ chunk mv nleft
 
@@ -91,13 +88,12 @@ concurrentMerge iss = do
         emb <- takeMVar mv
         case emb of
             Left exc      -> throwIO exc
-            Right Nothing -> do
-                               b <- modifyMVar nleft $ \n ->
-                                    let !n' = n - 1
-                                    in return $! if n' == 0
-                                                   then (n', False)
-                                                   else (n', True)
-                               if b
-                                 then chunk mv nleft
-                                 else return Nothing
+            Right Nothing -> do b <- modifyMVar nleft $ \n ->
+                                     let !n' = n - 1
+                                     in return $! if n' == 0
+                                                    then (n', False)
+                                                    else (n', True)
+                                if b
+                                  then chunk mv nleft
+                                  else return Nothing
             Right x       -> return x
