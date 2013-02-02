@@ -48,6 +48,7 @@ tests = [ testBoyerMoore
         , testTrivials
         , testWriteLazyByteString
         , testGiveBytes
+        , testGiveExactly
         , testLines
         , testWords
         ]
@@ -277,6 +278,19 @@ testThrowIfConsumesMoreThan2 =
              write (Just "blah") os'
              nil <- liftM L.fromChunks grab
              assertEqual "nil after eof" "" nil
+
+
+------------------------------------------------------------------------------
+testGiveExactly :: Test
+testGiveExactly = testCase "bytestring/giveExactly" $ do
+    f 2 >>= assertEqual "ok" ["ok"]
+    expectExceptionH $ f 1
+    expectExceptionH $ f 3
+
+  where
+    f n = do
+      is <- fromList ["ok"]
+      outputToList (giveExactly n >=> connect is)
 
 
 ------------------------------------------------------------------------------
@@ -583,6 +597,8 @@ testTrivials :: Test
 testTrivials = testCase "bytestring/testTrivials" $ do
     coverTypeableInstance (undefined :: TooManyBytesReadException)
     coverShowInstance     (undefined :: TooManyBytesReadException)
+    coverTypeableInstance (undefined :: TooFewBytesWrittenException)
+    coverShowInstance     (undefined :: TooFewBytesWrittenException)
     coverTypeableInstance (undefined :: TooManyBytesWrittenException)
     coverShowInstance     (undefined :: TooManyBytesWrittenException)
     coverTypeableInstance (undefined :: RateTooSlowException)

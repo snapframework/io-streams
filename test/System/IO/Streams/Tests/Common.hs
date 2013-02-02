@@ -1,21 +1,21 @@
-{-# LANGUAGE FlexibleInstances    #-}
-{-# LANGUAGE ScopedTypeVariables  #-}
+{-# LANGUAGE FlexibleInstances   #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module System.IO.Streams.Tests.Common where
 
 ------------------------------------------------------------------------------
 import           Control.DeepSeq
 import           Control.Exception
+import qualified Control.Exception        as E
 import           Control.Monad
 import           Control.Monad.Trans
-import qualified Data.ByteString as S
-import qualified Data.ByteString.Lazy as L
+import qualified Data.ByteString          as S
 import           Data.ByteString.Internal (c2w)
+import qualified Data.ByteString.Lazy     as L
 import           Data.Typeable
-import           Prelude hiding (catch)
 import           Test.QuickCheck
-import qualified Test.QuickCheck.Monadic as QC
 import           Test.QuickCheck.Monadic
+import qualified Test.QuickCheck.Monadic  as QC
 
 
 ------------------------------------------------------------------------------
@@ -31,7 +31,7 @@ instance Arbitrary L.ByteString where
 
 ------------------------------------------------------------------------------
 eatException :: IO a -> IO ()
-eatException a = (a >> return ()) `catch` handler
+eatException a = (a >> return ()) `E.catch` handler
   where
     handler :: SomeException -> IO ()
     handler _ = return ()

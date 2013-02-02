@@ -23,6 +23,7 @@ module System.IO.Streams.ByteString
 
    -- ** Other
  , giveBytes
+ , giveExactly
  , takeBytes
  , throwIfConsumesMoreThan
  , throwIfProducesMoreThan
@@ -39,6 +40,7 @@ module System.IO.Streams.ByteString
  , ReadTooShortException
  , TooManyBytesReadException
  , TooManyBytesWrittenException
+ , TooFewBytesWrittenException
 
  ) where
 
@@ -380,6 +382,17 @@ instance Exception TooManyBytesReadException
 
 
 ------------------------------------------------------------------------------
+-- | Thrown by 'giveExactly' when too few bytes were written to the produced
+-- 'OutputStream'.
+data TooFewBytesWrittenException = TooFewBytesWrittenException deriving (Typeable)
+
+instance Show TooFewBytesWrittenException where
+    show TooFewBytesWrittenException = "Too few bytes written"
+
+instance Exception TooFewBytesWrittenException
+
+
+------------------------------------------------------------------------------
 -- | Thrown by 'throwIfConsumesMoreThan' when too many bytes were sent to the
 -- produced 'OutputStream'.
 data TooManyBytesWrittenException =
@@ -569,6 +582,46 @@ giveBytes k0 str = sinkToStream $ sink k0
 
     h Nothing = write Nothing str >> return nullSink
     h _       = return nullSink
+
+
+------------------------------------------------------------------------------
+-- | Wraps an 'OutputStream', producing a new stream that will pass along
+-- exactly @n@ bytes to the wrapped stream. If the stream is sent more or fewer
+-- than the given number of bytes, the resulting stream will throw an exception
+-- (either 'TooFewBytesWrittenException' or 'TooManyBytesWrittenException')
+-- during a call to 'write'.
+--
+-- Example:
+--
+-- @
+-- ghci> is <- Streams.'System.IO.Streams.fromList' [\"ok\"]
+-- ghci> Streams.'System.IO.Streams.outputToList' (Streams.'giveExactly' 2 >=> Streams.'System.IO.Streams.connect' is)
+-- [\"ok\"]
+-- ghci> is <- Streams.'System.IO.Streams.fromList' [\"ok\"]
+-- ghci> Streams.'System.IO.Streams.outputToList' (Streams.'giveExactly' 1 >=> Streams.'System.IO.Streams.connect' is)
+-- *** Exception: Too many bytes written
+-- ghci> is <- Streams.'System.IO.Streams.fromList' [\"ok\"]
+-- ghci> Streams.'System.IO.Streams.outputToList' (Streams.'giveExactly' 3 >=> Streams.'System.IO.Streams.connect' is)
+-- *** Exception: Too few bytes written
+-- @
+giveExactly :: Int64
+            -> OutputStream ByteString
+            -> IO (OutputStream ByteString)
+giveExactly k0 os = do
+    ref <- newIORef k0
+    makeOutputStream $ go ref
+  where
+    go ref chunk = do
+        !n <- readIORef ref
+        case chunk of
+          Nothing -> if n /= 0
+                       then throwIO TooFewBytesWrittenException
+                       else return $! ()
+          Just s  -> let n' = n - fromIntegral (S.length s)
+                     in if n' < 0
+                          then throwIO TooManyBytesWrittenException
+                          else do writeIORef ref n'
+        write chunk os
 
 
 ------------------------------------------------------------------------------
