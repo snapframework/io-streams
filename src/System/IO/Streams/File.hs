@@ -11,13 +11,15 @@ module System.IO.Streams.File
   , withFileAsInputStartingAt
   , unsafeWithFileAsInputStartingAt
   , withFileAsOutput
+  , withFileAsOutputExt
   ) where
 
 ------------------------------------------------------------------------------
 import           Control.Monad              (unless)
 import           Data.ByteString            (ByteString)
 import           Data.Int                   (Int64)
-import           System.IO                  (BufferMode, IOMode (ReadMode),
+import           System.IO                  (BufferMode (NoBuffering),
+                                             IOMode (ReadMode, WriteMode),
                                              SeekMode (AbsoluteSeek), hSeek,
                                              hSetBuffering, withBinaryFile)
 ------------------------------------------------------------------------------
@@ -73,10 +75,20 @@ unsafeWithFileAsInputStartingAt = withFileAsInputStartingAt
 -- 'InputStream'.
 withFileAsOutput
     :: FilePath                           -- ^ file to open
+    -> (OutputStream ByteString -> IO a)  -- ^ function to run
+    -> IO a
+withFileAsOutput f = withFileAsOutputExt f WriteMode NoBuffering
+
+
+------------------------------------------------------------------------------
+-- | Like 'withFileAsOutput', but allowing you control over the output file
+-- mode and buffering behaviour.
+withFileAsOutputExt
+    :: FilePath                           -- ^ file to open
     -> IOMode                             -- ^ mode to write in
     -> BufferMode                         -- ^ should we buffer the output?
     -> (OutputStream ByteString -> IO a)  -- ^ function to run
     -> IO a
-withFileAsOutput fp iomode buffermode m = withBinaryFile fp iomode $ \h -> do
+withFileAsOutputExt fp iomode buffermode m = withBinaryFile fp iomode $ \h -> do
     hSetBuffering h buffermode
     handleToOutputStream h >>= m
