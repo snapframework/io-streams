@@ -50,17 +50,17 @@ copyingListOutputStream = do
 testFiles :: Test
 testFiles = testCase "file/files" $ do
     createDirectoryIfMissing False "tmp"
-    sequence_ [tst1, tst2, tst3, tst4] `finally` cleanup
+    sequence_ [tst1, tst2, tst3, tst4, tst5] `finally` cleanup
 
   where
     fn x = ("tmp" </> "data") ++ show (x :: Int)
 
     cleanup = eatException $ do
-                  mapM_ (eatException . removeFile . fn) [1, 2, 3]
+                  mapM_ (eatException . removeFile . fn) [1, 2, 3, 4, 5]
                   removeDirectory "tmp"
 
     tst mode n = do
-        withFileAsOutput (fn n) mode (BlockBuffering $ Just 2048) $ \os -> do
+        withFileAsOutputExt (fn n) mode (BlockBuffering $ Just 2048) $ \os -> do
             let l = "" : (intersperse " " ["the", "quick", "brown", "fox"])
             fromList l >>= connectTo os
 
@@ -71,6 +71,13 @@ testFiles = testCase "file/files" $ do
     tst2 = tst AppendMode 2
     tst3 = tst ReadWriteMode 3
     tst4 = expectExceptionH (tst ReadMode 4)
+    tst5 = do
+        withFileAsOutput (fn 5) $ \os -> do
+            let l = "" : (intersperse " " ["the", "quick", "brown", "fox"])
+            fromList l >>= connectTo os
+
+        l <- liftM S.concat $ withFileAsInput (fn 5) toList
+        assertEqual "testFiles" "the quick brown fox" l
 
 
 ------------------------------------------------------------------------------
@@ -88,7 +95,7 @@ testBigFiles = testCase "file/bigFiles" $ do
         let l = L.take testSz $ L.cycle $
                 L.fromChunks (intersperse " " ["the", "quick", "brown", "fox"])
 
-        withFileAsOutput fn WriteMode NoBuffering $ \os -> do
+        withFileAsOutputExt fn WriteMode NoBuffering $ \os -> do
             fromList [S.concat $ L.toChunks l] >>= connectTo os
 
         l1 <- liftM L.fromChunks $ withFileAsInput fn toList
