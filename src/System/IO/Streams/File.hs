@@ -70,9 +70,8 @@ unsafeWithFileAsInputStartingAt = withFileAsInputStartingAt
 
 
 ------------------------------------------------------------------------------
--- | Like 'withFileAsInput', but opens the file for writing using the specified
--- IO mode, and attaches the file to an 'OutputStream' instead of an
--- 'InputStream'.
+-- | Open a file for writing and  attaches an 'OutputStream' for you to write
+-- to. The file will be closed on error or completion of your action.
 withFileAsOutput
     :: FilePath                           -- ^ file to open
     -> (OutputStream ByteString -> IO a)  -- ^ function to run
