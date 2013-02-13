@@ -7,7 +7,6 @@ Build-type:          Simple
 Maintainer:          Gregory Collins <greg@gregorycollins.net>
 Cabal-version:       >= 1.10
 Synopsis:            Simple, composable, and easy-to-use stream I/O
-Extra-Source-Files:  README.md
 Description:
   /Overview/
   .
@@ -75,7 +74,7 @@ Description:
   .
     * support for parsing from streams using @attoparsec@.
 
-Extra-Source-Files:  CONTRIBUTORS
+Extra-Source-Files:  CONTRIBUTORS README.md
 
 ------------------------------------------------------------------------------
 Library
