@@ -32,4 +32,4 @@ socketToStreams socket = do
         return $! if S.null s then Nothing else Just s
 
     output Nothing  = return $! ()
-    output (Just s) = N.sendAll socket s
+    output (Just s) = if S.null s then return $! () else N.sendAll socket s
