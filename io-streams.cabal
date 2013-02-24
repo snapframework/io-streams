@@ -119,6 +119,9 @@ Library
                      vector        >= 0.7   && <0.11,
                      zlib-bindings >= 0.1   && <0.2
 
+  if impl(ghc >= 7.2)
+    other-extensions: Trustworthy
+
   other-extensions:
     BangPatterns,
     CPP,
@@ -126,8 +129,7 @@ Library
     GeneralizedNewtypeDeriving,
     MultiParamTypeClasses,
     OverloadedStrings,
-    RankNTypes,
-    Trustworthy
+    RankNTypes
 
 ------------------------------------------------------------------------------
 Test-suite testsuite
@@ -197,6 +199,9 @@ Test-suite testsuite
                      test-framework-quickcheck2 >= 0.2.12.1 && <0.3,
                      zlib                       >= 0.5      && <0.6
 
+  if impl(ghc >= 7.2)
+    other-extensions: Trustworthy
+
   other-extensions:
     BangPatterns,
     CPP,
@@ -204,8 +209,7 @@ Test-suite testsuite
     GeneralizedNewtypeDeriving,
     MultiParamTypeClasses,
     OverloadedStrings,
-    RankNTypes,
-    Trustworthy
+    RankNTypes
 
 source-repository head
   type:     git

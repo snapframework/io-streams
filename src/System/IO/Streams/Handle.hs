@@ -1,5 +1,8 @@
 {-# LANGUAGE CPP         #-}
+
+#if __GLASGOW_HASKELL__ >= 702
 {-# LANGUAGE Trustworthy #-}
+#endif
 
 -- | Input and output streams for file 'Handle's.
 module System.IO.Streams.Handle
