@@ -363,7 +363,7 @@ take care to not save the reference to the previous stream.
 -- $examples
 -- The following examples show how to use the standard library to implement
 -- traditional command-line utilities:
--- 
+--
 -- @
 --{-\# LANGUAGE OverloadedStrings #-}
 --

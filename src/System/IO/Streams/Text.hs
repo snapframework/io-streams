@@ -14,7 +14,7 @@ import           Control.Monad.IO.Class        (MonadIO (..))
 import           Data.ByteString               (ByteString)
 import qualified Data.ByteString               as S
 import qualified Data.ByteString.Unsafe        as S
-import           Data.Monoid                   ((<>))
+import           Data.Monoid                   (mappend)
 import           Data.Text                     (Text)
 import qualified Data.Text.Encoding            as T
 import           Data.Text.Encoding.Error      (OnDecodeError)
@@ -67,7 +67,7 @@ decode decodeFunc input = Streams.fromGenerator $ go Nothing
     finish (Just x) = Streams.yield $! decodeFunc x
 
     chunk Nothing  s = process s
-    chunk (Just a) b = process $ a <> b
+    chunk (Just a) b = process $ a `mappend` b
 
     process !s =
       case findLastFullCode s of
