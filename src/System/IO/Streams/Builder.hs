@@ -120,6 +120,10 @@ builderStream = builderStreamWith (allNewBuffersStrategy defaultBufferSize)
 -- 'Data.ByteString.copy' to ensure that you have a fresh copy of the
 -- underlying string.
 --
+-- You can create a Buffer with
+-- 'Blaze.ByteString.Builder.Internal.Buffer.allocBuffer'.
+--
+--
 unsafeBuilderStream :: IO Buffer
                     -> OutputStream ByteString
                     -> IO (OutputStream Builder)
