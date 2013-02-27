@@ -27,7 +27,7 @@
 -- @
 -- do
 --     newStream <- Streams.'builderStream' someOutputStream
---     Streams.'write' ('Blaze.ByteString.Builder.fromByteString' \"hello\") newStream
+--     Streams.'write' ('Just' $ 'Blaze.ByteString.Builder.fromByteString' \"hello\") newStream
 --     ....
 -- @
 --
@@ -36,7 +36,7 @@
 --
 -- @
 --     ....
---     Streams.'write' 'Blaze.ByteString.Builder.flush' newStream
+--     Streams.'write' ('Just' 'Blaze.ByteString.Builder.flush') newStream
 --     ....
 -- @
 --
@@ -78,13 +78,9 @@ import           Blaze.ByteString.Builder.Internal.Types  (BufRange (..),
                                                            Builder (..),
                                                            buildStep)
 ------------------------------------------------------------------------------
-import           Blaze.ByteString.Builder.Internal.Buffer (Buffer,
-                                                           BufferAllocStrategy,
-                                                           allNewBuffersStrategy,
-                                                           execBuildStep,
-                                                           reuseBufferStrategy,
-                                                           unsafeFreezeBuffer,
-                                                           unsafeFreezeNonEmptyBuffer,
+import           Blaze.ByteString.Builder.Internal.Buffer (Buffer, BufferAllocStrategy, allNewBuffersStrategy,
+                                                           execBuildStep, reuseBufferStrategy,
+                                                           unsafeFreezeBuffer, unsafeFreezeNonEmptyBuffer,
                                                            updateEndOfSlice)
 ------------------------------------------------------------------------------
 import           Control.Monad                            (when)
@@ -92,8 +88,10 @@ import           Data.ByteString.Char8                    (ByteString)
 import qualified Data.ByteString.Char8                    as S
 ------------------------------------------------------------------------------
 import           System.IO.Streams.Internal               (OutputStream,
-                                                           Sink (..), nullSink,
-                                                           sinkToStream, write)
+                                                           Sink (..),
+                                                           nullSink,
+                                                           sinkToStream,
+                                                           write)
 
 
 ------------------------------------------------------------------------------
