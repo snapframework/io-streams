@@ -8,6 +8,10 @@ module System.IO.Streams.ByteString
    countInput
  , countOutput
 
+   -- * Treating strings as streams
+ , fromByteString
+ , fromLazyByteString
+
    -- * Input and output
  , readExactly
  , takeBytesWhile
@@ -74,7 +78,7 @@ import           System.IO.Streams.Internal        (InputStream, OutputStream,
                                                     sourceToStream, unRead,
                                                     write)
 import           System.IO.Streams.Internal.Search (MatchInfo (..), search)
-import           System.IO.Streams.List            (writeList)
+import           System.IO.Streams.List            (fromList, writeList)
 ------------------------------------------------------------------------------
 
 {-# INLINE modifyRef #-}
@@ -98,6 +102,18 @@ writeLazyByteString :: L.ByteString             -- ^ string to write to output
                     -> IO ()
 writeLazyByteString = writeList . L.toChunks
 {-# INLINE writeLazyByteString #-}
+
+
+------------------------------------------------------------------------------
+-- | Creates an 'InputStream' from a 'ByteString'.
+fromByteString :: ByteString -> IO (InputStream ByteString)
+fromByteString = fromList . (:[])
+
+
+------------------------------------------------------------------------------
+-- | Creates an 'InputStream' from a lazy 'ByteString'.
+fromLazyByteString :: L.ByteString -> IO (InputStream ByteString)
+fromLazyByteString = fromList . L.toChunks
 
 
 ------------------------------------------------------------------------------

@@ -18,7 +18,7 @@ import           Test.HUnit                           hiding (Test)
 import           Test.QuickCheck                      hiding (output)
 import           Test.QuickCheck.Monadic
 ------------------------------------------------------------------------------
-import           System.IO.Streams
+import           System.IO.Streams                    hiding (fromByteString)
 import           System.IO.Streams.Tests.Common
 
 tests :: [Test]

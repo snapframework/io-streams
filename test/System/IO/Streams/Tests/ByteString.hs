@@ -170,7 +170,7 @@ testTakeBytes2 = testProperty "bytestring/takeBytes2" $
 ------------------------------------------------------------------------------
 testTakeBytes3 :: Test
 testTakeBytes3 = testCase "bytestring/takeBytes3" $ do
-    is <- fromList ["The", "quick", "brown", "fox"::ByteString] >>=
+    is <- fromLazyByteString (L.fromChunks ["The", "quick", "brown", "fox"]) >>=
           takeBytes 100
     _  <- toList is
     m  <- read is
@@ -289,7 +289,7 @@ testGiveExactly = testCase "bytestring/giveExactly" $ do
 
   where
     f n = do
-      is <- fromList ["ok"]
+      is <- fromByteString "ok"
       outputToList (giveExactly n >=> connect is)
 
 

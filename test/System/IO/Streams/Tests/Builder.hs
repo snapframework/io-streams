@@ -6,13 +6,16 @@ module System.IO.Streams.Tests.Builder (tests) where
 import           Blaze.ByteString.Builder
 import           Blaze.ByteString.Builder.Internal.Buffer
 import           Control.Monad
-import qualified Data.ByteString.Char8 as S
+import qualified Data.ByteString.Char8                    as S
 import           Data.List
 import           Data.Monoid
-import           System.IO.Streams hiding (intersperse, map, take)
+import           System.IO.Streams                        hiding
+                                                           (fromByteString,
+                                                           intersperse, map,
+                                                           take)
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
-import           Test.HUnit hiding (Test)
+import           Test.HUnit                               hiding (Test)
 ------------------------------------------------------------------------------
 
 tests :: [Test]
