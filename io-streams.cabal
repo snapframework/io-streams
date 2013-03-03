@@ -30,10 +30,10 @@ Description:
   @OutputStream a@, and three fundamental I/O primitives:
   .
   @
-  \-\- read an item from a stream
+  \-\- read an item from an input stream
   Streams.'System.IO.Streams.read' :: 'System.IO.Streams.InputStream' a -> IO (Maybe a)
   .
-  \-\- push an item back to a stream
+  \-\- push an item back to an input stream
   Streams.'System.IO.Streams.unRead' :: a -> 'System.IO.Streams.InputStream' a -> IO ()
   .
   \-\- write to an output stream
