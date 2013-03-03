@@ -50,7 +50,7 @@ Description:
   Stream composition leaves the original stream accessible:
   .
   @
-  ghci> input \<- Streams.fromList [\"long string\" :: ByteString]
+  ghci> input \<- Streams.fromByteString \"long string\"
   ghci> wrapped \<- Streams.takeBytes 4 input
   ghci> read wrapped
   Just \"long\"
