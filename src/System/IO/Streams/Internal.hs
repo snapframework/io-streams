@@ -298,11 +298,11 @@ data Sink c = Sink {
 
 
 ------------------------------------------------------------------------------
--- | 'appendSource' concatenates two 'Source's, analogous to ('++') for lists.
+-- | appendSource concatenates two 'Source's, analogous to ('++') for lists.
 --
 -- The second 'Source' continues where the first 'Source' ends.
 --
--- 'appendSource' defines a monoid with 'nullSource' as the identity:
+-- appendSource defines a monoid with 'nullSource' as the identity:
 --
 -- > nullSource `appendSource` s = s
 -- >
