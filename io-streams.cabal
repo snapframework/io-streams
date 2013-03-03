@@ -61,18 +61,18 @@ Description:
   @
   .
   Simple types and operations in the IO monad mean straightforward and simple
-  exception handling and resource cleanup using standard Haskell facilities
-  like 'Control.Exception.bracket'.
+  exception handling and resource cleanup using Haskell standard library
+  facilities like 'Control.Exception.bracket'.
   .
   @io-streams@ comes with:
   .
-    * functions to transform files, handles, channels, sockets, and more to
-      streams.
+    * functions to use files, handles, concurrent channels, sockets, lists,
+      vectors, and more as streams.
   .
     * a variety of combinators for wrapping and transforming streams, including
       compression and decompression using zlib, controlling precisely how many
-      bytes are read to or written from a socket, buffering output using
-      bytestring builders, etc.
+      bytes are read from or written to a stream, buffering output using
+      bytestring builders, folds, maps, filters, zips, etc.
   .
     * support for parsing from streams using @attoparsec@.
 
