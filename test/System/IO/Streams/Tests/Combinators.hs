@@ -15,11 +15,12 @@ import           Data.List                            hiding (drop, filter,
                                                        take, unzip, zip,
                                                        zipWith)
 import           Prelude                              hiding (drop, filter,
-                                                       mapM, mapM_, read, take,
-                                                       unzip, zip, zipWith)
+                                                       mapM, mapM_, read,
+                                                       take, unzip, zip,
+                                                       zipWith)
 import qualified Prelude
-import           System.IO.Streams                    hiding (all, any, maximum,
-                                                       minimum)
+import           System.IO.Streams                    hiding (all, any,
+                                                       maximum, minimum)
 import qualified System.IO.Streams                    as S
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
@@ -55,6 +56,7 @@ tests = [ testFilter
         , testDrop
         , testGive
         , testIgnore
+        , testIgnoreEof
         ]
 
 
@@ -395,3 +397,21 @@ testIgnore = testCase "combinators/ignore" $ forM_ [0..12] tign
              outputToList (\os -> ignore n os >>= connect is) >>=
              assertEqual ("ignore" ++ show n)
                          (Prelude.drop (fromEnum n) [1..10])
+
+
+------------------------------------------------------------------------------
+testIgnoreEof :: Test
+testIgnoreEof = testCase "combinators/ignoreEof" $ do
+    eofRef   <- newIORef 0
+    chunkRef <- newIORef []
+    str0 <- S.makeOutputStream $ f eofRef chunkRef
+    str  <- S.ignoreEof str0
+    S.write (Just 0) str
+    S.write Nothing str
+
+    readIORef eofRef >>= assertEqual "eof ignored" (0::Int)
+    readIORef chunkRef >>= assertEqual "input propagated" [0::Int]
+
+  where
+    f ref _ Nothing    = modifyIORef ref (+1)
+    f _ chunk (Just x) = modifyIORef chunk (++ [x])

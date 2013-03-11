@@ -46,6 +46,7 @@ module System.IO.Streams.Combinators
    -- * Utility
  , intersperse
  , skipToEof
+ , ignoreEof
  ) where
 
 ------------------------------------------------------------------------------
@@ -55,15 +56,17 @@ import           Control.Monad.IO.Class     (liftIO)
 import           Data.Int                   (Int64)
 import           Data.IORef                 (atomicModifyIORef, modifyIORef,
                                              newIORef, readIORef, writeIORef)
-import           Prelude                    hiding (all, any, drop, filter, map,
-                                             mapM, mapM_, maximum, minimum,
-                                             read, take, unzip, zip, zipWith)
+import           Prelude                    hiding (all, any, drop, filter,
+                                             map, mapM, mapM_, maximum,
+                                             minimum, read, take, unzip, zip,
+                                             zipWith)
 ------------------------------------------------------------------------------
-import           System.IO.Streams.Internal (InputStream, OutputStream, SP (..),
-                                             Source (..), fromGenerator,
-                                             makeInputStream, makeOutputStream,
-                                             read, sourceToStream, unRead,
-                                             write, yield)
+import           System.IO.Streams.Internal (InputStream, OutputStream,
+                                             SP (..), Source (..),
+                                             fromGenerator, makeInputStream,
+                                             makeOutputStream, read,
+                                             sourceToStream, unRead, write,
+                                             yield)
 
 ------------------------------------------------------------------------------
 -- | A side-effecting fold over an 'OutputStream', as a stream transformer.
@@ -761,3 +764,16 @@ ignore k output = newIORef k >>= makeOutputStream . chunk
                     if n > 0
                       then writeIORef ref $! n - 1
                       else write (Just x) output
+
+
+------------------------------------------------------------------------------
+-- | Wraps an 'OutputStream', ignoring any end-of-stream 'Nothing' values
+-- written to the returned stream.
+--
+-- Since: 1.0.1.0
+--
+ignoreEof :: OutputStream a -> IO (OutputStream a)
+ignoreEof s = makeOutputStream f
+  where
+    f Nothing  = return $! ()
+    f x        = write x s

@@ -1,5 +1,5 @@
 Name:                io-streams
-Version:             1.0.0.1
+Version:             1.0.1.0
 License:             BSD3
 License-file:        LICENSE
 Category:            Data, Network, IO-Streams
@@ -75,6 +75,12 @@ Description:
       bytestring builders, folds, maps, filters, zips, etc.
   .
     * support for parsing from streams using @attoparsec@.
+  .
+  /ChangeLog/
+  .
+    [@1.0.1.0@] Added 'System.IO.Streams.Combinators.ignoreEof'.
+  .
+    [@1.0.0.1@] Fixed some haddock markup.
 
 Extra-Source-Files:  CONTRIBUTORS README.md
 
