@@ -28,6 +28,7 @@ System.IO.Streams.Tests.Handle
 System.IO.Streams.Tests.Internal
 System.IO.Streams.Tests.List
 System.IO.Streams.Tests.Network
+System.IO.Streams.Tests.Process
 System.IO.Streams.Tests.Text
 System.IO.Streams.Tests.Vector
 System.IO.Streams.Tests.Zlib

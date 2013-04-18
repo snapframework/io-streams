@@ -57,6 +57,7 @@ tests = [ testFilter
         , testGive
         , testIgnore
         , testIgnoreEof
+        , testAtEnd
         ]
 
 
@@ -415,3 +416,16 @@ testIgnoreEof = testCase "combinators/ignoreEof" $ do
   where
     f ref _ Nothing    = modifyIORef ref (+1)
     f _ chunk (Just x) = modifyIORef chunk (++ [x])
+
+
+------------------------------------------------------------------------------
+testAtEnd :: Test
+testAtEnd = testCase "combinators/atEndOfInput" $ do
+    boolRef <- newIORef False
+    is <- fromList [1,2,3::Int] >>= atEndOfInput (writeIORef boolRef True)
+    unRead 0 is
+    toList is >>= assertEqual "list" [0,1,2,3]
+    readIORef boolRef >>= assertBool "ran"
+    toList is >>= assertEqual "list 2" []
+    unRead 0 is
+    toList is >>= assertEqual "list 3" [0]

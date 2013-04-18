@@ -1,5 +1,5 @@
 Name:                io-streams
-Version:             1.0.1.0
+Version:             1.0.2.0
 License:             BSD3
 License-file:        LICENSE
 Category:            Data, Network, IO-Streams
@@ -76,7 +76,16 @@ Description:
   .
     * support for parsing from streams using @attoparsec@.
   .
+    * support for spawning processes and communicating with them using streams.
+  .
   /ChangeLog/
+  .
+    [@1.0.2.0@] Added "System.IO.Streams.Process" (support for communicating
+                with system processes using streams), added new functions to
+                "System.IO.Streams.Handle" for converting @io-streams@ types to
+                'System.IO.Handle's. (Now you can pass streams from this
+                library to places that expect Handles and everything will
+                work.)
   .
     [@1.0.1.0@] Added 'System.IO.Streams.Combinators.ignoreEof'.
   .
@@ -106,6 +115,7 @@ Library
                      System.IO.Streams.File,
                      System.IO.Streams.List,
                      System.IO.Streams.Network,
+                     System.IO.Streams.Process,
                      System.IO.Streams.Text,
                      System.IO.Streams.Vector,
                      System.IO.Streams.Zlib,
@@ -121,6 +131,7 @@ Library
                      bytestring    >= 0.9   && <0.11,
                      network       >= 2.4   && <2.5,
                      primitive     >= 0.2   && <0.6,
+                     process       >= 1     && <1.2,
                      text          >= 0.10  && <0.12,
                      time          >= 1.2   && <1.5,
                      transformers  >= 0.2   && <0.4,
@@ -134,6 +145,7 @@ Library
     BangPatterns,
     CPP,
     DeriveDataTypeable,
+    FlexibleInstances,
     GeneralizedNewtypeDeriving,
     MultiParamTypeClasses,
     OverloadedStrings,
@@ -157,6 +169,7 @@ Test-suite testsuite
                      System.IO.Streams.Tests.Internal,
                      System.IO.Streams.Tests.List,
                      System.IO.Streams.Tests.Network,
+                     System.IO.Streams.Tests.Process,
                      System.IO.Streams.Tests.Text,
                      System.IO.Streams.Tests.Vector,
                      System.IO.Streams.Tests.Zlib,
@@ -172,6 +185,7 @@ Test-suite testsuite
                      System.IO.Streams.File,
                      System.IO.Streams.List,
                      System.IO.Streams.Network,
+                     System.IO.Streams.Process,
                      System.IO.Streams.Text,
                      System.IO.Streams.Vector,
                      System.IO.Streams.Zlib,
@@ -194,6 +208,7 @@ Test-suite testsuite
                      mtl           >= 2     && <3,
                      network       >= 2.4   && <2.5,
                      primitive     >= 0.2   && <0.5,
+                     process       >= 1     && <1.2,
                      text          >= 0.10  && <0.12,
                      time          >= 1.2   && <1.5,
                      transformers  >= 0.2   && <0.4,
@@ -214,6 +229,7 @@ Test-suite testsuite
     BangPatterns,
     CPP,
     DeriveDataTypeable,
+    FlexibleInstances,
     GeneralizedNewtypeDeriving,
     MultiParamTypeClasses,
     OverloadedStrings,

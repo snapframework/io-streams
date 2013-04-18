@@ -4,6 +4,8 @@
 -- Library users should use the interface provided by "System.IO.Streams"
 
 {-# LANGUAGE BangPatterns               #-}
+{-# LANGUAGE DeriveDataTypeable         #-}
+{-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings          #-}
 
@@ -12,6 +14,7 @@ module System.IO.Streams.Internal
     SP(..)
   , Source(..)
   , Sink(..)
+  , StreamPair
 
     -- * About pushback
     -- $pushback
@@ -73,19 +76,33 @@ module System.IO.Streams.Internal
   ) where
 
 ------------------------------------------------------------------------------
-import           Control.Applicative    (Applicative (..))
-import           Control.Concurrent     (newMVar, withMVar)
-import           Control.Monad          (liftM, (>=>))
-import           Control.Monad.IO.Class (MonadIO (..))
-import           Data.IORef             (IORef, newIORef, readIORef,
-                                         writeIORef)
-import           Data.Monoid            (Monoid (..))
-import           Prelude                hiding (read)
+import           Control.Applicative      (Applicative (..))
+import           Control.Concurrent       (newMVar, withMVar)
+import           Control.Exception        (throwIO)
+import           Control.Monad            (liftM, (>=>))
+import           Control.Monad.IO.Class   (MonadIO (..))
+import           Data.ByteString.Char8    (ByteString)
+import qualified Data.ByteString.Char8    as S
+import qualified Data.ByteString.Internal as S
+import qualified Data.ByteString.Unsafe   as S
+import           Data.IORef               (IORef, newIORef, readIORef,
+                                           writeIORef)
+import           Data.Monoid              (Monoid (..))
+import           Data.Typeable            (Typeable)
+import           Data.Word                (Word8)
+import           Foreign.Marshal.Utils    (copyBytes)
+import           Foreign.Ptr              (castPtr)
+import qualified GHC.IO.Buffer            as H
+import qualified GHC.IO.BufferedIO        as H
+import qualified GHC.IO.Device            as H
+import           GHC.IO.Exception         (unsupportedOperation)
+import           Prelude                  hiding (read)
 
 
 ------------------------------------------------------------------------------
 -- | A strict pair type.
 data SP a b = SP !a !b
+  deriving (Typeable)
 
 ------------------------------------------------------------------------------
 -- | A 'Source' generates values of type @c@ in the 'IO' monad.
@@ -110,7 +127,7 @@ data SP a b = SP !a !b
 data Source c = Source {
       produce  :: IO (SP (Source c) (Maybe c))
     , pushback :: c -> IO (Source c)
-    }
+    } deriving (Typeable)
 
 
 ------------------------------------------------------------------------------
@@ -143,7 +160,7 @@ data Source c = Source {
 -- 'Generator'.
 newtype Generator r a = Generator {
       unG :: IO (Either (SP r (Generator r a)) a)
-    }
+    } deriving (Typeable)
 
 
 ------------------------------------------------------------------------------
@@ -222,7 +239,7 @@ fromGenerator (Generator m) = do
 ------------------------------------------------------------------------------
 newtype Consumer c a = Consumer {
       unC :: IO (Either (Maybe c -> Consumer c a) a)
-    }
+    } deriving (Typeable)
 
 
 ------------------------------------------------------------------------------
@@ -294,7 +311,7 @@ fromConsumer = sinkToStream . consumerToSink
 -- 'Sink's.
 data Sink c = Sink {
       consume :: Maybe c -> IO (Sink c)
-    }
+    } deriving (Typeable)
 
 
 ------------------------------------------------------------------------------
@@ -432,7 +449,7 @@ singletonSource c = withDefaultPushback $ return $! SP nullSource (Just c)
 -- @'unRead' c stream >> 'read' stream === 'return' ('Just' c)@
 --
 newtype InputStream  c = IS (IORef (Source c))
-
+  deriving (Typeable)
 
 ------------------------------------------------------------------------------
 -- | An 'OutputStream' consumes values of type @c@ in the 'IO' monad.
@@ -448,6 +465,7 @@ newtype InputStream  c = IS (IORef (Source c))
 -- this library will simply discard the extra input.)
 --
 newtype OutputStream c = OS (IORef (Sink   c))
+  deriving (Typeable)
 
 
 ------------------------------------------------------------------------------
@@ -722,3 +740,127 @@ atEOF s = read s >>= maybe (return True) (\k -> unRead k s >> return False)
 -- @
 -- Streams.'unRead' c stream >> Streams.'read' stream === 'return' ('Just' c)
 -- @
+
+
+
+
+                 --------------------------------------------
+                 -- Typeclass instances for Handle support --
+                 --------------------------------------------
+
+------------------------------------------------------------------------------
+bUFSIZ :: Int
+bUFSIZ = 32752
+
+
+------------------------------------------------------------------------------
+unsupported :: IO a
+unsupported = throwIO unsupportedOperation
+
+
+------------------------------------------------------------------------------
+bufferToBS :: H.Buffer Word8 -> ByteString
+bufferToBS buf = S.copy $! S.fromForeignPtr raw l sz
+  where
+    raw  = H.bufRaw buf
+    l    = H.bufL buf
+    r    = H.bufR buf
+    sz   = r - l
+
+
+------------------------------------------------------------------------------
+instance H.RawIO (InputStream ByteString) where
+    read is ptr n = read is >>= maybe (return 0) f
+      where
+        f s = S.unsafeUseAsCStringLen s $ \(cstr, l) -> do
+                  let c = min n l
+                  copyBytes ptr (castPtr cstr) c
+                  return $! c
+
+    readNonBlocking  _ _ _ = unsupported
+    write            _ _ _ = unsupported
+    writeNonBlocking _ _ _ = unsupported
+
+
+------------------------------------------------------------------------------
+instance H.RawIO (OutputStream ByteString) where
+    read _ _ _             = unsupported
+    readNonBlocking _ _ _  = unsupported
+    write os ptr n         = S.packCStringLen (castPtr ptr, n) >>=
+                             flip write os . Just
+    writeNonBlocking _ _ _ = unsupported
+
+
+------------------------------------------------------------------------------
+-- | Internal convenience synonym for a pair of input\/output streams.
+type StreamPair a = SP (InputStream a) (OutputStream a)
+
+instance H.RawIO (StreamPair ByteString) where
+    read (SP is _) ptr n   = H.read is ptr n
+    readNonBlocking  _ _ _ = unsupported
+    write (SP _ os) ptr n  = H.write os ptr n
+    writeNonBlocking _ _ _ = unsupported
+
+
+------------------------------------------------------------------------------
+instance H.BufferedIO (OutputStream ByteString) where
+    newBuffer !_ bs            = H.newByteBuffer bUFSIZ bs
+    fillReadBuffer !_ _        = unsupported
+    fillReadBuffer0 !_ _       = unsupported
+
+    flushWriteBuffer !os !buf  = do
+        write (Just $! bufferToBS buf) os
+        emptyWriteBuffer buf
+
+    flushWriteBuffer0 !os !buf = do
+        let s = bufferToBS buf
+        let l = S.length s
+        write (Just s) os
+        buf' <- emptyWriteBuffer buf
+        return $! (l, buf')
+
+
+------------------------------------------------------------------------------
+instance H.BufferedIO (InputStream ByteString) where
+    newBuffer !_ !bs        = H.newByteBuffer bUFSIZ bs
+    fillReadBuffer !is !buf = H.readBuf is buf
+    fillReadBuffer0 _ _    = unsupported
+    flushWriteBuffer _ _   = unsupported
+    flushWriteBuffer0 _ _  = unsupported
+
+
+------------------------------------------------------------------------------
+instance H.BufferedIO (StreamPair ByteString) where
+    newBuffer !_ bs              = H.newByteBuffer bUFSIZ bs
+    fillReadBuffer (SP is _)     = H.fillReadBuffer is
+    fillReadBuffer0 _ _          = unsupported
+    flushWriteBuffer (SP _ !os)  = H.flushWriteBuffer os
+    flushWriteBuffer0 (SP _ !os) = H.flushWriteBuffer0 os
+
+
+------------------------------------------------------------------------------
+instance H.IODevice (OutputStream ByteString) where
+  ready _ _ _ = return True
+  close       = write Nothing
+  devType _   = return H.Stream
+
+
+------------------------------------------------------------------------------
+instance H.IODevice (InputStream ByteString) where
+  ready _ _ _ = return True
+  close _     = return $! ()
+  devType _   = return H.Stream
+
+
+------------------------------------------------------------------------------
+instance H.IODevice (StreamPair ByteString) where
+  ready _ _ _     = return True
+  close (SP _ os) = write Nothing os
+  devType _       = return H.Stream
+
+
+------------------------------------------------------------------------------
+emptyWriteBuffer :: H.Buffer Word8
+                 -> IO (H.Buffer Word8)
+emptyWriteBuffer buf
+    = return buf { H.bufL=0, H.bufR=0, H.bufState = H.WriteBuffer }

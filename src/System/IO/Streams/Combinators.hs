@@ -47,6 +47,8 @@ module System.IO.Streams.Combinators
  , intersperse
  , skipToEof
  , ignoreEof
+ , atEndOfInput
+ , atEndOfOutput
  ) where
 
 ------------------------------------------------------------------------------
@@ -770,10 +772,50 @@ ignore k output = newIORef k >>= makeOutputStream . chunk
 -- | Wraps an 'OutputStream', ignoring any end-of-stream 'Nothing' values
 -- written to the returned stream.
 --
--- Since: 1.0.1.0
+-- /Since: 1.0.1.0/
 --
 ignoreEof :: OutputStream a -> IO (OutputStream a)
 ignoreEof s = makeOutputStream f
   where
     f Nothing  = return $! ()
     f x        = write x s
+
+
+------------------------------------------------------------------------------
+-- | Wraps an 'InputStream', running the specified action when the stream
+-- yields end-of-file.
+--
+-- /Since: 1.0.2.0/
+--
+atEndOfInput :: IO b -> InputStream a -> IO (InputStream a)
+atEndOfInput m is = sourceToStream source
+  where
+    eof = do
+        let !x = SP eofSrc Nothing
+        void m
+        return x
+
+    eofSrc = Source {
+               produce  = eof
+             , pushback = pb
+             }
+    pb s = unRead s is >> return source
+    source = Source {
+               produce  = read is >>= maybe eof chunk
+             , pushback = pb
+             }
+      where
+        chunk s = return $! SP source (Just s)
+
+
+------------------------------------------------------------------------------
+-- | Wraps an 'OutputStream', running the specified action when the stream
+-- receives end-of-file.
+--
+-- /Since: 1.0.2.0/
+--
+atEndOfOutput :: IO b -> OutputStream a -> IO (OutputStream a)
+atEndOfOutput m os = makeOutputStream f
+  where
+    f Nothing = write Nothing os >> void m
+    f x       = write x os

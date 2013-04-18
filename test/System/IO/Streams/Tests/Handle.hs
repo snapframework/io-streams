@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module System.IO.Streams.Tests.Handle (tests) where
@@ -7,12 +8,20 @@ import           Control.Exception
 import           Control.Monad                  hiding (mapM)
 import qualified Data.ByteString.Char8          as S
 import           Data.List
+import           Foreign.Marshal.Alloc          (allocaBytes)
+import           Foreign.Marshal.Utils          (copyBytes)
+import           Foreign.Ptr                    (castPtr)
+import qualified GHC.IO.Buffer                  as HB
+import qualified GHC.IO.BufferedIO              as H
+import qualified GHC.IO.Device                  as H
 import           Prelude                        hiding (mapM, read)
 import           System.Directory
 import           System.FilePath
 import           System.IO                      hiding (stderr, stdin, stdout)
 import qualified System.IO                      as IO
-import           System.IO.Streams              hiding (intersperse)
+import           System.IO.Streams              (OutputStream)
+import qualified System.IO.Streams              as Streams
+import qualified System.IO.Streams.Internal     as Streams
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
 import           Test.HUnit                     hiding (Test)
@@ -21,7 +30,13 @@ import           System.IO.Streams.Tests.Common
 
 tests :: [Test]
 tests = [ testHandle
-        , testStdHandles ]
+        , testStdHandles
+        , testInputStreamToHandle
+        , testOutputStreamToHandle
+        , testStreamPairToHandle
+        , testHandleInstances
+        , testHandleBadnesses
+        ]
 
 
 ------------------------------------------------------------------------------
@@ -36,11 +51,12 @@ testHandle = testCase "handle/files" $ do
     tst = do
         withBinaryFile fn WriteMode $ \h -> do
             let l = "" : (intersperse " " ["the", "quick", "brown", "fox"])
-            os <- handleToOutputStream h
-            fromList l >>= connectTo os
+            os <- Streams.handleToOutputStream h
+            Streams.fromList l >>= Streams.connectTo os
 
         withBinaryFile fn ReadMode $ \h -> do
-            l <- liftM S.concat (handleToInputStream h >>= toList)
+            l <- liftM S.concat (Streams.handleToInputStream h >>=
+                                 Streams.toList)
             assertEqual "testFiles" "the quick brown fox" l
 
 
@@ -49,7 +65,112 @@ testStdHandles :: Test
 testStdHandles = testCase "handle/stdHandles" $ do
     hClose IO.stdin
     -- Should generate exception: handle is closed.
-    expectExceptionH (toList stdin)
-    write (Just "") stdout
-    write (Just "") stderr
+    expectExceptionH (Streams.toList Streams.stdin)
+    Streams.write (Just "") Streams.stdout
+    Streams.write (Just "") Streams.stderr
     return ()
+
+
+------------------------------------------------------------------------------
+testInputStreamToHandle :: Test
+testInputStreamToHandle = testCase "handle/inputStreamToHandle" $ do
+    h <- Streams.fromList ["foo", "bar", "baz"] >>=
+         Streams.inputStreamToHandle
+    S.hGetContents h >>= assertEqual "inputStreamToHandle" "foobarbaz"
+
+
+------------------------------------------------------------------------------
+testOutputStreamToHandle :: Test
+testOutputStreamToHandle = testCase "handle/outputStreamToHandle" $ do
+    (os, getInput) <- Streams.listOutputStream
+    h <- Streams.outputStreamToHandle os
+    S.hPutStrLn h "foo"
+    liftM S.concat getInput >>= assertEqual "outputStreamToHandle" "foo\n"
+
+
+------------------------------------------------------------------------------
+testStreamPairToHandle :: Test
+testStreamPairToHandle = testCase "handle/streamPairToHandle" $ do
+    is             <- Streams.fromList ["foo", "bar", "baz"]
+    (os, getInput) <- Streams.listOutputStream
+
+    h <- Streams.streamPairToHandle is os
+    S.hPutStrLn h "foo"
+    S.hGetContents h >>= assertEqual "input stream" "foobarbaz"
+    liftM S.concat getInput >>= assertEqual "output stream" "foo\n"
+
+
+------------------------------------------------------------------------------
+testHandleBadnesses :: Test
+testHandleBadnesses = testCase "handle/badness" $ do
+    h <- Streams.fromList ["foo", "bar", "baz"] >>= Streams.inputStreamToHandle
+    _ <- S.hGetContents h
+    expectExceptionH $ S.hGetContents h
+
+    h' <- Streams.fromList ["foo", "bar", "baz"] >>= Streams.inputStreamToHandle
+    expectExceptionH $ S.hPutStrLn h' "foo"
+
+    (os, _) <- Streams.listOutputStream
+    h'' <- Streams.outputStreamToHandle os
+    expectExceptionH $ S.hGetContents h''
+
+    is <- Streams.fromList ["foo"]
+    h''' <- Streams.streamPairToHandle is os
+    _ <- S.hGetContents h'''
+    expectExceptionH $ S.hGetContents h'''
+
+
+------------------------------------------------------------------------------
+testHandleInstances :: Test
+testHandleInstances = testCase "handle/ghc-instances" $ do
+    is            <- Streams.fromList ["foo", "bar", "baz" :: S.ByteString]
+    (os, getList) <- Streams.listOutputStream
+    let sp   = Streams.SP is (os :: OutputStream S.ByteString)
+    expectExceptionH $ H.write is undefined undefined
+    expectExceptionH $ H.writeNonBlocking is undefined undefined
+    expectExceptionH $ H.flushWriteBuffer is undefined
+    expectExceptionH $ H.flushWriteBuffer0 is undefined
+
+    expectExceptionH $ H.read os undefined undefined
+    expectExceptionH $ H.writeNonBlocking os undefined undefined
+
+    expectExceptionH $ H.fillReadBuffer0 is undefined
+    expectExceptionH $ H.fillReadBuffer0 os undefined
+    expectExceptionH $ H.fillReadBuffer0 sp undefined
+
+    H.ready is False 0 >>= assertEqual "ready input" True
+    H.ready os False 0 >>= assertEqual "ready output" True
+    H.ready sp False 0 >>= assertEqual "ready pair" True
+
+    H.devType is >>= assertBool "devtype input"  . (== H.Stream)
+    H.devType os >>= assertBool "devtype output" . (== H.Stream)
+    H.devType sp >>= assertBool "devtype pair"   . (== H.Stream)
+
+    expectExceptionH $ H.readNonBlocking is undefined undefined
+    expectExceptionH $ H.readNonBlocking os undefined undefined
+    expectExceptionH $ H.readNonBlocking sp undefined undefined
+    expectExceptionH $ H.writeNonBlocking is undefined undefined
+    expectExceptionH $ H.writeNonBlocking os undefined undefined
+    expectExceptionH $ H.writeNonBlocking sp undefined undefined
+
+    S.useAsCStringLen "foo" $ \(cstr, l) -> do
+        H.write os (castPtr cstr) l
+        liftM S.concat getList >>= assertEqual "H.write 1" "foo"
+        H.write sp (castPtr cstr) l
+        liftM S.concat getList >>= assertEqual "H.write 2" "foo"
+        buf <- H.newBuffer sp HB.WriteBuffer
+        HB.withBuffer buf $ \ptr -> copyBytes ptr (castPtr cstr) 3
+        (l', !buf') <- H.flushWriteBuffer0 sp $ buf { HB.bufR = 3 }
+        assertEqual "flushWriteBuffer0" 3 l'
+        assertEqual "bufR" 0 $ HB.bufR buf'
+        liftM S.concat getList >>= assertEqual "write 3" "foo"
+
+
+    allocaBytes 3 $ \buf -> do
+        l <- H.read is buf 3
+        assertEqual "3 byte read" 3 l
+        S.packCStringLen (castPtr buf, l) >>= assertEqual "first read" "foo"
+        l' <- H.read sp buf 3
+        assertEqual "3 byte read #2" 3 l'
+        S.packCStringLen (castPtr buf, l') >>= assertEqual "second read" "bar"
+        expectExceptionH $ H.read os buf 3

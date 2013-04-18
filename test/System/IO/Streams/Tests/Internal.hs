@@ -16,6 +16,7 @@ import           Test.HUnit                     hiding (Test)
 ------------------------------------------------------------------------------
 import           System.IO.Streams.Internal
 import           System.IO.Streams.List
+import           System.IO.Streams.Tests.Common
 
 tests :: [Test]
 tests = [ testSourceConcat
@@ -28,6 +29,7 @@ tests = [ testSourceConcat
         , testGeneratorInstances
         , testGeneratorSource
         , testConsumer
+        , testTrivials
         ]
 
 
@@ -188,3 +190,15 @@ testConsumer = testCase "internal/consumer" $ do
                                  !t <- liftIO $ readIORef ref
                                  liftIO $ writeIORef ref $! t + x
                                  c ref)
+
+
+------------------------------------------------------------------------------
+testTrivials :: Test
+testTrivials = testCase "internal/trivials" $ do
+    coverTypeableInstance (undefined :: InputStream Int)
+    coverTypeableInstance (undefined :: OutputStream Int)
+    coverTypeableInstance (undefined :: Source Int)
+    coverTypeableInstance (undefined :: Sink Int)
+    coverTypeableInstance (undefined :: Generator Int ())
+    coverTypeableInstance (undefined :: Consumer Int ())
+    coverTypeableInstance (undefined :: SP Int Int)
