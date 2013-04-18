@@ -198,6 +198,10 @@ Test-suite testsuite
                      -fno-warn-unused-do-bind
   ghc-prof-options:  -prof -auto-all
 
+  if !os(windows)
+    cpp-options: -DENABLE_PROCESS_TESTS
+
+
   Build-depends:     base          >= 4     && <5,
                      attoparsec    >= 0.10  && <0.11,
                      blaze-builder >= 0.3.1 && <0.4,

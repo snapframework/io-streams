@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                 #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -17,6 +18,9 @@ import           Test.HUnit                     hiding (Test)
 ------------------------------------------------------------------------------
 
 tests :: [Test]
+#ifndef ENABLE_PROCESS_TESTS
+tests = []
+#else
 tests = [ testInteractiveCommand
         , testInteractiveProcess
         ]
@@ -84,3 +88,6 @@ run input (stdin, stdout, stderr, processHandle) = tout 5000000 $ do
         return (out, err)
 
     snarf is mv = liftM S.concat (Streams.toList is) >>= putMVar mv
+
+-- ENABLE_PROCESS_TESTS
+#endif
