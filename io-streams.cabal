@@ -1,5 +1,5 @@
 Name:                io-streams
-Version:             1.0.2.0
+Version:             1.0.2.1
 License:             BSD3
 License-file:        LICENSE
 Category:            Data, Network, IO-Streams
@@ -80,6 +80,8 @@ Description:
   .
   /ChangeLog/
   .
+    [@1.0.2.1@] Fixed a compile error on GHC 7.0.x.
+  .
     [@1.0.2.0@] Added "System.IO.Streams.Process" (support for communicating
                 with system processes using streams), added new functions to
                 "System.IO.Streams.Handle" for converting @io-streams@ types to
@@ -149,7 +151,9 @@ Library
     GeneralizedNewtypeDeriving,
     MultiParamTypeClasses,
     OverloadedStrings,
-    RankNTypes
+    RankNTypes,
+    TypeSynonymInstances
+
 
 ------------------------------------------------------------------------------
 Test-suite testsuite
