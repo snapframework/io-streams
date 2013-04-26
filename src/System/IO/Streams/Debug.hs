@@ -14,7 +14,7 @@ module System.IO.Streams.Debug
 
 import           Data.ByteString.Char8      (ByteString)
 import qualified Data.ByteString.Char8      as S
-import           System.IO.Streams.Internal (InputStream, OutputStream)
+import           System.IO.Streams.Internal (InputStream (..), OutputStream)
 import qualified System.IO.Streams.Internal as Streams
 
 ------------------------------------------------------------------------------
@@ -26,20 +26,17 @@ debugInput ::
   -> OutputStream ByteString   -- ^ stream the debug info will be sent to
   -> InputStream a             -- ^ input stream
   -> IO (InputStream a)
-debugInput toBS name debugStream inputStream =
-    Streams.sourceToStream source
+debugInput toBS name debugStream inputStream = return $ InputStream produce pb
   where
-    source = Streams.Source produce pb
-
     produce = do
         m <- Streams.read inputStream
-        Streams.write (Just $ describe m) debugStream
-        return $! Streams.SP source m
+        Streams.write (Just $! describe m) debugStream
+        return m
 
     pb c = do
         let s = S.concat [name, ": pushback: ", toBS c, "\n"]
         Streams.write (Just s) debugStream
-        Streams.unRead c inputStream >> return source
+        Streams.unRead c inputStream
 
     describe m = S.concat [name, ": got ", describeChunk m, "\n"]
 
