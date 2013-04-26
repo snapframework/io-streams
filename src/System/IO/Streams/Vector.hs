@@ -38,8 +38,7 @@ import qualified Data.Vector.Generic         as V
 import           Data.Vector.Generic.Mutable (MVector)
 import qualified Data.Vector.Generic.Mutable as VM
 import           System.IO.Streams.Internal  (InputStream, OutputStream,
-                                              Sink (..), fromGenerator,
-                                              nullSink, sinkToStream, yield)
+                                              fromGenerator, yield)
 import qualified System.IO.Streams.Internal  as S
 
 
@@ -220,16 +219,17 @@ mutableVectorOutputStreamSized :: VM.MVector v c =>
                                -> IO (OutputStream c, IO (v (PrimState IO) c))
 mutableVectorOutputStreamSized initialSize = do
     r <- vfNew initialSize >>= newMVar
-    c <- sinkToStream $ consumer r
+    c <- S.fromConsumer $ consumer r
     return (c, flush r)
 
   where
     consumer r = go
       where
-        go = Sink $ maybe (return nullSink)
-                          (\c -> do
-                               modifyMVar_ r $ flip vfAppend c
-                               return go)
+        go = S.await >>=
+             (maybe (return ()) $ \c -> do
+                 liftIO $ modifyMVar_ r $ flip vfAppend c
+                 go)
+
     flush r = modifyMVar r $ \vfi -> do
                                 !v   <- vfFinish vfi
                                 vfi' <- vfNew initialSize
