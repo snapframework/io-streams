@@ -68,15 +68,11 @@ import           Prelude                           hiding (lines, read,
 ------------------------------------------------------------------------------
 import           System.IO.Streams.Combinators     (filterM, intersperse,
                                                     outputFoldM)
-import           System.IO.Streams.Internal        (InputStream, OutputStream,
-                                                    SP (..), Sink (..),
-                                                    Source (..),
+import           System.IO.Streams.Internal        (InputStream (..),
+                                                    OutputStream,
                                                     makeInputStream,
-                                                    makeOutputStream,
-                                                    nullSink, pushback, read,
-                                                    sinkToStream,
-                                                    sourceToStream, unRead,
-                                                    write)
+                                                    makeOutputStream, read,
+                                                    unRead, write)
 import           System.IO.Streams.Internal.Search (MatchInfo (..), search)
 import           System.IO.Streams.List            (fromList, writeList)
 ------------------------------------------------------------------------------
@@ -147,32 +143,17 @@ fromLazyByteString = fromList . L.toChunks
 --
 countInput :: InputStream ByteString -> IO (InputStream ByteString, IO Int64)
 countInput src = do
-    ref    <- newIORef 0
-    stream <- sourceToStream $ source ref
-    return $! (stream, readIORef ref)
+    ref    <- newIORef (0 :: Int64)
+    return $! (InputStream (prod ref) (pb ref), readIORef ref)
 
   where
-    eof !ref = return $! SP (eofSrc ref) Nothing
+    prod ref = read src >>= maybe (return Nothing) (\x -> do
+        modifyRef ref (+ (fromIntegral $ S.length x))
+        return $! Just x)
 
-    eofSrc !ref = Source {
-                    produce  = eof ref
-                  , pushback = pb ref
-                  }
-
-    pb !ref !s = do
+    pb ref s = do
+        modifyRef ref (\x -> x - (fromIntegral $ S.length s))
         unRead s src
-        modifyRef ref $ \x -> x - (toEnum $ S.length s)
-        return $! source ref
-
-    source ref = Source {
-                   produce  = read src >>= maybe (eof ref) chunk
-                 , pushback = pb ref
-                 }
-      where
-        chunk s = let !l = toEnum $ S.length s
-                  in do
-                      modifyRef ref (+ l)
-                      return $! SP (source ref) (Just s)
 
 
 ------------------------------------------------------------------------------
@@ -234,28 +215,29 @@ countOutput = outputFoldM f 0
 takeBytes :: Int64                        -- ^ maximum number of bytes to read
           -> InputStream ByteString       -- ^ input stream to wrap
           -> IO (InputStream ByteString)
-takeBytes k0 src = sourceToStream $ source k0
+takeBytes k0 src = do
+    kref <- newIORef k0
+    return $! InputStream (prod kref) (pb kref)
   where
-    fromBS s = if S.null s then Nothing else Just s
-
-    eof !n = return $! SP (eofSrc n) Nothing
-
-    eofSrc !n = Source (eof n) (pb n)
-
-    pb !n s = do
-        unRead s src
-        return $! source $! n + toEnum (S.length s)
-
-    source !k = Source (read src >>= maybe (eof k) chunk) (pb k)
+    prod kref = read src >>= maybe (return Nothing) chunk
       where
-        chunk s = let l  = toEnum $ S.length s
-                      k' = k - l
-                  in if k' <=  0
-                       then let (a,b) = S.splitAt (fromEnum k) s
-                            in do
-                                when (not $ S.null b) $ unRead b src
-                                return $! SP (eofSrc 0) (fromBS a)
-                       else return $! SP (source k') (Just s)
+        chunk s = do
+            !k <- readIORef kref
+            let l  = fromIntegral $ S.length s
+            let k' = k - l
+            if k' <= 0
+              then let (a,b) = S.splitAt (fromIntegral k) s
+                   in do
+                       when (not $ S.null b) $ unRead b src
+                       writeIORef kref 0
+                       return $! fromBS a
+              else writeIORef kref k' >> return (Just s)
+
+    pb kref s = do
+        modifyRef kref (+ (fromIntegral $ S.length s))
+        unRead s src
+
+    fromBS s = if S.null s then Nothing else Just s
 
 
 ------------------------------------------------------------------------------
@@ -472,33 +454,29 @@ throwIfProducesMoreThan
     :: Int64                    -- ^ maximum number of bytes to read
     -> InputStream ByteString   -- ^ input stream
     -> IO (InputStream ByteString)
-throwIfProducesMoreThan k0 src = sourceToStream $ source k0
+throwIfProducesMoreThan k0 src = do
+    kref <- newIORef k0
+    return $! InputStream (prod kref) (pb kref)
   where
-    eofSrc n = Source {
-                 produce  = eof n
-               , pushback = pb n
-               }
-
-    eof n = return $! SP (eofSrc n) Nothing
-
-    pb n s = do
-        unRead s src
-        return $! source $! n + toEnum (S.length s)
-
-    source !k = Source prod (pb k)
+    prod kref = read src >>= maybe (return Nothing) chunk
       where
-        prod = read src >>= maybe (eof k) chunk
-
-        chunk s | l == 0    = return $! SP (source k) (Just s)
-                | k == 0    = throwIO TooManyBytesReadException
-                | k' >= 0   = return $! SP (source k') (Just s)
-                | otherwise = do
-                     unRead b src
-                     return $! SP (source 0) (Just a)
+        chunk s = do
+            k <- readIORef kref
+            let k'    = k - l
+            case () of _ | l == 0  -> return (Just s)
+                         | k == 0  -> throwIO TooManyBytesReadException
+                         | k' >= 0 -> writeIORef kref k' >> return (Just s)
+                         | otherwise -> do
+                               let (!a,!b) = S.splitAt (fromEnum k) s
+                               writeIORef kref 0
+                               unRead b src
+                               return $! Just a
           where
             l     = toEnum $ S.length s
-            k'    = k - l
-            (a,b) = S.splitAt (fromEnum k) s
+
+    pb kref s = do
+        unRead s src
+        modifyRef kref (+ (fromIntegral $ S.length s))
 
 
 ------------------------------------------------------------------------------
@@ -579,25 +557,19 @@ giveBytes :: Int64                        -- ^ maximum number of bytes to send
                                           -- to the wrapped stream
           -> OutputStream ByteString      -- ^ output stream to wrap
           -> IO (OutputStream ByteString)
-giveBytes k0 str = sinkToStream $ sink k0
+giveBytes k0 str = do
+    kref <- newIORef k0
+    makeOutputStream $ sink kref
   where
-    sink !k = Sink g
-      where
-        g Nothing     = write Nothing str >> return nullSink
-
-        g mb@(Just x) = let l  = toEnum $ S.length x
-                            k' = k - l
-                        in if k' < 0
-                             then do
-                                 let a = S.take (fromEnum k) x
-                                 when (not $ S.null a) $ write (Just a) str
-                                 return nullStr
-                             else write mb str >> return (sink k')
-
-    nullStr = Sink h
-
-    h Nothing = write Nothing str >> return nullSink
-    h _       = return nullSink
+    sink _ Nothing        = write Nothing str
+    sink kref mb@(Just x) = do
+        k <- readIORef kref
+        let l  = fromIntegral $ S.length x
+        let k' = k - l
+        if k' < 0
+          then do let a = S.take (fromIntegral k) x
+                  when (not $ S.null a) $ write (Just a) str
+          else writeIORef kref k' >> write mb str
 
 
 ------------------------------------------------------------------------------
@@ -666,17 +638,19 @@ throwIfConsumesMoreThan
                                 --   wrapped stream
     -> OutputStream ByteString  -- ^ output stream to wrap
     -> IO (OutputStream ByteString)
-throwIfConsumesMoreThan k0 str = sinkToStream $ sink k0
+throwIfConsumesMoreThan k0 str = do
+    kref <- newIORef k0
+    makeOutputStream $ sink kref
   where
-    sink !k = Sink g
-      where
-        g Nothing     = write Nothing str >> return nullSink
+    sink _ Nothing        = write Nothing str
 
-        g mb@(Just x) = let l  = toEnum $ S.length x
-                            k' = k - l
-                        in if k' < 0
-                             then throwIO TooManyBytesWrittenException
-                             else write mb str >> return (sink k')
+    sink kref mb@(Just x) = do
+        k <- readIORef kref
+        let l  = toEnum $ S.length x
+        let k' = k - l
+        if k' < 0
+          then throwIO TooManyBytesWrittenException
+          else writeIORef kref k' >> write mb str
 
 
 ------------------------------------------------------------------------------
@@ -712,36 +686,29 @@ throwIfTooSlow
 throwIfTooSlow !bump !minRate !minSeconds' !stream = do
     !_        <- bump
     startTime <- getTime
-
-    sourceToStream $ source startTime 0
+    bytesRead <- newIORef (0 :: Int64)
+    return $! InputStream (prod startTime bytesRead) (pb bytesRead)
 
   where
-    minSeconds = fromIntegral minSeconds'
-
-    source !startTime = proc
+    prod startTime bytesReadRef = read stream >>= maybe (return Nothing) chunk
       where
-        eof !nb = return $! SP (eofSrc nb) Nothing
-        eofSrc !nb = Source { produce = eof nb
-                            , pushback = pb nb }
+        chunk s = do
+            let slen = S.length s
+            now <- getTime
+            let !delta = now - startTime
+            nb <- readIORef bytesReadRef
+            let newBytes = nb + fromIntegral slen
+            when (delta > minSeconds + 1 &&
+                  (fromIntegral newBytes /
+                    (delta - minSeconds)) < minRate) $
+                throwIO RateTooSlowException
+            -- otherwise, bump the timeout and return the input
+            !_ <- bump
+            writeIORef bytesReadRef newBytes
+            return $! Just s
 
-        pb !nb s = do
-            unRead s stream
-            return $ proc $ nb - S.length s
+    pb bytesReadRef s = do
+        modifyRef bytesReadRef $ \x -> x - (fromIntegral $ S.length s)
+        unRead s stream
 
-        proc !nb = Source prod (pb nb)
-          where
-            prod = read stream >>=
-                   maybe (eof nb)
-                         (\s -> do
-                            let slen = S.length s
-                            now <- getTime
-                            let !delta = now - startTime
-                            let !newBytes = nb + slen
-                            when (delta > minSeconds + 1 &&
-                                  (fromIntegral newBytes /
-                                    (delta - minSeconds)) < minRate) $
-                                throwIO RateTooSlowException
-
-                            -- otherwise, bump the timeout and return the input
-                            !_ <- bump
-                            return $! SP (proc newBytes) (Just s))
+    minSeconds = fromIntegral minSeconds'
