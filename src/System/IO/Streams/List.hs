@@ -19,10 +19,10 @@ import           Control.Concurrent.MVar    (modifyMVar, modifyMVar_, newMVar)
 import           Control.Monad.IO.Class     (MonadIO (..))
 import           Data.IORef                 (newIORef, readIORef, writeIORef)
 import           Prelude                    hiding (read)
-import           System.IO.Streams.Internal (InputStream, OutputStream,Sink (..), connect, fromGenerator,
-                                             makeInputStream, nullSink,
-                                             read, sinkToStream,
-                                              write, yield)
+import           System.IO.Streams.Internal (InputStream, OutputStream, await,
+                                             connect, fromConsumer,
+                                             fromGenerator, makeInputStream,
+                                             read, write, yield)
 
 
 ------------------------------------------------------------------------------
@@ -65,16 +65,15 @@ fromList inp = newIORef inp >>= makeInputStream . f
 listOutputStream :: IO (OutputStream c, IO [c])
 listOutputStream = do
     r <- newMVar id
-    c <- sinkToStream $ consumer r
+    c <- fromConsumer $ consumer r
     return (c, flush r)
 
   where
     consumer r = go
       where
-        go = Sink $ maybe (return nullSink)
-                          (\c -> do
-                               modifyMVar_ r $ \dl -> return (dl . (c:))
-                               return go)
+        go = await >>= (maybe (return $! ()) $ \c -> do
+                            liftIO $ modifyMVar_ r $ \dl -> return (dl . (c:))
+                            go)
 
     flush r = modifyMVar r $ \dl -> return (id, dl [])
 {-# INLINE listOutputStream #-}
