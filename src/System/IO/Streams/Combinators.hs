@@ -58,17 +58,16 @@ import           Control.Monad.IO.Class     (liftIO)
 import           Data.Int                   (Int64)
 import           Data.IORef                 (atomicModifyIORef, modifyIORef,
                                              newIORef, readIORef, writeIORef)
+import           Data.Maybe                 (isJust)
 import           Prelude                    hiding (all, any, drop, filter,
                                              map, mapM, mapM_, maximum,
                                              minimum, read, take, unzip, zip,
                                              zipWith)
 ------------------------------------------------------------------------------
-import           System.IO.Streams.Internal (InputStream, OutputStream,
-                                             SP (..), Source (..),
+import           System.IO.Streams.Internal (InputStream (..), OutputStream,
                                              fromGenerator, makeInputStream,
-                                             makeOutputStream, read,
-                                             sourceToStream, unRead, write,
-                                             yield)
+                                             makeOutputStream, read, unRead,
+                                             write, yield)
 
 ------------------------------------------------------------------------------
 -- | A side-effecting fold over an 'OutputStream', as a stream transformer.
@@ -449,26 +448,18 @@ skipToEof str = go
 filterM :: (a -> IO Bool)
         -> InputStream a
         -> IO (InputStream a)
-filterM p src = sourceToStream source
+filterM p src = return $! InputStream prod pb
   where
-    source = Source {
-               produce  = prod
-             , pushback = pb
-             }
-
     prod = read src >>= maybe eof chunk
 
     chunk s = do
         b <- p s
-        if b then return $! SP source (Just s)
+        if b then return $! Just s
              else prod
 
-    eof = return $! flip SP Nothing Source {
-            produce  = eof
-          , pushback = pb
-          }
+    eof = return Nothing
 
-    pb s = unRead s src >> return source
+    pb s = unRead s src
 
 
 ------------------------------------------------------------------------------
@@ -487,26 +478,17 @@ filterM p src = sourceToStream source
 filter :: (a -> Bool)
        -> InputStream a
        -> IO (InputStream a)
-filter p src = sourceToStream source
+filter p src = return $! InputStream prod pb
   where
-    source = Source {
-               produce  = prod
-             , pushback = pb
-             }
-
     prod = read src >>= maybe eof chunk
 
     chunk s = do
         let b = p s
-        if b then return $! SP source (Just s)
+        if b then return $! Just s
              else prod
 
-    eof = return $! flip SP Nothing Source {
-            produce  = eof
-          , pushback = pb
-          }
-
-    pb s = unRead s src >> return source
+    eof  = return Nothing
+    pb s = unRead s src
 
 
 ------------------------------------------------------------------------------
@@ -693,18 +675,22 @@ unzip os = do
 -- @
 --
 take :: Int64 -> InputStream a -> IO (InputStream a)
-take k0 input = sourceToStream $ source k0
+take k0 input = do
+    kref <- newIORef k0
+    return $! InputStream (prod kref) (pb kref)
   where
-    eof !n = return $! SP (eofSrc n) Nothing
-    eofSrc !n = Source (eof n) (pb n)
-    pb !n s = do
-        unRead s input
-        return $! source $! n + 1
+    prod kref = do
+        !k <- readIORef kref
+        if k <= 0
+          then return Nothing
+          else do
+              m <- read input
+              when (isJust m) $ modifyIORef kref $ \x -> x - 1
+              return m
 
-    source !k | k <= 0 = eofSrc k
-              | otherwise = Source (read input >>= maybe (eof k) chunk) (pb k)
-      where
-        chunk x = return $! SP (source (k - 1)) (Just x)
+    pb kref !s = do
+       unRead s input
+       modifyIORef kref (+1)
 
 
 ------------------------------------------------------------------------------
@@ -714,26 +700,24 @@ take k0 input = sourceToStream $ source k0
 -- Items pushed back to the returned 'InputStream' will be propagated upstream,
 -- modifying the count of dropped items accordingly.
 drop :: Int64 -> InputStream a -> IO (InputStream a)
-drop k0 input = sourceToStream $ source k0
+drop k0 input = do
+    kref <- newIORef k0
+    return $! InputStream (prod kref) (pb kref)
   where
-    source !k | k <= 0    = normalSrc k
-              | otherwise = Source (discard k) (pb k)
+    prod kref = do
+        !k <- readIORef kref
+        if k <= 0
+          then getInput kref
+          else getInput kref >> prod kref
 
+    getInput kref = do
+        read input >>= maybe (return Nothing) (\c -> do
+            modifyIORef kref (\x -> x - 1)
+            return $! Just c)
 
-    getInput k = read input >>= maybe (eof k)
-                                      (return . SP (source (k - 1)) . Just)
-    normalSrc k = Source (getInput k) (pb k)
-
-    eof !n = return $! SP (eofSrc n) Nothing
-    eofSrc !n = Source (eof n) (pb n)
-
-    pb !n s = do
+    pb kref s = do
         unRead s input
-        return $! source $! n + 1
-
-    discard k | k <= 0    = getInput k
-              | otherwise = read input >>= maybe (eof k)
-                                                 (const $ discard $! k - 1)
+        modifyIORef kref (+1)
 
 
 ------------------------------------------------------------------------------
@@ -788,24 +772,11 @@ ignoreEof s = makeOutputStream f
 -- /Since: 1.0.2.0/
 --
 atEndOfInput :: IO b -> InputStream a -> IO (InputStream a)
-atEndOfInput m is = sourceToStream source
+atEndOfInput m is = return $! InputStream prod pb
   where
-    eof = do
-        let !x = SP eofSrc Nothing
-        void m
-        return x
-
-    eofSrc = Source {
-               produce  = eof
-             , pushback = pb
-             }
-    pb s = unRead s is >> return source
-    source = Source {
-               produce  = read is >>= maybe eof chunk
-             , pushback = pb
-             }
-      where
-        chunk s = return $! SP source (Just s)
+    prod    = read is >>= maybe eof (return . Just)
+    eof     = void m >> return Nothing
+    pb s    = unRead s is
 
 
 ------------------------------------------------------------------------------
