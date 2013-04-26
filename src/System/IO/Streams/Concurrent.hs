@@ -18,14 +18,11 @@ import           Control.Concurrent.MVar    (modifyMVar, newEmptyMVar,
 import           Control.Exception          (SomeException, mask, throwIO,
                                              try)
 import           Control.Monad              (forM_)
-import           Data.Maybe                 (isNothing)
 import           Prelude                    hiding (read)
 ------------------------------------------------------------------------------
 import           System.IO.Streams.Internal (InputStream, OutputStream,
-                                             SP (..), makeInputStream,
-                                             makeOutputStream, nullSource,
-                                             read, sourceToStream,
-                                             withDefaultPushback)
+                                             makeInputStream,
+                                             makeOutputStream, read)
 
 ------------------------------------------------------------------------------
 -- | Writes the contents of an input stream to a channel until the input stream
@@ -43,12 +40,7 @@ inputToChan is ch = go
 -- | Turns a 'Chan' into an input stream.
 --
 chanToInput :: Chan (Maybe a) -> IO (InputStream a)
-chanToInput ch = sourceToStream src
-  where
-    src = withDefaultPushback $ do
-              mb <- readChan ch
-              let src' = if isNothing mb then nullSource else src
-              return $! SP src' mb
+chanToInput ch = makeInputStream $! readChan ch
 
 
 ------------------------------------------------------------------------------
