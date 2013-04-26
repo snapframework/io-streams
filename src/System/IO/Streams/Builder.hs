@@ -86,11 +86,12 @@ import           Blaze.ByteString.Builder.Internal.Buffer (Buffer, BufferAllocSt
 import           Control.Monad                            (when)
 import           Data.ByteString.Char8                    (ByteString)
 import qualified Data.ByteString.Char8                    as S
+import           Data.IORef                               (newIORef,
+                                                           readIORef,
+                                                           writeIORef)
 ------------------------------------------------------------------------------
 import           System.IO.Streams.Internal               (OutputStream,
-                                                           Sink (..),
-                                                           nullSink,
-                                                           sinkToStream,
+                                                           makeOutputStream,
                                                            write)
 
 
@@ -137,38 +138,39 @@ builderStreamWith :: BufferAllocStrategy
                   -> OutputStream ByteString
                   -> IO (OutputStream Builder)
 builderStreamWith (ioBuf0, nextBuf) os = do
-    sinkToStream (sink ioBuf0)
+    bufRef <- newIORef ioBuf0
+    makeOutputStream $ sink bufRef
   where
-    sink ioBuf = Sink $ maybe eof chunk
+    sink bufRef m = do
+        buf <- readIORef bufRef
+        maybe (eof buf) (chunk buf) m
       where
-        eof = do
+        eof ioBuf = do
             buf <- ioBuf
             case unsafeFreezeNonEmptyBuffer buf of
               Nothing    -> write Nothing os
               x@(Just s) -> do
-                  when (not $ S.null s) $ write x os
-                  write Nothing os
+                 when (not $ S.null s) $ write x os
+                 write Nothing os
 
-            return nullSink
-
-        chunk c = feed (unBuilder c (buildStep finalStep)) ioBuf
-
+        chunk ioBuf c = feed bufRef (unBuilder c (buildStep finalStep)) ioBuf
 
     finalStep !(BufRange pf _) = return $! Done pf $! ()
 
-    feed bStep ioBuf = do
+    feed bufRef bStep ioBuf = do
         !buf   <- ioBuf
         signal <- execBuildStep bStep buf
 
         case signal of
-          Done op' _ -> return $ sink (return (updateEndOfSlice buf op'))
+          Done op' _ ->
+              writeIORef bufRef $ (return (updateEndOfSlice buf op'))
 
           BufferFull minSize op' bStep' -> do
               let buf' = updateEndOfSlice buf op'
                   {-# INLINE cont #-}
                   cont = do
                       ioBuf' <- nextBuf minSize buf'
-                      feed bStep' ioBuf'
+                      feed bufRef bStep' ioBuf'
 
               write (Just $! unsafeFreezeBuffer buf') os
               cont
@@ -184,4 +186,4 @@ builderStreamWith (ioBuf0, nextBuf) os = do
               write (Just bs) os
 
               ioBuf' <- nextBuf 1 buf'
-              feed bStep' ioBuf'
+              feed bufRef bStep' ioBuf'
