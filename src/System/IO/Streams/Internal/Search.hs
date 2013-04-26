@@ -7,18 +7,17 @@ module System.IO.Streams.Internal.Search
   ) where
 
 ------------------------------------------------------------------------------
+import           Control.Monad               (when)
+import           Control.Monad.IO.Class      (liftIO)
 import           Data.ByteString.Char8       (ByteString)
 import qualified Data.ByteString.Char8       as S
 import           Data.ByteString.Unsafe      as S
-import           Data.Monoid                 (mappend, mconcat)
 import qualified Data.Vector.Unboxed         as V
 import qualified Data.Vector.Unboxed.Mutable as MV
 import           Prelude                     hiding (last, read)
 ------------------------------------------------------------------------------
-import           System.IO.Streams.Internal  (InputStream, SP (..),
-                                              nullSource, produce, read,
-                                              singletonSource, sourceToStream,
-                                              withDefaultPushback)
+import           System.IO.Streams.Internal  (InputStream)
+import qualified System.IO.Streams.Internal  as Streams
 
 ------------------------------------------------------------------------------
 -- | 'MatchInfo' provides match information when performing string search.
@@ -67,16 +66,14 @@ matches !needle !nstart !nend' !haystack !hstart !hend' =
 search :: ByteString                   -- ^ \"needle\" to look for
        -> InputStream ByteString       -- ^ input stream to wrap
        -> IO (InputStream MatchInfo)
-search needle stream = do
-    --debug $ "boyermoore: needle=" ++ show needle
-    sourceToStream (withDefaultPushback $
-                    lookahead nlen >>= either finishAndEOF startSearch)
+search needle stream = Streams.fromGenerator $
+                       lookahead nlen >>= either finishAndEOF startSearch
 
   where
     --------------------------------------------------------------------------
     finishAndEOF x = if S.null x
-                       then return $! SP nullSource Nothing
-                       else return $! SP nullSource (Just $! NoMatch x)
+                       then return $! ()
+                       else Streams.yield $! NoMatch x
 
     --------------------------------------------------------------------------
     startSearch !haystack =
@@ -158,21 +155,14 @@ search needle stream = do
                       else do
                           let sidx = p - leftLen
                           let (!crumb, rest) = S.splitAt sidx nextHaystack
-                          let s1 = singletonSource $ NoMatch $
-                                   S.concat [haystack, crumb]
-                          let s2 = withDefaultPushback $ startSearch rest
-                          produce $ s1 `mappend` s2
+                          Streams.yield $! NoMatch $! S.append haystack crumb
+                          startSearch rest
 
     --------------------------------------------------------------------------
     produceMatch nomatch aftermatch = do
-        let !s1 = singletonSource $! NoMatch nomatch
-        let !s2 = singletonSource $! Match needle
-        let s3 = withDefaultPushback $ startSearch aftermatch
-
-        produce $ mconcat $ if S.null nomatch
-                              then [s2, s3]
-                              else [s1, s2, s3]
-
+        when (not $ S.null nomatch) $ Streams.yield $! NoMatch nomatch
+        Streams.yield $! Match needle
+        startSearch aftermatch
 
     --------------------------------------------------------------------------
     !nlen = S.length needle
@@ -195,7 +185,7 @@ search needle stream = do
     --------------------------------------------------------------------------
     lookahead n = go id n
       where
-        go dlist !k = read stream >>= maybe eof chunk
+        go dlist !k = liftIO (Streams.read stream) >>= maybe eof chunk
           where
             eof = return $! Left $! S.concat $ dlist []
 
