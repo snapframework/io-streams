@@ -1,10 +1,8 @@
-{-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module System.IO.Streams.Tests.File (tests) where
 
 ------------------------------------------------------------------------------
-import           Control.Concurrent
 import           Control.Exception
 import           Control.Monad                  hiding (mapM)
 import           Data.ByteString.Char8          (ByteString)
@@ -16,7 +14,6 @@ import           System.Directory
 import           System.FilePath
 import           System.IO
 import           System.IO.Streams              hiding (intersperse, mapM_)
-import           System.IO.Streams.Internal
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
 import           Test.HUnit                     hiding (Test)
@@ -32,18 +29,9 @@ tests = [ testFiles
 ------------------------------------------------------------------------------
 copyingListOutputStream :: IO (OutputStream ByteString, IO [ByteString])
 copyingListOutputStream = do
-    r <- newMVar id
-    c <- sinkToStream $ consumer r
-    return (c, flush r)
-
-  where
-    consumer r = Sink $ maybe (return nullSink)
-                              (\c0 -> do
-                                   let !c = S.copy c0
-                                   modifyMVar_ r $ \dl -> return (dl . (c:))
-                                   return $ consumer r)
-
-    flush r = modifyMVar r $ \dl -> return (id, dl [])
+    (os, grab) <- listOutputStream
+    os' <- contramap S.copy os >>= lockingOutputStream
+    return (os', grab)
 
 
 ------------------------------------------------------------------------------

@@ -463,14 +463,14 @@ throwIfProducesMoreThan k0 src = do
         chunk s = do
             k <- readIORef kref
             let k'    = k - l
-            case () of _ | l == 0  -> return (Just s)
-                         | k == 0  -> throwIO TooManyBytesReadException
-                         | k' >= 0 -> writeIORef kref k' >> return (Just s)
-                         | otherwise -> do
-                               let (!a,!b) = S.splitAt (fromEnum k) s
-                               writeIORef kref 0
-                               unRead b src
-                               return $! Just a
+            case () of !_ | l == 0  -> return (Just s)
+                          | k == 0  -> throwIO TooManyBytesReadException
+                          | k' >= 0 -> writeIORef kref k' >> return (Just s)
+                          | otherwise -> do
+                                let (!a,!b) = S.splitAt (fromEnum k) s
+                                writeIORef kref 0
+                                unRead b src
+                                return $! Just a
           where
             l     = toEnum $ S.length s
 
@@ -569,6 +569,7 @@ giveBytes k0 str = do
         if k' < 0
           then do let a = S.take (fromIntegral k) x
                   when (not $ S.null a) $ write (Just a) str
+                  writeIORef kref 0
           else writeIORef kref k' >> write mb str
 
 
@@ -639,7 +640,7 @@ throwIfConsumesMoreThan
     -> OutputStream ByteString  -- ^ output stream to wrap
     -> IO (OutputStream ByteString)
 throwIfConsumesMoreThan k0 str = do
-    kref <- newIORef k0
+    kref   <- newIORef k0
     makeOutputStream $ sink kref
   where
     sink _ Nothing        = write Nothing str

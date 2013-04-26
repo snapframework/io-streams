@@ -8,7 +8,6 @@ import           Control.Applicative
 import           Control.Monad                  hiding (mapM)
 import           Control.Monad.IO.Class         (liftIO)
 import           Data.IORef
-import           Data.Monoid
 import           Prelude                        hiding (mapM, read)
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
@@ -19,40 +18,16 @@ import           System.IO.Streams.List
 import           System.IO.Streams.Tests.Common
 
 tests :: [Test]
-tests = [ testSourceConcat
-        , testAppendInput
+tests = [ testAppendInput
         , testConst
         , testCoverLockingStream
         , testPeek
         , testNullInput
         , testGenerator
         , testGeneratorInstances
-        , testGeneratorSource
         , testConsumer
         , testTrivials
         ]
-
-
-------------------------------------------------------------------------------
-testSourceConcat :: Test
-testSourceConcat = testCase "internal/sourceConcat" $ do
-    is  <- sourceToStream $ mconcat $
-           map singletonSource [1::Int, 2, 3]
-
-    unRead 7 is
-
-    l   <- toList is
-
-    assertEqual "sourceConcat" [7,1,2,3] l
-
-    is' <- sourceToStream $ mconcat $
-           map singletonSource [1::Int, 2, 3]
-
-    unRead 7 is'
-
-    l'  <- toList is'
-
-    assertEqual "sourceConcat2" [7,1,2,3] l'
 
 
 ------------------------------------------------------------------------------
@@ -141,16 +116,6 @@ testGenerator = testCase "internal/generator" $ do
 
 
 ------------------------------------------------------------------------------
-testGeneratorSource :: Test
-testGeneratorSource = testCase "internal/generatorSource" $ do
-    let src = generatorToSource $ sequence $
-              Prelude.map ((>>= yield) . (liftIO . return)) [1..5::Int]
-    is  <- sourceToStream src
-    toList is >>= assertEqual "generator" [1..5]
-    read is >>= assertEqual "read after EOF" Nothing
-
-
-------------------------------------------------------------------------------
 testGeneratorInstances :: Test
 testGeneratorInstances = testCase "internal/generatorInstances" $ do
     fromGenerator g1 >>= toList
@@ -197,8 +162,6 @@ testTrivials :: Test
 testTrivials = testCase "internal/trivials" $ do
     coverTypeableInstance (undefined :: InputStream Int)
     coverTypeableInstance (undefined :: OutputStream Int)
-    coverTypeableInstance (undefined :: Source Int)
-    coverTypeableInstance (undefined :: Sink Int)
     coverTypeableInstance (undefined :: Generator Int ())
     coverTypeableInstance (undefined :: Consumer Int ())
     coverTypeableInstance (undefined :: SP Int Int)

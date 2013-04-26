@@ -274,11 +274,6 @@ testThrowIfConsumesMoreThan2 =
              l' <- liftM L.fromChunks grab
              assertEqual "throwIfConsumesMoreThan" l l'
 
-             -- cover nullSink behaviour
-             write (Just "blah") os'
-             nil <- liftM L.fromChunks grab
-             assertEqual "nil after eof" "" nil
-
 
 ------------------------------------------------------------------------------
 testGiveExactly :: Test

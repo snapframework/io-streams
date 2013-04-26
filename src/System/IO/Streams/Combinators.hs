@@ -708,12 +708,14 @@ drop k0 input = do
         !k <- readIORef kref
         if k <= 0
           then getInput kref
-          else getInput kref >> prod kref
+          else discard kref
 
     getInput kref = do
         read input >>= maybe (return Nothing) (\c -> do
             modifyIORef kref (\x -> x - 1)
             return $! Just c)
+
+    discard kref = getInput kref >>= maybe (return Nothing) (const $ prod kref)
 
     pb kref s = do
         unRead s input

@@ -226,7 +226,7 @@ mutableVectorOutputStreamSized initialSize = do
     consumer r = go
       where
         go = S.await >>=
-             (maybe (return ()) $ \c -> do
+             (maybe (return $! ()) $ \c -> do
                  liftIO $ modifyMVar_ r $ flip vfAppend c
                  go)
 
@@ -234,7 +234,7 @@ mutableVectorOutputStreamSized initialSize = do
                                 !v   <- vfFinish vfi
                                 vfi' <- vfNew initialSize
                                 return $! (vfi', v)
-{-# INLINE mutableVectorOutputStream #-}
+{-# INLINE mutableVectorOutputStreamSized #-}
 
 
 ------------------------------------------------------------------------------

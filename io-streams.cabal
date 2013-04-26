@@ -80,6 +80,14 @@ Description:
   .
   /ChangeLog/
   .
+    [@1.1.0.0@] Reworked, simplified, and streamlined the internals of the
+                library. Exports from "System.IO.Streams.Internal" relying on
+                Sources and Sinks were deleted because they are no longer
+                necessary: Source(..), Sink(..), defaultPushback,
+                withDefaultPushback, nullSource, nullSink, singletonSource,
+                simpleSource, sourceToStream, sinkToStream, generatorToSource,
+                and consumerToSink.
+  .
     [@1.0.2.1@] Fixed a compile error on GHC 7.0.x.
   .
     [@1.0.2.0@] Added "System.IO.Streams.Process" (support for communicating
