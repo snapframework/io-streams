@@ -223,10 +223,9 @@ takeBytes k0 src = do
         k <- readIORef kref
         if k <= 0
            then return Nothing
-           else read src >>= maybe (return Nothing) chunk
+           else read src >>= maybe (return Nothing) (chunk k)
       where
-        chunk s = do
-            !k <- readIORef kref
+        chunk k s = do
             let l  = fromIntegral $ S.length s
             let k' = k - l
             if k' <= 0
@@ -234,14 +233,12 @@ takeBytes k0 src = do
                    in do
                        when (not $ S.null b) $ unRead b src
                        writeIORef kref 0
-                       return $! fromBS a
+                       return $! Just a
               else writeIORef kref k' >> return (Just s)
 
     pb kref s = do
         modifyRef kref (+ (fromIntegral $ S.length s))
         unRead s src
-
-    fromBS s = if S.null s then Nothing else Just s
 
 
 ------------------------------------------------------------------------------
