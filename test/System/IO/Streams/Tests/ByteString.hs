@@ -11,6 +11,7 @@ import qualified Data.ByteString.Lazy.Char8           as L
 import           Data.List                            hiding (lines,
                                                        takeWhile, unlines,
                                                        unwords, words)
+import           Data.Maybe                           (isJust)
 import           Data.Monoid
 import           Prelude                              hiding (lines, read,
                                                        takeWhile, unlines,
@@ -20,6 +21,7 @@ import qualified Prelude
 import           System.IO.Streams                    hiding (filter,
                                                        intersperse, mapM_)
 import           System.IO.Streams.Tests.Common
+import           System.Timeout
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
 import           Test.Framework.Providers.QuickCheck2
@@ -40,6 +42,7 @@ tests = [ testBoyerMoore
         , testTakeBytes
         , testTakeBytes2
         , testTakeBytes3
+        , testTakeBytes4
         , testThrowIfProducesMoreThan
         , testThrowIfProducesMoreThan2
         , testThrowIfProducesMoreThan3
@@ -176,6 +179,15 @@ testTakeBytes3 = testCase "bytestring/takeBytes3" $ do
     m  <- read is
 
     assertEqual "takeBytes3" Nothing m
+
+
+------------------------------------------------------------------------------
+testTakeBytes4 :: Test
+testTakeBytes4 = testCase "bytestring/takeBytes4" $ do
+    is <- makeInputStream (threadDelay 20000000 >> return Nothing)
+          >>= takeBytes 0
+    mb  <- timeout 100000 $ toList is
+    assertBool "takeBytes4" $ isJust mb
 
 
 ------------------------------------------------------------------------------
