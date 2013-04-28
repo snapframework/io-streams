@@ -219,7 +219,11 @@ takeBytes k0 src = do
     kref <- newIORef k0
     return $! InputStream (prod kref) (pb kref)
   where
-    prod kref = read src >>= maybe (return Nothing) chunk
+    prod kref = do
+        k <- readIORef kref
+        if k <= 0
+           then return Nothing
+           else read src >>= maybe (return Nothing) chunk
       where
         chunk s = do
             !k <- readIORef kref
