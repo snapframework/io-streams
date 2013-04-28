@@ -88,6 +88,9 @@ Description:
                 simpleSource, sourceToStream, sinkToStream, generatorToSource,
                 and consumerToSink.
   .
+    [@1.0.2.2@] Fixed a bug in which \"takeBytes 0\" was erroneously requesting
+                input from the wrapped stream.
+  .
     [@1.0.2.1@] Fixed a compile error on GHC 7.0.x.
   .
     [@1.0.2.0@] Added "System.IO.Streams.Process" (support for communicating
