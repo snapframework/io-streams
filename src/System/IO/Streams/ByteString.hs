@@ -236,8 +236,6 @@ takeBytes :: Int64                        -- ^ maximum number of bytes to read
           -> IO (InputStream ByteString)
 takeBytes k0 src = sourceToStream $ source k0
   where
-    fromBS s = if S.null s then Nothing else Just s
-
     eof !n = return $! SP (eofSrc n) Nothing
 
     eofSrc !n = Source (eof n) (pb n)
@@ -246,15 +244,18 @@ takeBytes k0 src = sourceToStream $ source k0
         unRead s src
         return $! source $! n + toEnum (S.length s)
 
-    source !k = Source (read src >>= maybe (eof k) chunk) (pb k)
+    source !k = Source grab (pb k)
       where
+        grab = if k <= 0
+                 then eof k
+                 else read src >>= maybe (eof k) chunk
         chunk s = let l  = toEnum $ S.length s
                       k' = k - l
                   in if k' <=  0
                        then let (a,b) = S.splitAt (fromEnum k) s
                             in do
                                 when (not $ S.null b) $ unRead b src
-                                return $! SP (eofSrc 0) (fromBS a)
+                                return $! SP (eofSrc 0) (Just a)
                        else return $! SP (source k') (Just s)
 
 
