@@ -104,7 +104,7 @@ toList is = outputToList (connect is)
 -- @
 -- ghci> import "Control.Applicative"
 -- ghci> ('connect' <$> 'fromList' [\"a\", \"b\", \"c\"]) >>= 'outputToList'
--- ["a","b","c"]
+-- [\"a\",\"b\",\"c\"]
 -- @
 outputToList :: (OutputStream a -> IO b) -> IO [a]
 outputToList f = do
