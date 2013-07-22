@@ -1,5 +1,5 @@
 Name:                io-streams
-Version:             1.1.0.1
+Version:             1.1.0.2
 License:             BSD3
 License-file:        LICENSE
 Category:            Data, Network, IO-Streams
@@ -79,6 +79,8 @@ Description:
     * support for spawning processes and communicating with them using streams.
   .
   /ChangeLog/
+  .
+    [@1.1.0.2@] Fixed a typo in the tutorial.
   .
     [@1.1.0.1@] A couple of Haddock markup fixes.
   .
