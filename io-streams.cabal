@@ -1,5 +1,5 @@
 Name:                io-streams
-Version:             1.1.0.2
+Version:             1.1.0.3
 License:             BSD3
 License-file:        LICENSE
 Category:            Data, Network, IO-Streams
@@ -79,6 +79,8 @@ Description:
     * support for spawning processes and communicating with them using streams.
   .
   /ChangeLog/
+  .
+    [@1.1.0.3@] Fixed an inconsistent version upper bound in the test suite.
   .
     [@1.1.0.2@] Fixed a typo in the tutorial.
   .
@@ -230,7 +232,7 @@ Test-suite testsuite
                      filepath      >= 1.2   && <2,
                      mtl           >= 2     && <3,
                      network       >= 2.4   && <2.5,
-                     primitive     >= 0.2   && <0.5,
+                     primitive     >= 0.2   && <0.6,
                      process       >= 1     && <1.2,
                      text          >= 0.10  && <0.12,
                      time          >= 1.2   && <1.5,
