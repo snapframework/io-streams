@@ -19,7 +19,7 @@ import qualified System.IO.Streams.Internal as Streams
 bUFSIZ :: Int
 bUFSIZ = 8192 - overhead
   where
-    overhead = 4 * sizeOf (undefined :: Int)
+    overhead = 4 * (sizeOf $! (0 :: Int))
 
 
 ------------------------------------------------------------------------------
@@ -32,9 +32,10 @@ socketToStreams = socketToStreamsWithBufferSize bUFSIZ
 
 
 ------------------------------------------------------------------------------
--- | Converts a 'Socket' to an 'InputStream' \/ 'OutputStream' pair. Note that,
--- as is usually the case in @io-streams@, writing a 'Nothing' to the generated
--- 'OutputStream' does not cause the underlying 'Socket' to be closed.
+-- | Converts a 'Socket' to an 'InputStream' \/ 'OutputStream' pair, with
+-- control over the size of the receive buffers. Note that, as is usually the
+-- case in @io-streams@, writing a 'Nothing' to the generated 'OutputStream'
+-- does not cause the underlying 'Socket' to be closed.
 socketToStreamsWithBufferSize
     :: Int                      -- ^ how large the receive buffer should be
     -> Socket                   -- ^ network socket
