@@ -20,18 +20,18 @@ import           Test.QuickCheck.Monadic
 ------------------------------------------------------------------------------
 
 tests :: [Test]
-tests = [ testMkChanStream
+tests = [ testMakeChanPipe
         ]
 
 
 ------------------------------------------------------------------------------
-testMkChanStream :: Test
-testMkChanStream = testProperty "concurrent/mkChanStream" $
+testMakeChanPipe :: Test
+testMakeChanPipe = testProperty "concurrent/makeChanPipe" $
                  monadicIO $
                  forAllM arbitrary prop
   where
     prop :: [Int] -> PropertyM IO ()
     prop l = liftQ $ do
-        (is, os) <- mkChanStream
+        (is, os) <- makeChanPipe
         _        <- forkIO $ writeList l os >> write Nothing os
-        toList is >>= assertEqual "mkChanStream" l
+        toList is >>= assertEqual "makeChanPipe" l

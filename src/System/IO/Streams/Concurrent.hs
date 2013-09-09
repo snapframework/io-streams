@@ -8,7 +8,7 @@ module System.IO.Streams.Concurrent
  , chanToInput
  , chanToOutput
  , concurrentMerge
- , mkChanStream
+ , makeChanPipe
  ) where
 
 ------------------------------------------------------------------------------
@@ -100,10 +100,7 @@ concurrentMerge iss = do
 --
 -- Since reading from the 'InputStream' and writing to the 'OutputStream' are
 -- blocking calls, be sure to do so in different threads.
---
--- This function is useful for writing tests for code built upon the io-streams
--- library.
-mkChanStream :: IO (InputStream a, OutputStream a)
-mkChanStream = do
+makeChanPipe :: IO (InputStream a, OutputStream a)
+makeChanPipe = do
     chan <- newChan
     (,) <$> chanToInput chan <*> chanToOutput chan
