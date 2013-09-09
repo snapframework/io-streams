@@ -36,7 +36,7 @@ inputToChan is ch = go
     go = do
         mb <- read is
         writeChan ch mb
-        maybe (return ()) (const go) mb
+        maybe (return $! ()) (const go) mb
 
 
 ------------------------------------------------------------------------------
@@ -83,12 +83,10 @@ concurrentMerge iss = do
         emb <- takeMVar mv
         case emb of
             Left exc      -> throwIO exc
-            Right Nothing -> do b <- modifyMVar nleft $ \n ->
+            Right Nothing -> do x <- modifyMVar nleft $ \n ->
                                      let !n' = n - 1
-                                     in return $! if n' == 0
-                                                    then (n', False)
-                                                    else (n', True)
-                                if b
+                                     in return $! (n', n')
+                                if x > 0
                                   then chunk mv nleft
                                   else return Nothing
             Right x       -> return x
