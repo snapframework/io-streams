@@ -8,11 +8,14 @@ module System.IO.Streams.Concurrent
  , chanToInput
  , chanToOutput
  , concurrentMerge
+ , makeChanPipe
  ) where
 
 ------------------------------------------------------------------------------
+import           Control.Applicative        ((<$>), (<*>))
 import           Control.Concurrent         (forkIO)
-import           Control.Concurrent.Chan    (Chan, readChan, writeChan)
+import           Control.Concurrent.Chan    (Chan, newChan, readChan,
+                                             writeChan)
 import           Control.Concurrent.MVar    (modifyMVar, newEmptyMVar,
                                              newMVar, putMVar, takeMVar)
 import           Control.Exception          (SomeException, mask, throwIO,
@@ -89,3 +92,15 @@ concurrentMerge iss = do
                                   then chunk mv nleft
                                   else return Nothing
             Right x       -> return x
+
+
+--------------------------------------------------------------------------------
+-- | Create a new pair of streams using an underlying 'Chan'. Everything written
+-- to the 'OutputStream' will appear as-is on the 'InputStream'.
+--
+-- Since reading from the 'InputStream' and writing to the 'OutputStream' are
+-- blocking calls, be sure to do so in different threads.
+makeChanPipe :: IO (InputStream a, OutputStream a)
+makeChanPipe = do
+    chan <- newChan
+    (,) <$> chanToInput chan <*> chanToOutput chan
