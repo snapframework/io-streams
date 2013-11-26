@@ -1,5 +1,5 @@
 Name:                io-streams
-Version:             1.1.2.0
+Version:             1.1.2.1
 License:             BSD3
 License-file:        LICENSE
 Category:            Data, Network, IO-Streams
@@ -79,6 +79,8 @@ Description:
     * support for spawning processes and communicating with them using streams.
   .
   /ChangeLog/
+  .
+    [@1.1.2.1@] Fixed build error when compiled against attoparsec-0.10.0.x.
   .
     [@1.1.2.0@] Added @System.IO.Streams.Concurrent.makeChanPipe@, to create a
                 simple concurrent pipe between an @InputStream@/@OutputStream@
