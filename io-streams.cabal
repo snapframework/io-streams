@@ -253,9 +253,9 @@ Test-suite testsuite
 
                      HUnit                      >= 1.2      && <2,
                      QuickCheck                 >= 2.3.0.2  && <3,
-                     test-framework             >= 0.6      && <0.7,
-                     test-framework-hunit       >= 0.2.7    && <0.3,
-                     test-framework-quickcheck2 >= 0.2.12.1 && <0.3,
+                     test-framework             >= 0.6      && <0.9,
+                     test-framework-hunit       >= 0.2.7    && <0.4,
+                     test-framework-quickcheck2 >= 0.2.12.1 && <0.4,
                      zlib                       >= 0.5      && <0.6
 
   if impl(ghc >= 7.2)
