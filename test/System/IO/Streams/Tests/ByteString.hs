@@ -228,7 +228,7 @@ testTakeBytesExactly2 = testProperty "bytestring/takeBytesExactly2" $
 
 ------------------------------------------------------------------------------
 testTakeBytesExactly3 :: Test
-testTakeBytesExactly3 = testCase "bytestring/takeBytesExactly2" $ do
+testTakeBytesExactly3 = testCase "bytestring/takeBytesExactly3" $ do
     is  <- fromList ["one", "two"]
     is' <- takeBytesExactly 7 is
     expectExceptionH $ toList is'
