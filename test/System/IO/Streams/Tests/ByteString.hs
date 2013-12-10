@@ -43,6 +43,9 @@ tests = [ testBoyerMoore
         , testTakeBytes2
         , testTakeBytes3
         , testTakeBytes4
+        , testTakeBytesExactly
+        , testTakeBytesExactly2
+        , testTakeBytesExactly3
         , testThrowIfProducesMoreThan
         , testThrowIfProducesMoreThan2
         , testThrowIfProducesMoreThan3
@@ -142,7 +145,6 @@ testTakeBytes = testProperty "bytestring/takeBytes" $
         assertEqual "take2" b y
         )
 
-
 ------------------------------------------------------------------------------
 testTakeBytes2 :: Test
 testTakeBytes2 = testProperty "bytestring/takeBytes2" $
@@ -189,6 +191,47 @@ testTakeBytes4 = testCase "bytestring/takeBytes4" $ do
     mb  <- timeout 100000 $ toList is
     assertBool "takeBytes4" $ isJust mb
 
+
+------------------------------------------------------------------------------
+testTakeBytesExactly :: Test
+testTakeBytesExactly = testProperty "bytestring/takeBytesExactly" $
+                monadicIO $
+                forAllM arbitrary prop
+  where
+    prop :: L.ByteString -> PropertyM IO ()
+    prop l = pre (L.length l > 5) >> liftQ (do
+        let (a,b) = L.splitAt 4 l
+
+        is  <- fromList (L.toChunks l)
+        is' <- takeBytesExactly 4 is
+
+        x   <- liftM L.fromChunks $ toList is'
+        y   <- liftM L.fromChunks $ toList is
+
+        assertEqual "take1" a x
+        assertEqual "take2" b y
+        )
+
+------------------------------------------------------------------------------
+testTakeBytesExactly2 :: Test
+testTakeBytesExactly2 = testProperty "bytestring/takeBytesExactly2" $
+                monadicIO $
+                forAllM arbitrary prop
+  where
+    prop :: L.ByteString -> PropertyM IO ()
+    prop l = pre (L.length l < 10) >> liftQ (do
+        is  <- fromList (L.toChunks l)
+        is' <- takeBytesExactly 10 is
+
+        expectExceptionH $ toList is'
+        )
+
+------------------------------------------------------------------------------
+testTakeBytesExactly3 :: Test
+testTakeBytesExactly3 = testCase "bytestring/takeBytesExactly2" $ do
+    is  <- fromList ["one", "two"]
+    is' <- takeBytesExactly 7 is
+    expectExceptionH $ toList is'
 
 ------------------------------------------------------------------------------
 testThrowIfProducesMoreThan :: Test
