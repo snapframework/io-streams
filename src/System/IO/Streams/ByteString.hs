@@ -29,6 +29,7 @@ module System.IO.Streams.ByteString
  , giveBytes
  , giveExactly
  , takeBytes
+ , takeBytesExactly
  , throwIfConsumesMoreThan
  , throwIfProducesMoreThan
 
@@ -215,7 +216,26 @@ countOutput = outputFoldM f 0
 takeBytes :: Int64                        -- ^ maximum number of bytes to read
           -> InputStream ByteString       -- ^ input stream to wrap
           -> IO (InputStream ByteString)
-takeBytes k0 src = do
+takeBytes k0 = takeBytes' k0 (return Nothing)
+
+------------------------------------------------------------------------------
+-- | Like @Streams.'takeBytes'@, but throws 'ReadTooShortException' when
+-- there aren't enough bytes present on the source.
+takeBytesExactly
+    :: Int64                        -- ^ number of bytes to read
+    -> InputStream ByteString       -- ^ input stream to wrap
+    -> IO (InputStream ByteString)
+takeBytesExactly k0 = takeBytes' k0 (throwIO $ ReadTooShortException k0)
+
+------------------------------------------------------------------------------
+-- Helper for the two above.
+takeBytes' :: Int64
+           -> IO (Maybe ByteString)
+           -- ^ What to do if the input ends before having consumed the
+           -- right amount of bytes.
+           -> InputStream ByteString
+           -> IO (InputStream ByteString)
+takeBytes' k0 h src = do
     kref <- newIORef k0
     return $! InputStream (prod kref) (pb kref)
   where
@@ -223,7 +243,7 @@ takeBytes k0 src = do
         k <- readIORef kref
         if k <= 0
            then return Nothing
-           else read src >>= maybe (return Nothing) (chunk k)
+           else read src >>= maybe h (chunk k)
       where
         chunk k s = do
             let l  = fromIntegral $ S.length s
@@ -239,6 +259,7 @@ takeBytes k0 src = do
     pb kref s = do
         modifyRef kref (+ (fromIntegral $ S.length s))
         unRead s src
+{-# INLINE takeBytes' #-}
 
 
 ------------------------------------------------------------------------------
@@ -404,8 +425,9 @@ instance Exception TooManyBytesWrittenException
 
 
 ------------------------------------------------------------------------------
--- | Thrown by 'readExactly' when not enough bytes were available on the input.
-data ReadTooShortException = ReadTooShortException Int deriving (Typeable)
+-- | Thrown by 'readExactly' and 'takeBytesExactly' when not enough bytes were
+-- available on the input.
+data ReadTooShortException = ReadTooShortException Int64 deriving (Typeable)
 
 instance Show ReadTooShortException where
     show (ReadTooShortException x) = "Short read, expected " ++ show x
@@ -501,7 +523,7 @@ readExactly n input = go id n
     go !dl 0  = return $! S.concat $! dl []
     go !dl k  =
         read input >>=
-        maybe (throwIO $ ReadTooShortException n)
+        maybe (throwIO $ ReadTooShortException (fromIntegral n))
               (\s -> do
                  let l = S.length s
                  if l >= k
@@ -510,7 +532,6 @@ readExactly n input = go id n
                      when (not $ S.null b) $ unRead b input
                      return $! S.concat $! dl [a]
                    else go (dl . (s:)) (k - l))
-
 
 ------------------------------------------------------------------------------
 -- | Takes from a stream until the given predicate is no longer satisfied.
