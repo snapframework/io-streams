@@ -1,5 +1,5 @@
 Name:                io-streams
-Version:             1.1.2.1
+Version:             1.1.2.2
 License:             BSD3
 License-file:        LICENSE
 Category:            Data, Network, IO-Streams
@@ -80,6 +80,9 @@ Description:
     * support for spawning processes and communicating with them using streams.
   .
   /ChangeLog/
+  .
+    [@1.1.2.2@] Allowed newest versions of the @process@, @test-framework@,
+                and @text@ libraries.
   .
     [@1.1.2.1@] Fixed build error when compiled against attoparsec-0.10.0.x.
   .
