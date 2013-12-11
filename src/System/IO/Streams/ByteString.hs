@@ -29,7 +29,7 @@ module System.IO.Streams.ByteString
  , giveBytes
  , giveExactly
  , takeBytes
- , takeBytesExactly
+ , takeExactly
  , throwIfConsumesMoreThan
  , throwIfProducesMoreThan
 
@@ -221,11 +221,10 @@ takeBytes k0 = takeBytes' k0 (return Nothing)
 ------------------------------------------------------------------------------
 -- | Like @Streams.'takeBytes'@, but throws 'ReadTooShortException' when
 -- there aren't enough bytes present on the source.
-takeBytesExactly
-    :: Int64                        -- ^ number of bytes to read
-    -> InputStream ByteString       -- ^ input stream to wrap
-    -> IO (InputStream ByteString)
-takeBytesExactly k0 = takeBytes' k0 (throwIO $ ReadTooShortException k0)
+takeExactly :: Int64                        -- ^ number of bytes to read
+            -> InputStream ByteString       -- ^ input stream to wrap
+            -> IO (InputStream ByteString)
+takeExactly k0 = takeBytes' k0 (throwIO $ ReadTooShortException k0)
 
 ------------------------------------------------------------------------------
 -- Helper for the two above.
@@ -425,7 +424,7 @@ instance Exception TooManyBytesWrittenException
 
 
 ------------------------------------------------------------------------------
--- | Thrown by 'readExactly' and 'takeBytesExactly' when not enough bytes were
+-- | Thrown by 'readExactly' and 'takeExactly' when not enough bytes were
 -- available on the input.
 data ReadTooShortException = ReadTooShortException Int64 deriving (Typeable)
 
