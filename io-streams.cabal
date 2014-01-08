@@ -1,5 +1,5 @@
 Name:                io-streams
-Version:             1.1.2.2
+Version:             1.1.3.0
 License:             BSD3
 License-file:        LICENSE
 Category:            Data, Network, IO-Streams
@@ -80,6 +80,12 @@ Description:
     * support for spawning processes and communicating with them using streams.
   .
   /ChangeLog/
+  .
+    [@1.1.3.0@] Added @System.IO.Streams.ByteString.takeExactly@. Widened
+                @network@ dependency to include 2.3. Added a
+                @NoInteractiveTests@ flag to selectively disable some tests for
+                environments where spawning interactive processes is
+                impossible.
   .
     [@1.1.2.2@] Allowed newest versions of the @process@, @test-framework@,
                 and @text@ libraries.

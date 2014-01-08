@@ -217,6 +217,8 @@ takeBytes :: Int64                        -- ^ maximum number of bytes to read
           -> InputStream ByteString       -- ^ input stream to wrap
           -> IO (InputStream ByteString)
 takeBytes k0 = takeBytes' k0 (return Nothing)
+{-# INLINE takeBytes #-}
+
 
 ------------------------------------------------------------------------------
 -- | Like @Streams.'takeBytes'@, but throws 'ReadTooShortException' when
@@ -225,6 +227,8 @@ takeExactly :: Int64                        -- ^ number of bytes to read
             -> InputStream ByteString       -- ^ input stream to wrap
             -> IO (InputStream ByteString)
 takeExactly k0 = takeBytes' k0 (throwIO $ ReadTooShortException k0)
+{-# INLINE takeExactly #-}
+
 
 ------------------------------------------------------------------------------
 -- Helper for the two above.
@@ -531,6 +535,7 @@ readExactly n input = go id n
                      when (not $ S.null b) $ unRead b input
                      return $! S.concat $! dl [a]
                    else go (dl . (s:)) (k - l))
+
 
 ------------------------------------------------------------------------------
 -- | Takes from a stream until the given predicate is no longer satisfied.
