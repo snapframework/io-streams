@@ -126,6 +126,10 @@ Description:
 
 Extra-Source-Files:  CONTRIBUTORS README.md
 
+Flag NoInteractiveTests
+  Description: Do not run interactive tests
+  Default: False
+
 ------------------------------------------------------------------------------
 Library
   hs-source-dirs:    src
@@ -234,7 +238,7 @@ Test-suite testsuite
                      -fno-warn-unused-do-bind
   ghc-prof-options:  -prof -auto-all
 
-  if !os(windows)
+  if !os(windows) && !flag(NoInteractiveTests)
     cpp-options: -DENABLE_PROCESS_TESTS
 
 
