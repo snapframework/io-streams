@@ -43,6 +43,9 @@ tests = [ testBoyerMoore
         , testTakeBytes2
         , testTakeBytes3
         , testTakeBytes4
+        , testTakeExactly
+        , testTakeExactly2
+        , testTakeExactly3
         , testThrowIfProducesMoreThan
         , testThrowIfProducesMoreThan2
         , testThrowIfProducesMoreThan3
@@ -142,7 +145,6 @@ testTakeBytes = testProperty "bytestring/takeBytes" $
         assertEqual "take2" b y
         )
 
-
 ------------------------------------------------------------------------------
 testTakeBytes2 :: Test
 testTakeBytes2 = testProperty "bytestring/takeBytes2" $
@@ -189,6 +191,47 @@ testTakeBytes4 = testCase "bytestring/takeBytes4" $ do
     mb  <- timeout 100000 $ toList is
     assertBool "takeBytes4" $ isJust mb
 
+
+------------------------------------------------------------------------------
+testTakeExactly :: Test
+testTakeExactly = testProperty "bytestring/takeExactly" $
+                monadicIO $
+                forAllM arbitrary prop
+  where
+    prop :: L.ByteString -> PropertyM IO ()
+    prop l = pre (L.length l > 5) >> liftQ (do
+        let (a,b) = L.splitAt 4 l
+
+        is  <- fromList (L.toChunks l)
+        is' <- takeExactly 4 is
+
+        x   <- liftM L.fromChunks $ toList is'
+        y   <- liftM L.fromChunks $ toList is
+
+        assertEqual "take1" a x
+        assertEqual "take2" b y
+        )
+
+------------------------------------------------------------------------------
+testTakeExactly2 :: Test
+testTakeExactly2 = testProperty "bytestring/takeExactly2" $
+                monadicIO $
+                forAllM arbitrary prop
+  where
+    prop :: L.ByteString -> PropertyM IO ()
+    prop l = pre (L.length l < 10) >> liftQ (do
+        is  <- fromList (L.toChunks l)
+        is' <- takeExactly 10 is
+
+        expectExceptionH $ toList is'
+        )
+
+------------------------------------------------------------------------------
+testTakeExactly3 :: Test
+testTakeExactly3 = testCase "bytestring/takeExactly3" $ do
+    is  <- fromList ["one", "two"]
+    is' <- takeExactly 7 is
+    expectExceptionH $ toList is'
 
 ------------------------------------------------------------------------------
 testThrowIfProducesMoreThan :: Test
