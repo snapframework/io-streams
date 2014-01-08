@@ -44,18 +44,18 @@ testSocket = testCase "network/socket" $
         Streams.fromList ["", "ok"] >>= Streams.connectTo os
         N.shutdown sock N.ShutdownSend
         Streams.toList is >>= putMVar resultMVar
-        N.close sock
+        N.sClose sock
 
     server mvar = do
         sock  <- N.socket N.AF_INET N.Stream N.defaultProtocol
         addr  <- N.inet_addr "127.0.0.1"
         let saddr = N.SockAddrInet N.aNY_PORT addr
-        N.bind sock saddr
+        N.bindSocket sock saddr
         N.listen sock 5
         port  <- N.socketPort sock
         putMVar mvar port
         (csock, _) <- N.accept sock
         (is, os) <- Streams.socketToStreams csock
         Streams.toList is >>= flip Streams.writeList os
-        N.close csock
-        N.close sock
+        N.sClose csock
+        N.sClose sock
