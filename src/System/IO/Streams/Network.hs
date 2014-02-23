@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 -- | Converting network 'Socket's to streams.
 module System.IO.Streams.Network
   ( -- * Sockets to Streams
@@ -13,7 +15,7 @@ import           Foreign.ForeignPtr         (newForeignPtr, withForeignPtr)
 import           Foreign.Marshal.Alloc      (finalizerFree, mallocBytes)
 import           Network.Socket             (Socket)
 import qualified Network.Socket             as N
-import qualified Network.Socket.ByteString  as N
+import qualified Network.Socket.ByteString  as NB
 import           Prelude                    (IO, Int, Maybe (..), return,
                                              ($!), (<=), (>>=))
 import           System.IO.Error            (ioError, isEOFError)
@@ -50,16 +52,23 @@ socketToStreamsWithBufferSize bufsiz socket = do
     return $! (is, os)
 
   where
+#if MIN_VERSION_network(2,4,0)
     recv buf = N.recvBuf socket buf bufsiz `catch` \ioe ->
                if isEOFError ioe then return 0 else ioError ioe
 
     mkFp = mallocBytes bufsiz >>= newForeignPtr finalizerFree
+
     input = do
         fp <- mkFp
         n  <- withForeignPtr fp recv
         return $! if n <= 0
                     then Nothing
                     else Just $! S.fromForeignPtr fp 0 n
+#else
+    input = do
+        s <- NB.recv socket bufsiz
+        return $! if S.null s then Nothing else Just s
+#endif
 
     output Nothing  = return $! ()
-    output (Just s) = if S.null s then return $! () else N.sendAll socket s
+    output (Just s) = if S.null s then return $! () else NB.sendAll socket s

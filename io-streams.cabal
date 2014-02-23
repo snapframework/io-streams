@@ -1,5 +1,5 @@
 Name:                io-streams
-Version:             1.1.4.1
+Version:             1.1.4.2
 License:             BSD3
 License-file:        LICENSE
 Category:            Data, Network, IO-Streams
@@ -80,6 +80,8 @@ Description:
     * support for spawning processes and communicating with them using streams.
   .
   /ChangeLog/
+  .
+    [@1.1.4.2@] Fixed a build error with network versions older than 2.4.
   .
     [@1.1.4.1@] @System.IO.Streams.Network@: scalability improvement: buffers
                 for socket reads are now allocated by system malloc rather than
