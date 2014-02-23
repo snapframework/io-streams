@@ -6,20 +6,24 @@ module System.IO.Streams.Network
   ) where
 
 ------------------------------------------------------------------------------
-import           Data.ByteString.Char8      (ByteString)
+import           Control.Exception          (catch)
 import qualified Data.ByteString.Char8      as S
-import           Foreign.Storable           (sizeOf)
+import           Data.ByteString.Internal   as S
+import           Foreign.ForeignPtr         (newForeignPtr, withForeignPtr)
+import           Foreign.Marshal.Alloc      (finalizerFree, mallocBytes)
 import           Network.Socket             (Socket)
+import qualified Network.Socket             as N
 import qualified Network.Socket.ByteString  as N
+import           Prelude                    (IO, Int, Maybe (..), return,
+                                             ($!), (<=), (>>=))
+import           System.IO.Error            (ioError, isEOFError)
 import           System.IO.Streams.Internal (InputStream, OutputStream)
 import qualified System.IO.Streams.Internal as Streams
 
 
 ------------------------------------------------------------------------------
 bUFSIZ :: Int
-bUFSIZ = 8192 - overhead
-  where
-    overhead = 4 * (sizeOf $! (0 :: Int))
+bUFSIZ = 4096
 
 
 ------------------------------------------------------------------------------
@@ -46,9 +50,16 @@ socketToStreamsWithBufferSize bufsiz socket = do
     return $! (is, os)
 
   where
+    recv buf = N.recvBuf socket buf bufsiz `catch` \ioe ->
+               if isEOFError ioe then return 0 else ioError ioe
+
+    mkFp = mallocBytes bufsiz >>= newForeignPtr finalizerFree
     input = do
-        s <- N.recv socket bufsiz
-        return $! if S.null s then Nothing else Just s
+        fp <- mkFp
+        n  <- withForeignPtr fp recv
+        return $! if n <= 0
+                    then Nothing
+                    else Just $! S.fromForeignPtr fp 0 n
 
     output Nothing  = return $! ()
     output (Just s) = if S.null s then return $! () else N.sendAll socket s
