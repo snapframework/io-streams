@@ -117,7 +117,7 @@ data InputStream a = InputStream {
 -- * @'write' :: 'Maybe' c -> 'OutputStream' c -> 'IO' ()@
 --
 -- Values of type @c@ are written in an 'OutputStream' by wrapping them in
--- 'Just', and the end of the stream is indicated by by supplying 'Nothing'.
+-- 'Just', and the end of the stream is indicated by supplying 'Nothing'.
 --
 -- If you supply a value after a 'Nothing', the behavior is defined by the
 -- implementer of the given 'OutputStream'. (All 'OutputStream' definitions in
@@ -141,7 +141,7 @@ read = _read
 ------------------------------------------------------------------------------
 -- | Feeds a value to an 'OutputStream'. Values of type @c@ are written in an
 -- 'OutputStream' by wrapping them in 'Just', and the end of the stream is
--- indicated by by supplying 'Nothing'.
+-- indicated by supplying 'Nothing'.
 --
 write :: Maybe a -> OutputStream a -> IO ()
 write = flip _write
