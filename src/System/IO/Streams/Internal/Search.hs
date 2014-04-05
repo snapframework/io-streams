@@ -7,17 +7,21 @@ module System.IO.Streams.Internal.Search
   ) where
 
 ------------------------------------------------------------------------------
-import           Control.Monad               (when)
-import           Control.Monad.IO.Class      (liftIO)
-import           Data.ByteString.Char8       (ByteString)
-import qualified Data.ByteString.Char8       as S
-import           Data.ByteString.Unsafe      as S
-import qualified Data.Vector.Unboxed         as V
+import Control.Monad ( when )
+import Control.Monad.IO.Class ( liftIO )
+import Data.ByteString.Char8 ( ByteString )
+import qualified Data.ByteString.Char8 as S
+    ( take, splitAt, null, length, drop, concat, append )
+import Data.ByteString.Unsafe as S ( unsafeIndex )
+import qualified Data.Vector.Unboxed as V ( unsafeIndex, create )
 import qualified Data.Vector.Unboxed.Mutable as MV
-import           Prelude                     hiding (last, read)
-------------------------------------------------------------------------------
-import           System.IO.Streams.Internal  (InputStream)
-import qualified System.IO.Streams.Internal  as Streams
+    ( unsafeWrite, replicate )
+import Prelude hiding (last, read)
+------------------------------------------------------------------------------    
+import System.IO.Streams.Internal ( InputStream )
+import qualified System.IO.Streams.Internal as Streams
+    ( yield, read, fromGenerator )
+
 
 ------------------------------------------------------------------------------
 -- | 'MatchInfo' provides match information when performing string search.

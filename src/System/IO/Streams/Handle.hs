@@ -20,18 +20,26 @@ module System.IO.Streams.Handle
  , stderr
  ) where
 
-import           Data.ByteString            (ByteString)
-import qualified Data.ByteString            as S
-import qualified GHC.IO.Handle              as H
-import           System.IO                  (Handle, hFlush)
-import qualified System.IO                  as IO
-import           System.IO.Unsafe           (unsafePerformIO)
 ------------------------------------------------------------------------------
-import           System.IO.Streams.Internal (InputStream, OutputStream,
-                                             SP (..), lockingInputStream,
-                                             lockingOutputStream,
-                                             makeInputStream,
-                                             makeOutputStream)
+import Data.ByteString ( ByteString )
+import qualified Data.ByteString as S ( null, hPut, hGetSome )
+import qualified GHC.IO.Handle as H
+    ( BufferMode(NoBuffering),
+      noNewlineTranslation,
+      mkDuplexHandle,
+      hSetBuffering )
+import System.IO ( Handle, hFlush )
+import qualified System.IO as IO ( stdout, stdin, stderr )
+import System.IO.Unsafe ( unsafePerformIO )
+------------------------------------------------------------------------------
+import System.IO.Streams.Internal
+    ( InputStream,
+      OutputStream,
+      SP(..),
+      lockingInputStream,
+      lockingOutputStream,
+      makeInputStream,
+      makeOutputStream )
 
 
 ------------------------------------------------------------------------------

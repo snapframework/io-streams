@@ -12,10 +12,13 @@ module System.IO.Streams.Debug
  , debugOutputBS
  ) where
 
-import           Data.ByteString.Char8      (ByteString)
-import qualified Data.ByteString.Char8      as S
-import           System.IO.Streams.Internal (InputStream (..), OutputStream)
+import Data.ByteString.Char8 ( ByteString )
+import qualified Data.ByteString.Char8 as S
+    ( pack, take, length, drop, concat )
+import System.IO.Streams.Internal ( InputStream(..), OutputStream )
 import qualified System.IO.Streams.Internal as Streams
+    ( write, unRead, read, makeOutputStream )
+
 
 ------------------------------------------------------------------------------
 debugInput ::

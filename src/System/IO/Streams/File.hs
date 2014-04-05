@@ -15,16 +15,20 @@ module System.IO.Streams.File
   ) where
 
 ------------------------------------------------------------------------------
-import           Control.Monad              (unless)
-import           Data.ByteString            (ByteString)
-import           Data.Int                   (Int64)
-import           System.IO                  (BufferMode (NoBuffering),
-                                             IOMode (ReadMode, WriteMode),
-                                             SeekMode (AbsoluteSeek), hSeek,
-                                             hSetBuffering, withBinaryFile)
+import Control.Monad ( unless )
+import Data.ByteString ( ByteString )
+import Data.Int ( Int64 )
+import System.IO
+    ( BufferMode(NoBuffering),
+      IOMode(ReadMode, WriteMode),
+      SeekMode(AbsoluteSeek),
+      hSeek,
+      hSetBuffering,
+      withBinaryFile )
 ------------------------------------------------------------------------------
-import           System.IO.Streams.Handle
-import           System.IO.Streams.Internal (InputStream, OutputStream)
+import System.IO.Streams.Handle
+    ( handleToOutputStream, handleToInputStream )
+import System.IO.Streams.Internal ( InputStream, OutputStream )
 
 
 ------------------------------------------------------------------------------

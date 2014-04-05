@@ -9,3 +9,4 @@ module System.IO.Streams.Attoparsec
   ) where
 
 import System.IO.Streams.Internal.Attoparsec
+    ( ParseException(..), parserToInputStream, parseFromStream )

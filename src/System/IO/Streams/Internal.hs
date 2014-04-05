@@ -61,26 +61,36 @@ module System.IO.Streams.Internal
   ) where
 
 ------------------------------------------------------------------------------
-import           Control.Applicative      (Applicative (..))
-import           Control.Concurrent       (newMVar, withMVar)
-import           Control.Exception        (throwIO)
-import           Control.Monad            (when)
-import           Control.Monad.IO.Class   (MonadIO (..))
-import           Data.ByteString.Char8    (ByteString)
-import qualified Data.ByteString.Char8    as S
-import qualified Data.ByteString.Internal as S
-import qualified Data.ByteString.Unsafe   as S
-import           Data.IORef               (newIORef, readIORef, writeIORef)
-import           Data.Maybe               (isNothing)
-import           Data.Typeable            (Typeable)
-import           Data.Word                (Word8)
-import           Foreign.Marshal.Utils    (copyBytes)
-import           Foreign.Ptr              (castPtr)
-import qualified GHC.IO.Buffer            as H
-import qualified GHC.IO.BufferedIO        as H
-import qualified GHC.IO.Device            as H
-import           GHC.IO.Exception         (unsupportedOperation)
-import           Prelude                  hiding (read)
+import Prelude hiding (read)
+import Control.Applicative ( Applicative(..) )
+import Control.Concurrent ( newMVar, withMVar )
+import Control.Exception ( throwIO )
+import Control.Monad ( when )
+import Control.Monad.IO.Class ( MonadIO(..) )
+import Data.ByteString.Char8 ( ByteString )
+import qualified Data.ByteString.Char8 as S
+    ( packCStringLen, length, copy )
+import qualified Data.ByteString.Internal as S ( fromForeignPtr )
+import qualified Data.ByteString.Unsafe as S
+    ( unsafeUseAsCStringLen )
+import Data.IORef ( newIORef, readIORef, writeIORef )
+import Data.Maybe ( isNothing )
+import Data.Typeable ( Typeable )
+import Data.Word ( Word8 )
+import Foreign.Marshal.Utils ( copyBytes )
+import Foreign.Ptr ( castPtr )
+import qualified GHC.IO.Buffer as H
+    ( BufferState(WriteBuffer),
+      Buffer(bufL, bufR, bufRaw, bufState),
+      newByteBuffer )
+import qualified GHC.IO.BufferedIO as H
+    ( BufferedIO(..),
+      readBuf )
+import qualified GHC.IO.Device as H
+    ( RawIO(..),
+      IODeviceType(Stream),
+      IODevice(close, devType, ready) )
+import GHC.IO.Exception ( unsupportedOperation )
 
 
 ------------------------------------------------------------------------------

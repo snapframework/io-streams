@@ -7,18 +7,36 @@ module System.IO.Streams.Process
   ) where
 
 ------------------------------------------------------------------------------
-import           Data.ByteString.Char8         (ByteString)
-import           System.IO                     (hClose)
+import Data.ByteString.Char8 ( ByteString )
+import System.IO ( hClose )
 import qualified System.IO.Streams.Combinators as Streams
-import qualified System.IO.Streams.Handle      as Streams
-import           System.IO.Streams.Internal    (InputStream, OutputStream)
-import qualified System.IO.Streams.Internal    as Streams
-import           System.Process                hiding (env,
-                                                runInteractiveCommand,
-                                                runInteractiveProcess,
-                                                runProcess)
-import qualified System.Process                as P
-------------------------------------------------------------------------------
+    ( atEndOfOutput, atEndOfInput )
+import qualified System.IO.Streams.Handle as Streams
+    ( handleToOutputStream, handleToInputStream )
+import System.IO.Streams.Internal ( InputStream, OutputStream )
+import qualified System.IO.Streams.Internal as Streams
+    ( lockingOutputStream, lockingInputStream )
+import System.Process
+    ( StdStream(..),
+      ProcessHandle,
+      CreateProcess(CreateProcess, close_fds, cmdspec, create_group, cwd,
+                    std_err, std_in, std_out),
+      CmdSpec(..),
+      waitForProcess,
+      terminateProcess,
+      system,
+      showCommandForUser,
+      shell,
+      runCommand,
+      readProcessWithExitCode,
+      readProcess,
+      rawSystem,
+      proc,
+      interruptProcessGroupOf,
+      getProcessExitCode,
+      createProcess )
+import qualified System.Process as P
+    ( runInteractiveProcess, runInteractiveCommand )
 
 
 ------------------------------------------------------------------------------
