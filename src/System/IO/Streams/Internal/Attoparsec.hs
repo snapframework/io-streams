@@ -19,7 +19,7 @@ import           Data.Attoparsec.ByteString.Char8 (Parser, Result,
                                                    eitherResult, feed, parse)
 import           Data.Attoparsec.Types            (IResult (..))
 import           Data.ByteString.Char8            (ByteString)
-import qualified Data.ByteString.Char8 as S       (null)
+import qualified Data.ByteString.Char8            as S (null)
 import           Data.Typeable                    (Typeable)
 import           Prelude                          hiding (read)
 ------------------------------------------------------------------------------

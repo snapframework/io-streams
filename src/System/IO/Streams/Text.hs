@@ -9,24 +9,24 @@ module System.IO.Streams.Text
   ) where
 
 ----------------------------------------------------------------------------
-import Control.Monad ( when )
-import Control.Monad.IO.Class ( MonadIO(..) )
-import Data.ByteString ( ByteString )
-import qualified Data.ByteString as S ( null, length )
-import qualified Data.ByteString.Unsafe as S
-    ( unsafeTake, unsafeIndex, unsafeDrop )
-import Data.Monoid ( mappend )
-import Data.Text ( Text )
-import qualified Data.Text.Encoding as T
-    ( encodeUtf8, decodeUtf8With, decodeUtf8 )
-import Data.Text.Encoding.Error ( OnDecodeError )
-import Data.Word ( Word8 )
+import           Control.Monad                 (when)
+import           Control.Monad.IO.Class        (MonadIO (..))
+import           Data.ByteString               (ByteString)
+import qualified Data.ByteString               as S (length, null)
+import qualified Data.ByteString.Unsafe        as S (unsafeDrop, unsafeIndex,
+                                                     unsafeTake)
+import           Data.Monoid                   (mappend)
+import           Data.Text                     (Text)
+import qualified Data.Text.Encoding            as T (decodeUtf8,
+                                                     decodeUtf8With,
+                                                     encodeUtf8)
+import           Data.Text.Encoding.Error      (OnDecodeError)
+import           Data.Word                     (Word8)
 ------------------------------------------------------------------------------
-import qualified System.IO.Streams.Combinators as Streams
-    ( contramap )
-import System.IO.Streams.Internal ( InputStream, OutputStream )
-import qualified System.IO.Streams.Internal as Streams
-    ( yield, read, fromGenerator )
+import qualified System.IO.Streams.Combinators as Streams (contramap)
+import           System.IO.Streams.Internal    (InputStream, OutputStream)
+import qualified System.IO.Streams.Internal    as Streams (fromGenerator,
+                                                           read, yield)
 
 
 ------------------------------------------------------------------------------

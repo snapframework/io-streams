@@ -7,20 +7,20 @@ module System.IO.Streams.Internal.Search
   ) where
 
 ------------------------------------------------------------------------------
-import Control.Monad ( when )
-import Control.Monad.IO.Class ( liftIO )
-import Data.ByteString.Char8 ( ByteString )
-import qualified Data.ByteString.Char8 as S
-    ( take, splitAt, null, length, drop, concat, append )
-import Data.ByteString.Unsafe as S ( unsafeIndex )
-import qualified Data.Vector.Unboxed as V ( unsafeIndex, create )
-import qualified Data.Vector.Unboxed.Mutable as MV
-    ( unsafeWrite, replicate )
-import Prelude hiding (last, read)
-------------------------------------------------------------------------------    
-import System.IO.Streams.Internal ( InputStream )
-import qualified System.IO.Streams.Internal as Streams
-    ( yield, read, fromGenerator )
+import           Control.Monad               (when)
+import           Control.Monad.IO.Class      (liftIO)
+import           Data.ByteString.Char8       (ByteString)
+import qualified Data.ByteString.Char8       as S (append, concat, drop,
+                                                   length, null, splitAt,
+                                                   take)
+import           Data.ByteString.Unsafe      as S (unsafeIndex)
+import qualified Data.Vector.Unboxed         as V (create, unsafeIndex)
+import qualified Data.Vector.Unboxed.Mutable as MV (replicate, unsafeWrite)
+import           Prelude                     hiding (last, read)
+------------------------------------------------------------------------------
+import           System.IO.Streams.Internal  (InputStream)
+import qualified System.IO.Streams.Internal  as Streams (fromGenerator, read,
+                                                         yield)
 
 
 ------------------------------------------------------------------------------

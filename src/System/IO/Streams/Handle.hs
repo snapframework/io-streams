@@ -21,25 +21,21 @@ module System.IO.Streams.Handle
  ) where
 
 ------------------------------------------------------------------------------
-import Data.ByteString ( ByteString )
-import qualified Data.ByteString as S ( null, hPut, hGetSome )
-import qualified GHC.IO.Handle as H
-    ( BufferMode(NoBuffering),
-      noNewlineTranslation,
-      mkDuplexHandle,
-      hSetBuffering )
-import System.IO ( Handle, hFlush )
-import qualified System.IO as IO ( stdout, stdin, stderr )
-import System.IO.Unsafe ( unsafePerformIO )
+import           Data.ByteString            (ByteString)
+import qualified Data.ByteString            as S (hGetSome, hPut, null)
+import qualified GHC.IO.Handle              as H (BufferMode (NoBuffering),
+                                                  hSetBuffering,
+                                                  mkDuplexHandle,
+                                                  noNewlineTranslation)
+import           System.IO                  (Handle, hFlush)
+import qualified System.IO                  as IO (stderr, stdin, stdout)
+import           System.IO.Unsafe           (unsafePerformIO)
 ------------------------------------------------------------------------------
-import System.IO.Streams.Internal
-    ( InputStream,
-      OutputStream,
-      SP(..),
-      lockingInputStream,
-      lockingOutputStream,
-      makeInputStream,
-      makeOutputStream )
+import           System.IO.Streams.Internal (InputStream, OutputStream,
+                                             SP (..), lockingInputStream,
+                                             lockingOutputStream,
+                                             makeInputStream,
+                                             makeOutputStream)
 
 
 ------------------------------------------------------------------------------

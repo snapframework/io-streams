@@ -18,40 +18,39 @@ module System.IO.Streams.Zlib
  ) where
 
 ------------------------------------------------------------------------------
-import Blaze.ByteString.Builder ( fromByteString )
+import           Blaze.ByteString.Builder                 (fromByteString)
 ------------------------------------------------------------------------------
-import Blaze.ByteString.Builder.Internal
-    ( Builder, defaultBufferSize, flush )
+import           Blaze.ByteString.Builder.Internal        (Builder,
+                                                           defaultBufferSize,
+                                                           flush)
 ------------------------------------------------------------------------------
-import Blaze.ByteString.Builder.Internal.Buffer ( allocBuffer )
+import           Blaze.ByteString.Builder.Internal.Buffer (allocBuffer)
 ------------------------------------------------------------------------------
-import Codec.Zlib
-    ( Deflate,
-      Inflate,
-      Popper,
-      WindowBits(..),
-      feedDeflate,
-      feedInflate,
-      finishDeflate,
-      finishInflate,
-      flushDeflate,
-      flushInflate,
-      initDeflate,
-      initInflate )
+import           Codec.Zlib                               (Deflate, Inflate,
+                                                           Popper,
+                                                           WindowBits (..),
+                                                           feedDeflate,
+                                                           feedInflate,
+                                                           finishDeflate,
+                                                           finishInflate,
+                                                           flushDeflate,
+                                                           flushInflate,
+                                                           initDeflate,
+                                                           initInflate)
 ------------------------------------------------------------------------------
-import Data.ByteString ( ByteString )
-import qualified Data.ByteString as S ( null, empty )
-import Data.IORef ( newIORef, readIORef, writeIORef )
-import Prelude hiding (read)
+import           Data.ByteString                          (ByteString)
+import qualified Data.ByteString                          as S (empty, null)
+import           Data.IORef                               (newIORef,
+                                                           readIORef,
+                                                           writeIORef)
+import           Prelude                                  hiding (read)
 ------------------------------------------------------------------------------
-import System.IO.Streams.Builder ( unsafeBuilderStream )
-import System.IO.Streams.Internal
-    ( InputStream,
-      OutputStream,
-      makeInputStream,
-      makeOutputStream,
-      read,
-      write )
+import           System.IO.Streams.Builder               (unsafeBuilderStream)
+import           System.IO.Streams.Internal              (InputStream,
+                                                          OutputStream,
+                                                          makeInputStream,
+                                                          makeOutputStream,
+                                                          read, write)
 
 
 ------------------------------------------------------------------------------

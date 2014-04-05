@@ -71,28 +71,28 @@ module System.IO.Streams.Builder
  ) where
 
 --------------------------------------------------------------------------------
-import Blaze.ByteString.Builder.Internal ( defaultBufferSize )
+import           Blaze.ByteString.Builder.Internal        (defaultBufferSize)
 --------------------------------------------------------------------------------
-import Blaze.ByteString.Builder.Internal.Types
-    ( BufRange(..), BuildSignal(..), Builder(..), buildStep )
+import           Blaze.ByteString.Builder.Internal.Types  (BufRange (..),
+                                                           BuildSignal (..),
+                                                           Builder (..),
+                                                           buildStep)
 --------------------------------------------------------------------------------
-import Blaze.ByteString.Builder.Internal.Buffer
-    ( Buffer,
-      BufferAllocStrategy,
-      allNewBuffersStrategy,
-      execBuildStep,
-      reuseBufferStrategy,
-      unsafeFreezeBuffer,
-      unsafeFreezeNonEmptyBuffer,
-      updateEndOfSlice )
---------------------------------------------------------------------------------    
-import Control.Monad ( when )
-import Data.ByteString.Char8 ( ByteString )
-import qualified Data.ByteString.Char8 as S ( null )
-import Data.IORef ( newIORef, readIORef, writeIORef )
+import           Blaze.ByteString.Builder.Internal.Buffer
+  (Buffer, BufferAllocStrategy, allNewBuffersStrategy, execBuildStep,
+   reuseBufferStrategy, unsafeFreezeBuffer, unsafeFreezeNonEmptyBuffer,
+   updateEndOfSlice)
 --------------------------------------------------------------------------------
-import System.IO.Streams.Internal
-    ( OutputStream, makeOutputStream, write )
+import           Control.Monad                            (when)
+import           Data.ByteString.Char8                    (ByteString)
+import qualified Data.ByteString.Char8                    as S (null)
+import           Data.IORef                               (newIORef,
+                                                           readIORef,
+                                                           writeIORef)
+--------------------------------------------------------------------------------
+import           System.IO.Streams.Internal               (OutputStream,
+                                                           makeOutputStream,
+                                                           write)
 
 
 ------------------------------------------------------------------------------
