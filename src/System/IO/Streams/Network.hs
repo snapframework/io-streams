@@ -10,7 +10,7 @@ module System.IO.Streams.Network
 ------------------------------------------------------------------------------
 import           Control.Exception          (catch)
 import qualified Data.ByteString.Char8      as S
-import           Data.ByteString.Internal   as S (ByteString, fromForeignPtr)
+import qualified Data.ByteString.Internal   as S
 import           Foreign.ForeignPtr         (newForeignPtr, withForeignPtr)
 import           Foreign.Marshal.Alloc      (finalizerFree, mallocBytes)
 import           Network.Socket             (Socket)
