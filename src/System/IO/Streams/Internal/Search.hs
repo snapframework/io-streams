@@ -10,17 +10,14 @@ module System.IO.Streams.Internal.Search
 import           Control.Monad               (when)
 import           Control.Monad.IO.Class      (liftIO)
 import           Data.ByteString.Char8       (ByteString)
-import qualified Data.ByteString.Char8       as S (append, concat, drop,
-                                                   length, null, splitAt,
-                                                   take)
-import           Data.ByteString.Unsafe      as S (unsafeIndex)
-import qualified Data.Vector.Unboxed         as V (create, unsafeIndex)
-import qualified Data.Vector.Unboxed.Mutable as MV (replicate, unsafeWrite)
-import           Prelude                     hiding (last, read)
+import qualified Data.ByteString.Char8       as S
+import qualified Data.ByteString.Unsafe      as S
+import qualified Data.Vector.Unboxed         as V
+import qualified Data.Vector.Unboxed.Mutable as MV
+import           Prelude                     hiding (read)
 ------------------------------------------------------------------------------
 import           System.IO.Streams.Internal  (InputStream)
-import qualified System.IO.Streams.Internal  as Streams (fromGenerator, read,
-                                                         yield)
+import qualified System.IO.Streams.Internal  as Streams
 
 
 ------------------------------------------------------------------------------

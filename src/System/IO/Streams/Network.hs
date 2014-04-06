@@ -9,19 +9,18 @@ module System.IO.Streams.Network
 
 ------------------------------------------------------------------------------
 import           Control.Exception          (catch)
-import qualified Data.ByteString.Char8      as S (null)
+import qualified Data.ByteString.Char8      as S
 import           Data.ByteString.Internal   as S (ByteString, fromForeignPtr)
 import           Foreign.ForeignPtr         (newForeignPtr, withForeignPtr)
 import           Foreign.Marshal.Alloc      (finalizerFree, mallocBytes)
 import           Network.Socket             (Socket)
-import qualified Network.Socket             as N (recvBuf)
-import qualified Network.Socket.ByteString  as NB (sendAll)
-import           Prelude                    (IO, Int, Maybe (..), return,
-                                             ($!), (<=), (>>=))
+import qualified Network.Socket             as N
+import qualified Network.Socket.ByteString  as NB
+import           Prelude                    (IO, Int, Maybe (..), return, ($!), (<=), (>>=))
 import           System.IO.Error            (ioError, isEOFError)
+------------------------------------------------------------------------------
 import           System.IO.Streams.Internal (InputStream, OutputStream)
-import qualified System.IO.Streams.Internal as Streams (makeInputStream,
-                                                        makeOutputStream)
+import qualified System.IO.Streams.Internal as Streams
 
 
 ------------------------------------------------------------------------------

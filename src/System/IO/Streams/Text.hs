@@ -8,25 +8,21 @@ module System.IO.Streams.Text
   , encodeUtf8
   ) where
 
-----------------------------------------------------------------------------
+------------------------------------------------------------------------------
 import           Control.Monad                 (when)
 import           Control.Monad.IO.Class        (MonadIO (..))
 import           Data.ByteString               (ByteString)
-import qualified Data.ByteString               as S (length, null)
-import qualified Data.ByteString.Unsafe        as S (unsafeDrop, unsafeIndex,
-                                                     unsafeTake)
+import qualified Data.ByteString               as S
+import qualified Data.ByteString.Unsafe        as S
 import           Data.Monoid                   (mappend)
 import           Data.Text                     (Text)
-import qualified Data.Text.Encoding            as T (decodeUtf8,
-                                                     decodeUtf8With,
-                                                     encodeUtf8)
+import qualified Data.Text.Encoding            as T
 import           Data.Text.Encoding.Error      (OnDecodeError)
 import           Data.Word                     (Word8)
 ------------------------------------------------------------------------------
-import qualified System.IO.Streams.Combinators as Streams (contramap)
+import qualified System.IO.Streams.Combinators as Streams
 import           System.IO.Streams.Internal    (InputStream, OutputStream)
-import qualified System.IO.Streams.Internal    as Streams (fromGenerator,
-                                                           read, yield)
+import qualified System.IO.Streams.Internal    as Streams
 
 
 ------------------------------------------------------------------------------

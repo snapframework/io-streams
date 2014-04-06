@@ -26,24 +26,17 @@ module System.IO.Streams.Vector
  ) where
 
 ------------------------------------------------------------------------------
-import           Control.Concurrent.MVar     (modifyMVar, modifyMVar_,
-                                              newMVar)
+import           Control.Concurrent.MVar     (modifyMVar, modifyMVar_, newMVar)
 import           Control.Monad               (liftM, (>=>))
 import           Control.Monad.IO.Class      (MonadIO (..))
 import           Control.Monad.Primitive     (PrimState (..))
-import           Data.IORef                  (IORef, newIORef, readIORef,
-                                              writeIORef)
+import           Data.IORef                  (IORef, newIORef, readIORef, writeIORef)
 import           Data.Vector.Generic         (Vector (..))
-import qualified Data.Vector.Generic         as V (Vector (basicUnsafeFreeze),
-                                                   mapM_, null, unsafeFreeze)
+import qualified Data.Vector.Generic         as V
 import           Data.Vector.Generic.Mutable (MVector)
-import qualified Data.Vector.Generic.Mutable as VM (MVector, unsafeGrow,
-                                                    unsafeNew, unsafeTake,
-                                                    unsafeWrite)
-import           System.IO.Streams.Internal  (InputStream, OutputStream,
-                                              fromGenerator, yield)
-import qualified System.IO.Streams.Internal  as S (await, fromConsumer, read,
-                                                   write)
+import qualified Data.Vector.Generic.Mutable as VM
+import           System.IO.Streams.Internal  (InputStream, OutputStream, fromGenerator, yield)
+import qualified System.IO.Streams.Internal  as S
 
 
 ------------------------------------------------------------------------------

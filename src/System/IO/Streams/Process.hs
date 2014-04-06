@@ -9,34 +9,14 @@ module System.IO.Streams.Process
 ------------------------------------------------------------------------------
 import           Data.ByteString.Char8         (ByteString)
 import           System.IO                     (hClose)
-import qualified System.IO.Streams.Combinators as Streams (atEndOfInput,
-                                                           atEndOfOutput)
-import qualified System.IO.Streams.Handle      as Streams (handleToInputStream,
-                                                           handleToOutputStream)
+import           System.Process                (CmdSpec (..), CreateProcess (CreateProcess, close_fds, cmdspec, create_group, cwd, std_err, std_in, std_out), ProcessHandle, StdStream (..), createProcess, getProcessExitCode, interruptProcessGroupOf, proc, rawSystem, readProcess, readProcessWithExitCode, runCommand, shell, showCommandForUser, system, terminateProcess, waitForProcess)
+------------------------------------------------------------------------------
+import qualified System.IO.Streams.Combinators as Streams
+import qualified System.IO.Streams.Handle      as Streams
 import           System.IO.Streams.Internal    (InputStream, OutputStream)
-import qualified System.IO.Streams.Internal    as Streams (lockingInputStream,
-                                                           lockingOutputStream)
-import           System.Process                (CmdSpec (..),
-                                                CreateProcess (CreateProcess,
-                                                               close_fds,
-                                                               cmdspec,
-                                                               create_group,
-                                                               cwd,
-                                                               std_err,
-                                                               std_in,
-                                                               std_out),
-                                                ProcessHandle, StdStream (..),
-                                                createProcess,
-                                                getProcessExitCode,
-                                                interruptProcessGroupOf, proc,
-                                                rawSystem, readProcess,
-                                                readProcessWithExitCode,
-                                                runCommand, shell,
-                                                showCommandForUser, system,
-                                                terminateProcess,
-                                                waitForProcess)
-import qualified System.Process                as P (runInteractiveCommand,
-                                                     runInteractiveProcess)
+import qualified System.IO.Streams.Internal    as Streams
+
+import qualified System.Process                as P
 
 
 ------------------------------------------------------------------------------

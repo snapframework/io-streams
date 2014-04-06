@@ -56,19 +56,11 @@ import           Control.Concurrent.MVar    (newMVar, withMVar)
 import           Control.Monad              (liftM, void, when)
 import           Control.Monad.IO.Class     (liftIO)
 import           Data.Int                   (Int64)
-import           Data.IORef                 (atomicModifyIORef, modifyIORef,
-                                             newIORef, readIORef, writeIORef)
+import           Data.IORef                 (atomicModifyIORef, modifyIORef, newIORef, readIORef, writeIORef)
 import           Data.Maybe                 (isJust)
+import           Prelude                    hiding (all, any, drop, filter, map, mapM, mapM_, maximum, minimum, read, take, unzip, zip, zipWith)
 ------------------------------------------------------------------------------
-import           System.IO.Streams.Internal (InputStream (..), OutputStream,
-                                             fromGenerator, makeInputStream,
-                                             makeOutputStream, read, unRead,
-                                             write, yield)
-------------------------------------------------------------------------------
-import           Prelude                    hiding (all, any, drop, filter,
-                                             map, mapM, mapM_, maximum,
-                                             minimum, read, take, unzip, zip,
-                                             zipWith)
+import           System.IO.Streams.Internal (InputStream (..), OutputStream, fromGenerator, makeInputStream, makeOutputStream, read, unRead, write, yield)
 
 
 ------------------------------------------------------------------------------
