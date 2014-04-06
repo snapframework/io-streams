@@ -33,7 +33,7 @@ bUFSIZ = 4096
 -- as is usually the case in @io-streams@, writing a 'Nothing' to the generated
 -- 'OutputStream' does not cause the underlying 'Socket' to be closed.
 socketToStreams :: Socket
-                -> IO (InputStream ByteString, OutputStream ByteString)
+                -> IO (InputStream S.ByteString, OutputStream S.ByteString)
 socketToStreams = socketToStreamsWithBufferSize bUFSIZ
 
 
@@ -45,7 +45,7 @@ socketToStreams = socketToStreamsWithBufferSize bUFSIZ
 socketToStreamsWithBufferSize
     :: Int                      -- ^ how large the receive buffer should be
     -> Socket                   -- ^ network socket
-    -> IO (InputStream ByteString, OutputStream ByteString)
+    -> IO (InputStream S.ByteString, OutputStream S.ByteString)
 socketToStreamsWithBufferSize bufsiz socket = do
     is <- Streams.makeInputStream input
     os <- Streams.makeOutputStream output
