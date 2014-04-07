@@ -15,14 +15,13 @@ module System.IO.Streams.List
  , listOutputStream
  ) where
 
+------------------------------------------------------------------------------
 import           Control.Concurrent.MVar    (modifyMVar, modifyMVar_, newMVar)
 import           Control.Monad.IO.Class     (MonadIO (..))
 import           Data.IORef                 (newIORef, readIORef, writeIORef)
 import           Prelude                    hiding (read)
-import           System.IO.Streams.Internal (InputStream, OutputStream, await,
-                                             connect, fromConsumer,
-                                             fromGenerator, makeInputStream,
-                                             read, write, yield)
+------------------------------------------------------------------------------
+import           System.IO.Streams.Internal (InputStream, OutputStream, await, connect, fromConsumer, fromGenerator, makeInputStream, read, write, yield)
 
 
 ------------------------------------------------------------------------------

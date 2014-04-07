@@ -11,13 +11,14 @@ import           Control.Monad               (when)
 import           Control.Monad.IO.Class      (liftIO)
 import           Data.ByteString.Char8       (ByteString)
 import qualified Data.ByteString.Char8       as S
-import           Data.ByteString.Unsafe      as S
+import qualified Data.ByteString.Unsafe      as S
 import qualified Data.Vector.Unboxed         as V
 import qualified Data.Vector.Unboxed.Mutable as MV
-import           Prelude                     hiding (last, read)
+import           Prelude                     hiding (read)
 ------------------------------------------------------------------------------
 import           System.IO.Streams.Internal  (InputStream)
 import qualified System.IO.Streams.Internal  as Streams
+
 
 ------------------------------------------------------------------------------
 -- | 'MatchInfo' provides match information when performing string search.

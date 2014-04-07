@@ -58,26 +58,18 @@ import qualified Data.ByteString.Lazy.Char8        as L
 import qualified Data.ByteString.Unsafe            as S
 import           Data.Char                         (isSpace)
 import           Data.Int                          (Int64)
-import           Data.IORef                        (IORef, newIORef,
-                                                    readIORef, writeIORef)
+import           Data.IORef                        (IORef, newIORef, readIORef, writeIORef)
 import           Data.Time.Clock.POSIX             (getPOSIXTime)
 import           Data.Typeable                     (Typeable)
-
-import           Prelude                           hiding (lines, read,
-                                                    takeWhile, unlines,
-                                                    unwords, words)
+import           Prelude                           hiding (read, lines, unlines, words, unwords)
 ------------------------------------------------------------------------------
-import           System.IO.Streams.Combinators     (filterM, intersperse,
-                                                    outputFoldM)
-import           System.IO.Streams.Internal        (InputStream (..),
-                                                    OutputStream,
-                                                    makeInputStream,
-                                                    makeOutputStream, read,
-                                                    unRead, write)
+import           System.IO.Streams.Combinators     (filterM, intersperse, outputFoldM)
+import           System.IO.Streams.Internal        (InputStream (..), OutputStream, makeInputStream, makeOutputStream, read, unRead, write)
 import           System.IO.Streams.Internal.Search (MatchInfo (..), search)
 import           System.IO.Streams.List            (fromList, writeList)
-------------------------------------------------------------------------------
 
+
+------------------------------------------------------------------------------
 {-# INLINE modifyRef #-}
 modifyRef :: IORef a -> (a -> a) -> IO ()
 modifyRef ref f = do

@@ -15,8 +15,7 @@ module System.IO.Streams.Internal.Attoparsec
 ------------------------------------------------------------------------------
 import           Control.Exception                (Exception, throwIO)
 import           Control.Monad                    (when)
-import           Data.Attoparsec.ByteString.Char8 (Parser, Result,
-                                                   eitherResult, feed, parse)
+import           Data.Attoparsec.ByteString.Char8 (Parser, Result, eitherResult, feed, parse)
 import           Data.Attoparsec.Types            (IResult (..))
 import           Data.ByteString.Char8            (ByteString)
 import qualified Data.ByteString.Char8            as S
@@ -25,6 +24,7 @@ import           Prelude                          hiding (read)
 ------------------------------------------------------------------------------
 import           System.IO.Streams.Internal       (InputStream)
 import qualified System.IO.Streams.Internal       as Streams
+
 
 ------------------------------------------------------------------------------
 -- | An exception raised when parsing fails.

@@ -18,12 +18,9 @@ module System.IO.Streams.File
 import           Control.Monad              (unless)
 import           Data.ByteString            (ByteString)
 import           Data.Int                   (Int64)
-import           System.IO                  (BufferMode (NoBuffering),
-                                             IOMode (ReadMode, WriteMode),
-                                             SeekMode (AbsoluteSeek), hSeek,
-                                             hSetBuffering, withBinaryFile)
+import           System.IO                  (BufferMode (NoBuffering), IOMode (ReadMode, WriteMode), SeekMode (AbsoluteSeek), hSeek, hSetBuffering, withBinaryFile)
 ------------------------------------------------------------------------------
-import           System.IO.Streams.Handle
+import           System.IO.Streams.Handle   (handleToInputStream, handleToOutputStream)
 import           System.IO.Streams.Internal (InputStream, OutputStream)
 
 

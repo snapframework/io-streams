@@ -39,5 +39,6 @@ module System.IO.Streams.Core
  , yield
  ) where
 
+------------------------------------------------------------------------------
 import           Prelude                    ()
 import           System.IO.Streams.Internal

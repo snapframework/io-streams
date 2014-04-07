@@ -14,18 +14,14 @@ module System.IO.Streams.Concurrent
 ------------------------------------------------------------------------------
 import           Control.Applicative        ((<$>), (<*>))
 import           Control.Concurrent         (forkIO)
-import           Control.Concurrent.Chan    (Chan, newChan, readChan,
-                                             writeChan)
-import           Control.Concurrent.MVar    (modifyMVar, newEmptyMVar,
-                                             newMVar, putMVar, takeMVar)
-import           Control.Exception          (SomeException, mask, throwIO,
-                                             try)
+import           Control.Concurrent.Chan    (Chan, newChan, readChan, writeChan)
+import           Control.Concurrent.MVar    (modifyMVar, newEmptyMVar, newMVar, putMVar, takeMVar)
+import           Control.Exception          (SomeException, mask, throwIO, try)
 import           Control.Monad              (forM_)
 import           Prelude                    hiding (read)
 ------------------------------------------------------------------------------
-import           System.IO.Streams.Internal (InputStream, OutputStream,
-                                             makeInputStream,
-                                             makeOutputStream, read)
+import           System.IO.Streams.Internal (InputStream, OutputStream, makeInputStream, makeOutputStream, read)
+
 
 ------------------------------------------------------------------------------
 -- | Writes the contents of an input stream to a channel until the input stream

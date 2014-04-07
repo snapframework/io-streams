@@ -8,4 +8,5 @@ module System.IO.Streams.Attoparsec
   , ParseException(..)
   ) where
 
-import System.IO.Streams.Internal.Attoparsec
+------------------------------------------------------------------------------
+import           System.IO.Streams.Internal.Attoparsec (ParseException (..), parseFromStream, parserToInputStream)
