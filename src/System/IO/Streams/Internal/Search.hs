@@ -14,7 +14,7 @@ import qualified Data.ByteString.Char8       as S
 import qualified Data.ByteString.Unsafe      as S
 import qualified Data.Vector.Unboxed         as V
 import qualified Data.Vector.Unboxed.Mutable as MV
-import           Prelude                     hiding (read)
+import           Prelude                     (Bool (..), Either (..), Enum (..), Eq (..), IO, Int, Monad (..), Num (..), Ord (..), Show, either, id, maybe, not, otherwise, ($), ($!), (&&), (.), (||))
 ------------------------------------------------------------------------------
 import           System.IO.Streams.Internal  (InputStream)
 import qualified System.IO.Streams.Internal  as Streams
@@ -90,7 +90,7 @@ search needle stream = Streams.fromGenerator $
         go !hidx
           | hend >= hlen = crossBound hidx
           | otherwise = do
-              let match = matches needle 0 last haystack hidx hend
+              let match = matches needle 0 lastIdx haystack hidx hend
               if match
                 then do
                   let !nomatch    = S.take hidx haystack
@@ -121,7 +121,7 @@ search needle stream = Streams.fromGenerator $
 
           where
             runNext !hidx !leftLen !needMore !nextHaystack = do
-                let match1 = matches needle leftLen last nextHaystack 0
+                let match1 = matches needle leftLen lastIdx nextHaystack 0
                                      (needMore-1)
                 let match2 = matches needle 0 (leftLen-1) haystack hidx
                                      (hlen-1)
@@ -166,8 +166,8 @@ search needle stream = Streams.fromGenerator $
         startSearch aftermatch
 
     --------------------------------------------------------------------------
-    !nlen = S.length needle
-    !last = nlen - 1
+    !nlen    = S.length needle
+    !lastIdx = nlen - 1
 
     --------------------------------------------------------------------------
     !table = V.create $ do
@@ -177,10 +177,10 @@ search needle stream = Streams.fromGenerator $
       where
         go !t = go' 0
           where
-            go' !i | i >= last  = return t
-                   | otherwise = do
+            go' !i | i >= lastIdx  = return t
+                   | otherwise     = do
                 let c = fromEnum $ S.unsafeIndex needle i
-                MV.unsafeWrite t c (last - i)
+                MV.unsafeWrite t c (lastIdx - i)
                 go' $! i+1
 
     --------------------------------------------------------------------------
