@@ -90,7 +90,7 @@ Library
   hs-source-dirs:    src
   Default-language:  Haskell2010
 
-  ghc-options:       -O2 -Wall -fwarn-tabs -funbox-strict-fields
+  ghc-options:       -Wall -fwarn-tabs -funbox-strict-fields
                      -fno-warn-unused-do-bind
 
   ghc-prof-options:  -prof -auto-all
@@ -115,6 +115,7 @@ Library
                      System.IO.Streams.Tutorial
 
   Other-modules:     System.IO.Streams.Internal.Attoparsec,
+                     System.IO.Streams.Internal.Network,
                      System.IO.Streams.Internal.Search
 
   Build-depends:     base          >= 4     && <5,
@@ -186,10 +187,11 @@ Test-suite testsuite
                      System.IO.Streams.Zlib,
                      System.IO.Streams.Internal,
                      System.IO.Streams.Internal.Attoparsec,
+                     System.IO.Streams.Internal.Network,
                      System.IO.Streams.Internal.Search
 
 
-  ghc-options:       -O2 -Wall -fhpc -fwarn-tabs -funbox-strict-fields -threaded
+  ghc-options:       -Wall -fhpc -fwarn-tabs -funbox-strict-fields -threaded
                      -fno-warn-unused-do-bind
   ghc-prof-options:  -prof -auto-all
 
