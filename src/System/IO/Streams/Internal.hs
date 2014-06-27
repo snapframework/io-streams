@@ -276,7 +276,7 @@ makeInputStream m = do
 makeOutputStream :: (Maybe a -> IO ()) -> IO (OutputStream a)
 makeOutputStream func = (OutputStream . go) <$> newIORef False
   where
-    go closedRef m = do
+    go closedRef !m = do
         closed <- readIORef closedRef
         if closed
           then return $! ()
