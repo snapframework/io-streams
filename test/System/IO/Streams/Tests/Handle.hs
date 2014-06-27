@@ -4,6 +4,7 @@
 module System.IO.Streams.Tests.Handle (tests) where
 
 ------------------------------------------------------------------------------
+import           Blaze.ByteString.Builder
 import           Control.Exception
 import           Control.Monad                  hiding (mapM)
 import qualified Data.ByteString.Char8          as S
@@ -31,6 +32,7 @@ import           System.IO.Streams.Tests.Common
 tests :: [Test]
 tests = [ testHandle
         , testStdHandles
+        , testRepeatedConnects
         , testInputStreamToHandle
         , testOutputStreamToHandle
         , testStreamPairToHandle
@@ -59,6 +61,26 @@ testHandle = testCase "handle/files" $ do
                                  Streams.toList)
             assertEqual "testFiles" "the quick brown fox" l
 
+
+------------------------------------------------------------------------------
+testRepeatedConnects :: Test
+testRepeatedConnects = testCase "handle/repeatedConnects" $ do
+    createDirectoryIfMissing False dirname
+    tst `finally` eatException (removeFile fn >> removeDirectory dirname)
+  where
+    dirname = "tmp_r_c"
+    fn = dirname </> "data"
+
+    tst = do
+        withBinaryFile fn WriteMode $ \h -> do
+            os0 <- Streams.handleToOutputStream h
+            os  <- Streams.builderStream os0
+
+            let l1 = map fromByteString ["the ", "quick ", "brown "]
+            let l2 = map fromByteString ["fox ", "jumped"]
+            Streams.fromList l1 >>= Streams.connectTo os
+            Streams.fromList l2 >>= Streams.connectTo os
+        S.readFile fn >>= assertEqual "eof should close" "the quick brown "
 
 ------------------------------------------------------------------------------
 testStdHandles :: Test

@@ -9,10 +9,8 @@ import           Control.Monad
 import qualified Data.ByteString.Char8                    as S
 import           Data.List
 import           Data.Monoid
-import           System.IO.Streams                        hiding
-                                                           (fromByteString,
-                                                           intersperse, map,
-                                                           take)
+import           System.IO.Streams                        hiding (fromByteString, intersperse, map, take)
+import qualified System.IO.Streams                        as Streams
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
 import           Test.HUnit                               hiding (Test)
@@ -20,6 +18,7 @@ import           Test.HUnit                               hiding (Test)
 
 tests :: [Test]
 tests = [ testBuilderStream
+        , testRepeatedConnects
         , testUnsafeBuilderStream
         , testSmallBuffer
         , testSmallBufferWithLargeOutput
@@ -46,6 +45,22 @@ testBuilderStream = testCase "builder/builderStream" $ do
                 , "jumped over the"
                 ]
                 output
+
+
+------------------------------------------------------------------------------
+testRepeatedConnects :: Test
+testRepeatedConnects = testCase "builder/repeatedConnects" $ do
+    (os0, grab)  <- Streams.listOutputStream
+    os <- Streams.builderStream os0
+    is0 <- Streams.fromList ["Hello, world!\n"]
+             >>= Streams.map fromByteString
+    is1 <- Streams.fromList ["Bye, world!\n"]
+             >>= Streams.map fromByteString
+    Streams.connect is0 os
+    Streams.connect is1 os
+    Streams.write Nothing os
+
+    grab >>= assertEqual "repeated connect" ["Hello, world!\n"]
 
 
 ------------------------------------------------------------------------------
