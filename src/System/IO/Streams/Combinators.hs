@@ -60,7 +60,7 @@ import           Data.IORef                 (atomicModifyIORef, modifyIORef, new
 import           Data.Maybe                 (isJust)
 import           Prelude                    hiding (all, any, drop, filter, map, mapM, mapM_, maximum, minimum, read, take, unzip, zip, zipWith)
 ------------------------------------------------------------------------------
-import           System.IO.Streams.Internal (InputStream (..), OutputStream, fromGenerator, makeInputStream, makeOutputStream, read, unRead, write, yield)
+import           System.IO.Streams.Internal (InputStream (..), OutputStream (..), fromGenerator, makeInputStream, makeOutputStream, read, unRead, write, yield)
 
 
 ------------------------------------------------------------------------------
@@ -755,7 +755,7 @@ ignore k output = newIORef k >>= makeOutputStream . chunk
 -- /Since: 1.0.1.0/
 --
 ignoreEof :: OutputStream a -> IO (OutputStream a)
-ignoreEof s = makeOutputStream f
+ignoreEof s = return $ OutputStream f
   where
     f Nothing  = return $! ()
     f x        = write x s

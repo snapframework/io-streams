@@ -77,8 +77,8 @@ import qualified Data.ByteString.Char8                    as S
 import           Data.IORef                               (newIORef, readIORef, writeIORef)
 ------------------------------------------------------------------------------
 import           Blaze.ByteString.Builder.Internal        (defaultBufferSize)
-import           Blaze.ByteString.Builder.Internal.Types  (BufRange (..), BuildSignal (..), Builder (..), buildStep)
 import           Blaze.ByteString.Builder.Internal.Buffer (Buffer, BufferAllocStrategy, allNewBuffersStrategy, execBuildStep, reuseBufferStrategy, unsafeFreezeBuffer, unsafeFreezeNonEmptyBuffer, updateEndOfSlice)
+import           Blaze.ByteString.Builder.Internal.Types  (BufRange (..), BuildSignal (..), Builder (..), buildStep)
 import           System.IO.Streams.Internal               (OutputStream, makeOutputStream, write)
 
 

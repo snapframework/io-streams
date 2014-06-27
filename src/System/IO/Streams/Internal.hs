@@ -61,7 +61,7 @@ module System.IO.Streams.Internal
   ) where
 
 ------------------------------------------------------------------------------
-import           Control.Applicative      (Applicative (..))
+import           Control.Applicative      (Applicative (..), (<$>))
 import           Control.Concurrent       (newMVar, withMVar)
 import           Control.Exception        (throwIO)
 import           Control.Monad            (when)
@@ -269,8 +269,21 @@ makeInputStream m = do
 -- | Creates an 'OutputStream' from a value-consuming action.
 --
 -- (@makeOutputStream f@) runs the computation @f@ on each value fed to it.
+--
+-- Since version 1.2.0.0, 'makeOutputStream' also ensures that output streams
+-- no longer receive data once EOF is received (i.e. you can now assume that
+-- makeOutputStream will feed your function @Nothing@ at most once.)
 makeOutputStream :: (Maybe a -> IO ()) -> IO (OutputStream a)
-makeOutputStream = return . OutputStream
+makeOutputStream func = (OutputStream . go) <$> newIORef False
+  where
+    go closedRef m = do
+        closed <- readIORef closedRef
+        if closed
+          then return $! ()
+          else do
+            when (isNothing m) $ writeIORef closedRef True
+            func m
+{-# INLINE makeOutputStream #-}
 
 
 ------------------------------------------------------------------------------
