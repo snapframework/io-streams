@@ -2,6 +2,7 @@
 
 {-# LANGUAGE BangPatterns       #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE RankNTypes         #-}
 
 module System.IO.Streams.Combinators
  ( -- * Folds
@@ -56,7 +57,7 @@ import           Control.Concurrent.MVar    (newMVar, withMVar)
 import           Control.Monad              (liftM, void, when)
 import           Control.Monad.IO.Class     (liftIO)
 import           Data.Int                   (Int64)
-import           Data.IORef                 (atomicModifyIORef, modifyIORef, newIORef, readIORef, writeIORef)
+import           Data.IORef                 (IORef, atomicModifyIORef, modifyIORef, newIORef, readIORef, writeIORef)
 import           Data.Maybe                 (isJust)
 import           Prelude                    hiding (all, any, drop, filter, map, mapM, mapM_, maximum, minimum, read, take, unzip, zip, zipWith)
 ------------------------------------------------------------------------------
@@ -606,33 +607,43 @@ filterOutputM p output = makeOutputStream chunk
 -- stream.
 --
 -- Access to the original stream is thread safe, i.e. guarded by a lock.
-unzip :: InputStream (a, b) -> IO (InputStream a, InputStream b)
+unzip :: forall a b . InputStream (a, b) -> IO (InputStream a, InputStream b)
 unzip os = do
     lock <- newMVar $! ()
     buf1 <- newIORef id
     buf2 <- newIORef id
 
-    is1  <- makeInputStream $ src lock id buf1 buf2
-    is2  <- makeInputStream $ src lock twist buf2 buf1
+    is1  <- makeInputStream $ src1 lock buf1 buf2
+    is2  <- makeInputStream $ src2 lock buf1 buf2
 
     return (is1, is2)
 
   where
-    twist (a, b) = (b, a)
+    twist (a,b) = (b,a)
 
-    src lock proj myBuf theirBuf = withMVar lock $ const $ do
-        dl <- readIORef myBuf
-
+    src1 lock aBuf bBuf = withMVar lock $ const $ do
+        dl <- readIORef aBuf
         case dl [] of
-          []     -> more
-          (x:xs) -> writeIORef myBuf (xs++) >> (return $! Just x)
-      where
-        more = read os >>=
-               maybe (return Nothing)
-                     (\x -> do
-                          let (a, b) = proj x
-                          modifyIORef theirBuf (. (b:))
-                          return $! Just a)
+          []     -> more os id bBuf
+          (x:xs) -> writeIORef aBuf (xs++) >> (return $! Just x)
+
+    src2 lock aBuf bBuf = withMVar lock $ const $ do
+        dl <- readIORef bBuf
+        case dl [] of
+          []     -> more os twist aBuf
+          (y:ys) -> writeIORef bBuf (ys++) >> (return $! Just y)
+
+    more :: forall a b x y .
+            InputStream (a,b)
+         -> ((a,b) -> (x,y))
+         -> IORef ([y] -> [y])
+         -> IO (Maybe x)
+    more origs proj buf = read origs >>=
+                          maybe (return Nothing)
+                                (\x -> do
+                                    let (a, b) = proj x
+                                    modifyIORef buf (. (b:))
+                                    return $! Just a)
 
 
 ------------------------------------------------------------------------------
