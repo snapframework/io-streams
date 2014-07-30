@@ -1,5 +1,6 @@
 {-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes        #-}
 
 module System.IO.Streams.Internal.Search
   ( search
@@ -9,6 +10,7 @@ module System.IO.Streams.Internal.Search
 ------------------------------------------------------------------------------
 import           Control.Monad               (when)
 import           Control.Monad.IO.Class      (liftIO)
+import           Control.Monad.ST            (ST)
 import           Data.ByteString.Char8       (ByteString)
 import qualified Data.ByteString.Char8       as S
 import qualified Data.ByteString.Unsafe      as S
@@ -175,6 +177,7 @@ search needle stream = Streams.fromGenerator $
         go t
 
       where
+        go :: forall s . MV.MVector s Int -> ST s (MV.MVector s Int)
         go !t = go' 0
           where
             go' !i | i >= lastIdx  = return t
