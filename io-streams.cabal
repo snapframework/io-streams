@@ -18,8 +18,8 @@ Description:
   module "System.IO.Streams", which re-exports most of the library:
   .
   @
-  import           "System.IO.Streams" (InputStream, OutputStream)
-  import qualified "System.IO.Streams" as Streams
+  import           System.IO.Streams (InputStream, OutputStream)
+  import qualified System.IO.Streams as Streams
   @
   .
   For first-time users, @io-streams@ comes with an included tutorial, which can
@@ -32,13 +32,13 @@ Description:
   .
   @
   \-\- read an item from an input stream
-  Streams.'System.IO.Streams.read' :: 'System.IO.Streams.InputStream' a -> IO (Maybe a)
+  Streams.read :: InputStream a -> IO (Maybe a)
   .
   \-\- push an item back to an input stream
-  Streams.'System.IO.Streams.unRead' :: a -> 'System.IO.Streams.InputStream' a -> IO ()
+  Streams.unRead :: a -> InputStream a -> IO ()
   .
   \-\- write to an output stream
-  Streams.'System.IO.Streams.write' :: Maybe a -> 'System.IO.Streams.OutputStream' a -> IO ()
+  Streams.write :: Maybe a -> OutputStream a -> IO ()
   @
   .
   Streams can be transformed by composition and hooked together with provided combinators:
