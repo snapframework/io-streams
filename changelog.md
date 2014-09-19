@@ -1,3 +1,15 @@
+# Version 1.2.0.0
+  - Fixed bug #27 (https://github.com/snapframework/io-streams/issues/27):
+    makeOutputStream now properly shuts down the stream upon receiving EOF. The
+    new invariant might break user programs if they depended on the buggy
+    behaviour, which is the reason for the major version bump.
+
+  - Fixed a few polymorphic bindings that started breaking in recent GHC.
+
+  - Dependency bumps for:
+    - text 1.2
+    - network 2.6
+
 # Version 1.1.4.6
 Moved old changelog entries to `changelog.md`.
 
