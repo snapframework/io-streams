@@ -10,7 +10,7 @@
 --
 -- (/N.B./: most of the @blaze-builder@ package has been moved into
 -- @bytestring@ in versions \>= 0.10; once two or three Haskell Platform
--- editions have been released that contain @bytestring@ 0.10 or higher, the
+-- editions have been released that contain @bytestring@ 0.10.2 or higher, the
 -- dependency on @blaze-builder@ will be dropped in favor of the native support
 -- for 'Builder' contained in the @bytestring@ package.)
 --
@@ -43,8 +43,8 @@
 -- As a convention, 'builderStream' will write the empty string to the wrapped
 -- 'OutputStream' upon a builder buffer flush. Output streams which receive
 -- 'ByteString' should either ignore the empty string or interpret it as a
--- signal to flush their own buffers, as the "System.IO.Streams.Zlib" functions
--- do.
+-- signal to flush their own buffers, as the @handleToOutputStream@ and
+-- "System.IO.Streams.Zlib" functions do.
 --
 -- /Example/
 --

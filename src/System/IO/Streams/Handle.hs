@@ -56,6 +56,11 @@ handleToInputStream h = makeInputStream f
 -- Note that the wrapped handle is /not/ closed when it receives end-of-stream;
 -- you can use 'System.IO.Streams.Combinators.atEndOfOutput' to close the
 -- handle if you would like this behaviour.
+--
+-- /Note/: to force the 'Handle' to be flushed, you can write a null string to
+-- the returned 'OutputStream':
+--
+-- > Streams.write (Just "") os
 handleToOutputStream :: Handle -> IO (OutputStream ByteString)
 handleToOutputStream h = makeOutputStream f
   where
@@ -87,11 +92,12 @@ inputStreamToHandle is0 = do
 -- that the 'Handle' will be opened in non-buffering mode; if you buffer the
 -- 'OutputStream' using the 'Handle' buffering then @io-streams@ will copy the
 -- 'Handle' buffer when sending 'ByteString' values to the output, which might
--- not be what you want. When the output buffer, if used, is flushed, an empty
--- string is written to the output, as is conventional throughout the
--- @io-streams@ library for 'ByteString' output buffers.
+-- not be what you want.
 --
--- Note: the 'OutputStream' passed into this function is wrapped in
+-- When the output buffer, if used, is flushed (using 'System.IO.hFlush'), an
+-- empty string is written to the provided 'OutputStream'.
+--
+-- /Note/: the 'OutputStream' passed into this function is wrapped in
 -- 'lockingOutputStream' to make it thread-safe.
 --
 -- /Since: 1.0.2.0./
