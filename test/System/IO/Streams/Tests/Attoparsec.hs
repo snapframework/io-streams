@@ -4,7 +4,7 @@ module System.IO.Streams.Tests.Attoparsec (tests) where
 
 ------------------------------------------------------------------------------
 import           Control.Monad
-import           Data.Attoparsec.ByteString.Char8
+import           Data.Attoparsec.ByteString.Char8      hiding (eitherResult)
 import           Data.ByteString.Char8                 (ByteString)
 import           Prelude                               hiding (takeWhile)
 import           System.IO.Streams
@@ -78,7 +78,7 @@ testParseFromStreamError2 = testCase "attoparsec/parseFromStreamError2" $ do
     expectExceptionH $ fromList ["xxxxx"] >>= p
 
   where
-    p = parserToInputStream testParser2 >=> toList
+    p = parserToInputStream ((testParser2 <?> "foo") <?> "bar") >=> toList
 
 
 ------------------------------------------------------------------------------
@@ -96,7 +96,8 @@ testPartialParse = testCase "attoparsec/partialParse" $ do
 testTrivials :: Test
 testTrivials = testCase "attoparsec/trivials" $ do
     coverTypeableInstance (undefined :: ParseException)
-
+    let (Right x) = eitherResult $ Done undefined (4 :: Int)
+    assertEqual "eitherResult" 4 x
 
 ------------------------------------------------------------------------------
 testEmbeddedNull :: Test

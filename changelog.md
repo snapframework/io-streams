@@ -1,3 +1,12 @@
+# Version 1.2.0.1
+
+  - `System.IO.Streams.Attoparsec.parseFromStream`: export more information
+    about the context of parse errors to the message returned via
+    `ParseException`.
+
+  - Improved documentation about stream flushing in the docstring for
+    `handleToOutputStream`.
+
 # Version 1.2.0.0
   - Fixed bug #27 (https://github.com/snapframework/io-streams/issues/27):
     makeOutputStream now properly shuts down the stream upon receiving EOF. The

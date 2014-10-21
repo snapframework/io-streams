@@ -1,24 +1,30 @@
 -- | This module provides support for parsing values from 'InputStream's using
 -- @attoparsec@.
 
+{-# LANGUAGE BangPatterns       #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE OverloadedStrings  #-}
 
 module System.IO.Streams.Internal.Attoparsec
   ( -- * Parsing
-    ParseException(..)
-  , parseFromStream
+    parseFromStream
   , parseFromStreamInternal
   , parserToInputStream
+
+    -- * Parse Exceptions
+  , ParseException(..)
+
+  , eitherResult
   ) where
 
 ------------------------------------------------------------------------------
 import           Control.Exception                (Exception, throwIO)
 import           Control.Monad                    (when)
-import           Data.Attoparsec.ByteString.Char8 (Parser, Result, eitherResult, feed, parse)
+import           Data.Attoparsec.ByteString.Char8 (Parser, Result, feed, parse)
 import           Data.Attoparsec.Types            (IResult (..))
 import           Data.ByteString.Char8            (ByteString)
 import qualified Data.ByteString.Char8            as S
+import           Data.List                        (intercalate)
 import           Data.Typeable                    (Typeable)
 import           Prelude                          hiding (read)
 ------------------------------------------------------------------------------
@@ -36,14 +42,16 @@ instance Show ParseException where
 
 instance Exception ParseException
 
+
 ------------------------------------------------------------------------------
 -- | Supplies an @attoparsec@ 'Parser' with an 'InputStream', returning the
--- final parsed value or a 'ParseException' if parsing fails.
+-- final parsed value or throwing a 'ParseException' if parsing fails.
 --
 -- 'parseFromStream' consumes only as much input as necessary to satisfy the
--- 'Parser' and unconsumed input is pushed back onto the 'InputStream'.
+-- 'Parser': any unconsumed input is pushed back onto the 'InputStream'.
 --
--- If the 'Parser' exhausts the 'InputStream', it receives an @EOF@.
+-- If the 'Parser' exhausts the 'InputStream', the end-of-stream signal is sent
+-- to attoparsec.
 --
 -- Example:
 --
@@ -85,7 +93,11 @@ parseFromStreamInternal parseFunc feedFunc parser is =
                     Partial _  -> err k'                -- should be impossible
                     Done x r   -> leftover x >> return r
 
-    err r = let (Left s) = eitherResult r in throwIO $ ParseException s
+    err r = let (Left (!_,c,m)) = eitherResult r
+            in throwIO $ ParseException (ctxMsg c ++ m)
+
+    ctxMsg [] = ""
+    ctxMsg xs = "[parsing " ++ intercalate "/" xs ++ "] "
 
     go r@(Fail x _ _) = leftover x >> err r
     go (Done x r)     = leftover x >> return r
@@ -128,3 +140,12 @@ parserToInputStream :: Parser (Maybe r)
                     -> IO (InputStream r)
 parserToInputStream = (Streams.makeInputStream .) . parseFromStream
 {-# INLINE parserToInputStream #-}
+
+
+------------------------------------------------------------------------------
+-- A replacement for attoparsec's 'eitherResult', which discards information
+-- about the context of the failed parse.
+eitherResult :: Result r -> Either (ByteString, [String], String) r
+eitherResult (Done _ r)              = Right r
+eitherResult (Fail residual ctx msg) = Left (residual, ctx, msg)
+eitherResult _                       = Left ("", [], "Result: incomplete input")
