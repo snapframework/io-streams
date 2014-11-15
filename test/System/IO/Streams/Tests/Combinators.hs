@@ -46,6 +46,7 @@ tests = [ testFilter
         , testContramap
         , testMapM
         , testMapM_
+        , testMapMaybe
         , testContramapM_
         , testSkipToEof
         , testZip
@@ -125,6 +126,15 @@ testMapM_ = testCase "combinators/mapM_" $ do
     _   <- toList is
 
     readIORef ref >>= assertEqual "mapM_" 6
+
+
+------------------------------------------------------------------------------
+testMapMaybe :: Test
+testMapMaybe = testCase "combinators/mapMaybe" $ do
+    is <- fromList [1,2,3::Int] >>= S.mapMaybe (\x -> if odd x then Just (x * x) else Nothing)
+    l  <- toList is
+
+    assertEqual "mapMaybe" [1,9] l
 
 
 ------------------------------------------------------------------------------

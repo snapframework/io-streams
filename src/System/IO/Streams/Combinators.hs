@@ -22,6 +22,7 @@ module System.IO.Streams.Combinators
  , map
  , mapM
  , mapM_
+ , mapMaybe
  , contramap
  , contramapM
  , contramapM_
@@ -369,6 +370,33 @@ mapM_ f s = makeInputStream $ do
     return mb
 
 
+------------------------------------------------------------------------------
+-- | A version of map that discards elements
+--
+-- @mapMaybe f s@ passes all output from @s@ through the function @f@ and
+-- discards elements for which @f s@ evaluates to 'Nothing'.
+--
+-- Example:
+--
+-- @
+-- ghci> Streams.'System.IO.Streams.fromList' [Just 1, None, Just 3] >>=
+--       Streams.'mapMaybe' 'id' >>=
+--       Streams.'System.IO.Streams.toList'
+-- [1,3]
+-- @
+--
+-- /Since: 1.2.1.0/
+mapMaybe :: (a -> Maybe b) -> InputStream a -> IO (InputStream b)
+mapMaybe f src = makeInputStream g
+  where
+    g = do
+      s <- read src
+      case s of
+        Nothing -> return Nothing
+        Just x ->
+          case f x of
+            Nothing -> g
+            y -> return y
 ------------------------------------------------------------------------------
 -- | Contravariant counterpart to 'map'.
 --
