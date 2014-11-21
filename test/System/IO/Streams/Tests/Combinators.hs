@@ -48,6 +48,7 @@ tests = [ testFilter
         , testMapM_
         , testMapMaybe
         , testContramapM_
+        , testContramapMaybe
         , testSkipToEof
         , testZip
         , testZipWith
@@ -145,6 +146,15 @@ testContramapM_ = testCase "combinators/contramapM_" $ do
     _   <- outputToList (contramapM_ (modifyIORef ref . (+)) >=> connect is)
 
     readIORef ref >>= assertEqual "contramapM_" 6
+
+
+------------------------------------------------------------------------------
+testContramapMaybe :: Test
+testContramapMaybe = testCase "combinators/contramapMaybe" $ do
+    is  <- fromList [1,2,3::Int]
+    l   <- outputToList (contramapMaybe f >=> connect is)
+    assertEqual "contramapMaybe" [1,9] l
+    where f x = if even x then Nothing else Just $ x * x
 
 
 ------------------------------------------------------------------------------

@@ -26,6 +26,7 @@ module System.IO.Streams.Combinators
  , contramap
  , contramapM
  , contramapM_
+ , contramapMaybe
 
    -- * Filter
  , filter
@@ -443,6 +444,24 @@ contramapM_ :: (a -> IO b) -> OutputStream a -> IO (OutputStream a)
 contramapM_ f s = makeOutputStream $ \mb -> do
     _ <- maybe (return $! ()) (void . f) mb
     write mb s
+
+
+------------------------------------------------------------------------------
+-- | Contravariant counterpart to 'contramapMaybe'.
+--
+-- @contramap f s@ passes all input to @s@ through the function @f@.
+-- Discards all the elements for which @f@ returns 'Nothing'.
+--
+-- /Since: 1.2.1.0/
+--
+contramapMaybe :: (a -> Maybe b) -> OutputStream b -> IO (OutputStream a)
+contramapMaybe f s = makeOutputStream $ g
+    where
+      g Nothing = write Nothing s
+      g (Just a) =
+        case f a of
+          Nothing -> return ()
+          x -> write x s
 
 
 ------------------------------------------------------------------------------
