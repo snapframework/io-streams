@@ -1,3 +1,8 @@
+# Version 1.2.1.0
+  - Added `System.IO.Streams.mapMaybe` for InputStream.
+
+  - Added `System.IO.Streams.contramapMaybe` for OutputStream.
+
 # Version 1.2.0.1
 
   - `System.IO.Streams.Attoparsec.parseFromStream`: export more information
