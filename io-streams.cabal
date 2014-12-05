@@ -138,6 +138,7 @@ Library
     BangPatterns,
     CPP,
     DeriveDataTypeable,
+    FlexibleContexts,
     FlexibleInstances,
     GeneralizedNewtypeDeriving,
     MultiParamTypeClasses,
