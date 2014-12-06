@@ -1,3 +1,6 @@
+# Version 1.2.1.1
+  - Dependency bump for time 1.6.
+
 # Version 1.2.1.0
   - Added `System.IO.Streams.mapMaybe` for InputStream.
 
