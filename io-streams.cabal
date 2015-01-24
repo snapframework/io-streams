@@ -1,5 +1,5 @@
 Name:                io-streams
-Version:             1.2.1.1
+Version:             1.2.1.2
 License:             BSD3
 License-file:        LICENSE
 Category:            Data, Network, IO-Streams
@@ -7,8 +7,8 @@ Build-type:          Simple
 Maintainer:          Gregory Collins <greg@gregorycollins.net>
 Cabal-version:       >= 1.10
 Synopsis:            Simple, composable, and easy-to-use stream I/O
-Tested-With:         GHC==7.8.2, GHC==7.6.2, GHC==7.6.1, GHC==7.4.2, GHC==7.4.1,
-                     GHC==7.2.2, GHC==7.0.4
+Tested-With:         GHC==7.8.4, GHC==7.8.2, GHC==7.6.2, GHC==7.6.1, GHC==7.4.2, 
+                     GHC==7.4.1, GHC==7.2.2, GHC==7.0.4
 Bug-Reports:         https://github.com/snapframework/io-streams/issues
 Description:
   /Overview/
@@ -204,7 +204,7 @@ Test-suite testsuite
                      attoparsec    >= 0.10  && <0.13,
                      blaze-builder >= 0.3.1 && <0.4,
                      bytestring    >= 0.9   && <0.11,
-                     deepseq       >= 1.2   && <1.4,
+                     deepseq       >= 1.2   && <1.5,
                      directory     >= 1.1   && <2,
                      filepath      >= 1.2   && <2,
                      mtl           >= 2     && <3,
