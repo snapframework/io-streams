@@ -120,7 +120,7 @@ Library
 
   Build-depends:     base          >= 4     && <5,
                      attoparsec    >= 0.10  && <0.13,
-                     blaze-builder >= 0.3.1 && <0.4,
+                     blaze-builder >= 0.4   && <0.5,
                      bytestring    >= 0.9   && <0.11,
                      network       >= 2.3   && <2.7,
                      primitive     >= 0.2   && <0.6,
@@ -202,7 +202,7 @@ Test-suite testsuite
 
   Build-depends:     base          >= 4     && <5,
                      attoparsec    >= 0.10  && <0.13,
-                     blaze-builder >= 0.3.1 && <0.4,
+                     blaze-builder >= 0.4   && <0.5,
                      bytestring    >= 0.9   && <0.11,
                      deepseq       >= 1.2   && <1.5,
                      directory     >= 1.1   && <2,
