@@ -1,18 +1,20 @@
 {-# LANGUAGE BangPatterns      #-}
+{-# LANGUAGE CPP               #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 -- | Buffering for output streams based on bytestring builders.
 --
 -- Buffering an output stream can often improve throughput by reducing the
--- number of system calls made through the file descriptor. The @blaze-builder@
--- package provides an efficient set of primitives for serializing values
--- directly to an output buffer.
+-- number of system calls made through the file descriptor. The @bytestring@
+-- package provides an efficient monoidal datatype used for serializing values
+-- directly to an output buffer, called a 'Builder', originally implemented in
+-- the @blaze-builder@ package by Simon Meier. When compiling with @bytestring@
+-- versions older than 0.10.4, (i.e. GHC <= 7.6) users must depend on the
+-- @bytestring-builder@ library to get the new builder implementation. Since we
+-- try to maintain compatibility with the last three GHC versions, the
+-- dependency on @bytestring-builder@ can be dropped after the release of GHC
+-- 7.12.
 --
--- (/N.B./: most of the @blaze-builder@ package has been moved into
--- @bytestring@ in versions \>= 0.10; once two or three Haskell Platform
--- editions have been released that contain @bytestring@ 0.10.2 or higher, the
--- dependency on @blaze-builder@ will be dropped in favor of the native support
--- for 'Builder' contained in the @bytestring@ package.)
 --
 -- /Using this module/
 --
@@ -27,16 +29,16 @@
 -- @
 -- do
 --     newStream <- Streams.'builderStream' someOutputStream
---     Streams.'write' ('Just' $ 'Blaze.ByteString.Builder.fromByteString' \"hello\") newStream
+--     Streams.'write' ('Just' $ 'Data.ByteString.Builder.byteString' \"hello\") newStream
 --     ....
 -- @
 --
 --
--- You can flush the output buffer using 'Blaze.ByteString.Builder.flush':
+-- You can flush the output buffer using 'Data.ByteString.Builder.Extra.flush':
 --
 -- @
 --     ....
---     Streams.'write' ('Just' 'Blaze.ByteString.Builder.flush') newStream
+--     Streams.'write' ('Just' 'Data.ByteString.Builder.Extra.flush') newStream
 --     ....
 -- @
 --
@@ -53,7 +55,7 @@
 -- example = do
 --     let l1 = 'Data.List.intersperse' \" \" [\"the\", \"quick\", \"brown\", \"fox\"]
 --     let l2 = 'Data.List.intersperse' \" \" [\"jumped\", \"over\", \"the\"]
---     let l  = map 'Blaze.ByteString.Builder.fromByteString' l1 ++ ['Blaze.ByteString.Builder.flush'] ++ map 'Blaze.ByteString.Builder.fromByteString' l2
+--     let l  = map 'Data.ByteString.Builder.byteString' l1 ++ ['Data.ByteString.Builder.Extra.flush'] ++ map 'Data.ByteString.Builder.byteString' l2
 --     is          \<- Streams.'System.IO.Streams.fromList' l
 --     (os0, grab) \<- Streams.'System.IO.Streams.listOutputStream'
 --     os          \<- Streams.'builderStream' os0
@@ -66,20 +68,80 @@
 module System.IO.Streams.Builder
  ( -- * Blaze builder conversion
    builderStream
+ , builderStreamWithBufferSize
  , unsafeBuilderStream
- , builderStreamWith
  ) where
 
 ------------------------------------------------------------------------------
-import           Control.Monad                            (when)
-import           Data.ByteString.Char8                    (ByteString)
-import qualified Data.ByteString.Char8                    as S
-import           Data.IORef                               (newIORef, readIORef, writeIORef)
+import           Control.Monad                    (when)
+import           Data.ByteString.Builder.Internal (Buffer (..), BufferRange (..), Builder (Builder), byteStringFromBuffer, defaultChunkSize, fillWithBuildStep, newBuffer, runBuilder)
+import           Data.ByteString.Char8            (ByteString)
+import qualified Data.ByteString.Char8            as S
+import           Data.IORef                       (newIORef, readIORef, writeIORef)
+
 ------------------------------------------------------------------------------
-import           Blaze.ByteString.Builder.Internal        (defaultBufferSize)
-import           Blaze.ByteString.Builder.Internal.Buffer (Buffer, BufferAllocStrategy, allNewBuffersStrategy, execBuildStep, reuseBufferStrategy, unsafeFreezeBuffer, unsafeFreezeNonEmptyBuffer, updateEndOfSlice)
-import           Blaze.ByteString.Builder.Internal.Types  (BufRange (..), BuildSignal (..), Builder (..), buildStep)
-import           System.IO.Streams.Internal               (OutputStream, makeOutputStream, write)
+import           System.IO.Streams.Internal       (OutputStream, makeOutputStream, write, writeTo)
+
+
+------------------------------------------------------------------------------
+builderStreamWithBufferFunc :: IO Buffer
+                            -> OutputStream ByteString
+                            -> IO (OutputStream Builder)
+builderStreamWithBufferFunc mkNewBuf os = do
+    ref <- newIORef Nothing
+    makeOutputStream $ chunk ref
+  where
+    chunk ref Nothing = do
+        mbuf <- readIORef ref
+        case mbuf of
+          -- If we existing buffer leftovers, write them to the output.
+          Nothing  -> return $! ()
+          Just buf -> writeBuf buf
+        write Nothing os
+    chunk ref (Just builder) = runStep ref $ runBuilder builder
+
+    getBuf ref = readIORef ref >>= maybe mkNewBuf return
+
+    bumpBuf (Buffer fp (BufferRange !_ endBuf)) endPtr =
+        Buffer fp (BufferRange endPtr endBuf)
+
+    updateBuf ref buf endPtr = writeIORef ref $! Just $! bumpBuf buf endPtr
+
+    writeBuf buf = do
+        let bs = byteStringFromBuffer buf
+        when (not . S.null $ bs) $ writeTo os $! Just bs
+
+    bufRange (Buffer _ rng) = rng
+
+    runStep ref step = do
+        buf <- getBuf ref
+        fillWithBuildStep step (cDone buf) (cFull buf) (cInsert buf)
+                          (bufRange buf)
+      where
+        cDone buf endPtr !() = updateBuf ref buf endPtr
+        cFull buf !endPtr !_ newStep = do
+            writeBuf $! bumpBuf buf endPtr
+            writeIORef ref Nothing
+            runStep ref newStep
+        cInsert buf !endPtr !bs newStep = do
+            writeBuf $! bumpBuf buf endPtr
+            writeIORef ref Nothing
+            writeTo os $! Just bs
+            runStep ref newStep
+
+
+------------------------------------------------------------------------------
+-- | Converts a 'ByteString' sink into a 'Builder' sink, using the supplied
+-- buffer size.
+--
+-- Note that if the generated builder receives a
+-- 'Blaze.ByteString.Builder.flush', by convention it will send an empty string
+-- to the supplied @'OutputStream' 'ByteString'@ to indicate that any output
+-- buffers are to be flushed.
+--
+-- /Since: 1.3.0.0./
+builderStreamWithBufferSize :: Int -> OutputStream ByteString -> IO (OutputStream Builder)
+builderStreamWithBufferSize bufsiz = builderStreamWithBufferFunc (newBuffer bufsiz)
 
 
 ------------------------------------------------------------------------------
@@ -91,7 +153,7 @@ import           System.IO.Streams.Internal               (OutputStream, makeOut
 -- buffers are to be flushed.
 --
 builderStream :: OutputStream ByteString -> IO (OutputStream Builder)
-builderStream = builderStreamWith (allNewBuffersStrategy defaultBufferSize)
+builderStream = builderStreamWithBufferSize defaultChunkSize
 
 
 ------------------------------------------------------------------------------
@@ -108,69 +170,11 @@ builderStream = builderStreamWith (allNewBuffersStrategy defaultBufferSize)
 -- 'Data.ByteString.copy' to ensure that you have a fresh copy of the
 -- underlying string.
 --
--- You can create a Buffer with
--- 'Blaze.ByteString.Builder.Internal.Buffer.allocBuffer'.
---
+-- You can create a Buffer with 'Data.ByteString.Builder.Internal.newBuffer'.
 --
 unsafeBuilderStream :: IO Buffer
                     -> OutputStream ByteString
                     -> IO (OutputStream Builder)
-unsafeBuilderStream = builderStreamWith . reuseBufferStrategy
-
-
-------------------------------------------------------------------------------
--- | A customized version of 'builderStream', using the specified
--- 'BufferAllocStrategy'.
-builderStreamWith :: BufferAllocStrategy
-                  -> OutputStream ByteString
-                  -> IO (OutputStream Builder)
-builderStreamWith (ioBuf0, nextBuf) os = do
-    bufRef <- newIORef ioBuf0
-    makeOutputStream $ sink bufRef
-  where
-    sink bufRef m = do
-        buf <- readIORef bufRef
-        maybe (eof buf) (chunk buf) m
-      where
-        eof ioBuf = do
-            buf <- ioBuf
-            case unsafeFreezeNonEmptyBuffer buf of
-              Nothing    -> write Nothing os
-              x@(Just s) -> do
-                 when (not $ S.null s) $ write x os
-                 write Nothing os
-
-        chunk ioBuf c = feed bufRef (unBuilder c (buildStep finalStep)) ioBuf
-
-    finalStep !(BufRange pf _) = return $! Done pf $! ()
-
-    feed bufRef bStep ioBuf = do
-        !buf   <- ioBuf
-        signal <- execBuildStep bStep buf
-
-        case signal of
-          Done op' _ ->
-              writeIORef bufRef $ (return (updateEndOfSlice buf op'))
-
-          BufferFull minSize op' bStep' -> do
-              let buf' = updateEndOfSlice buf op'
-                  {-# INLINE cont #-}
-                  cont = do
-                      ioBuf' <- nextBuf minSize buf'
-                      feed bufRef bStep' ioBuf'
-
-              write (Just $! unsafeFreezeBuffer buf') os
-              cont
-
-          InsertByteString op' bs bStep' -> do
-              let buf' = updateEndOfSlice buf op'
-
-              case unsafeFreezeNonEmptyBuffer buf' of
-                Nothing -> return $! ()
-                x       -> write x os
-
-              -- empty string here notifies downstream of flush
-              write (Just bs) os
-
-              ioBuf' <- nextBuf 1 buf'
-              feed bufRef bStep' ioBuf'
+unsafeBuilderStream mkBuf os = do
+    buf <- mkBuf
+    builderStreamWithBufferFunc (return buf) os

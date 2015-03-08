@@ -4,9 +4,9 @@
 module System.IO.Streams.Tests.Handle (tests) where
 
 ------------------------------------------------------------------------------
-import           Blaze.ByteString.Builder
 import           Control.Exception
 import           Control.Monad                  hiding (mapM)
+import           Data.ByteString.Builder        (byteString)
 import qualified Data.ByteString.Char8          as S
 import           Data.List
 import           Foreign.Marshal.Alloc          (allocaBytes)
@@ -76,8 +76,8 @@ testRepeatedConnects = testCase "handle/repeatedConnects" $ do
             os0 <- Streams.handleToOutputStream h
             os  <- Streams.builderStream os0
 
-            let l1 = map fromByteString ["the ", "quick ", "brown "]
-            let l2 = map fromByteString ["fox ", "jumped"]
+            let l1 = map byteString ["the ", "quick ", "brown "]
+            let l2 = map byteString ["fox ", "jumped"]
             Streams.fromList l1 >>= Streams.connectTo os
             Streams.fromList l2 >>= Streams.connectTo os
         S.readFile fn >>= assertEqual "eof should close" "the quick brown "

@@ -27,6 +27,7 @@ module System.IO.Streams.Internal
   , unRead
   , peek
   , write
+  , writeTo
   , atEOF
 
     -- * Building streams
@@ -146,6 +147,15 @@ read = _read
 write :: Maybe a -> OutputStream a -> IO ()
 write = flip _write
 {-# INLINE write #-}
+
+
+------------------------------------------------------------------------------
+-- | Flipped version of 'write'.
+--
+-- /Since: 1.3.0.0./
+writeTo :: OutputStream a -> Maybe a -> IO ()
+writeTo = _write
+{-# INLINE writeTo #-}
 
 
 ------------------------------------------------------------------------------

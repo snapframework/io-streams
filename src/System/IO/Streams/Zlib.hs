@@ -18,18 +18,18 @@ module System.IO.Streams.Zlib
  ) where
 
 ------------------------------------------------------------------------------
-import           Data.ByteString                          (ByteString)
-import qualified Data.ByteString                          as S
-import           Data.IORef                               (newIORef, readIORef, writeIORef)
-import           Prelude                                  hiding (read)
+import           Data.ByteString                  (ByteString)
+import qualified Data.ByteString                  as S
+import           Data.IORef                       (newIORef, readIORef, writeIORef)
+import           Prelude                          hiding (read)
 ------------------------------------------------------------------------------
-import           Blaze.ByteString.Builder                 (fromByteString)
-import           Blaze.ByteString.Builder.Internal        (Builder, defaultBufferSize, flush)
-import           Blaze.ByteString.Builder.Internal.Buffer (allocBuffer)
-import           Codec.Zlib                               (Deflate, Inflate, Popper, WindowBits (..), feedDeflate, feedInflate, finishDeflate, finishInflate, flushDeflate, flushInflate, initDeflate, initInflate)
+import           Codec.Zlib                       (Deflate, Inflate, Popper, WindowBits (..), feedDeflate, feedInflate, finishDeflate, finishInflate, flushDeflate, flushInflate, initDeflate, initInflate)
+import           Data.ByteString.Builder          (Builder, byteString)
+import           Data.ByteString.Builder.Extra    (defaultChunkSize, flush)
+import           Data.ByteString.Builder.Internal (newBuffer)
 ------------------------------------------------------------------------------
-import           System.IO.Streams.Builder                (unsafeBuilderStream)
-import           System.IO.Streams.Internal               (InputStream, OutputStream, makeInputStream, makeOutputStream, read, write)
+import           System.IO.Streams.Builder        (unsafeBuilderStream)
+import           System.IO.Streams.Internal       (InputStream, OutputStream, makeInputStream, makeOutputStream, read, write)
 
 
 ------------------------------------------------------------------------------
@@ -105,13 +105,13 @@ deflateBuilder stream state = do
 
     -- we can use unsafeBuilderStream here because zlib is going to consume the
     -- stream
-    unsafeBuilderStream (allocBuffer defaultBufferSize) zippedStr
+    unsafeBuilderStream (newBuffer defaultChunkSize) zippedStr
 
   where
     bytestringStream x = write (fmap cvt x) stream
 
     cvt s | S.null s  = flush
-          | otherwise = fromByteString s
+          | otherwise = byteString s
 
 
 ------------------------------------------------------------------------------

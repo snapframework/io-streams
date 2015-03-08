@@ -3,11 +3,7 @@ module System.IO.Streams.Tests.Concurrent (tests) where
 ------------------------------------------------------------------------------
 import           Control.Concurrent
 import           Control.Monad
-import           Prelude                              hiding (lines, read,
-                                                       takeWhile, unlines,
-                                                       unwords, unwords,
-                                                       words)
-import qualified Prelude
+import           Prelude                              hiding (lines, read, takeWhile, unlines, unwords, unwords, words)
 import qualified System.IO.Streams                    as Streams
 import qualified System.IO.Streams.Concurrent         as Streams
 import           System.IO.Streams.Tests.Common

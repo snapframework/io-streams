@@ -3,10 +3,11 @@
 module System.IO.Streams.Tests.Zlib (tests) where
 
 ------------------------------------------------------------------------------
-import           Blaze.ByteString.Builder
 import qualified Codec.Compression.GZip               as GZ
 import qualified Codec.Compression.Zlib               as Z
 import           Control.Monad                        hiding (mapM)
+import           Data.ByteString.Builder              (Builder, byteString)
+import           Data.ByteString.Builder.Extra        (flush)
 import           Data.ByteString.Char8                (ByteString)
 import qualified Data.ByteString.Char8                as S
 import qualified Data.ByteString.Lazy.Char8           as L
@@ -18,7 +19,7 @@ import           Test.HUnit                           hiding (Test)
 import           Test.QuickCheck                      hiding (output)
 import           Test.QuickCheck.Monadic
 ------------------------------------------------------------------------------
-import           System.IO.Streams                    hiding (fromByteString)
+import           System.IO.Streams
 import           System.IO.Streams.Tests.Common
 
 tests :: [Test]
@@ -153,10 +154,10 @@ propBuilderFlush :: String
 propBuilderFlush name inf comp a b = do
     pre (not (S.null a) && not (S.null b))
     liftQ $ do
-        t 7 [ fromByteString a, flush, flush, fromByteString b
+        t 7 [ byteString a, flush, flush, byteString b
             , flush, flush ]
 
-        t 4 [ fromByteString a, flush, flush, fromByteString b ]
+        t 4 [ byteString a, flush, flush, byteString b ]
 
   where
     t expected input = do

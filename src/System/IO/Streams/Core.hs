@@ -17,6 +17,7 @@ module System.IO.Streams.Core
  , unRead
  , peek
  , write
+ , writeTo
  , atEOF
 
    -- * Connecting streams together

@@ -3,17 +3,19 @@
 module System.IO.Streams.Tests.Builder (tests) where
 
 ------------------------------------------------------------------------------
-import           Blaze.ByteString.Builder
-import           Blaze.ByteString.Builder.Internal.Buffer
 import           Control.Monad
-import qualified Data.ByteString.Char8                    as S
+import           Data.ByteString.Builder          (byteString, toLazyByteString)
+import           Data.ByteString.Builder.Extra    (flush)
+import           Data.ByteString.Builder.Internal (newBuffer)
+import qualified Data.ByteString.Char8            as S
+import qualified Data.ByteString.Lazy.Char8       as L
 import           Data.List
 import           Data.Monoid
-import           System.IO.Streams                        hiding (fromByteString, intersperse, map, take)
-import qualified System.IO.Streams                        as Streams
+import           System.IO.Streams                hiding (intersperse, map, take)
+import qualified System.IO.Streams                as Streams
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
-import           Test.HUnit                               hiding (Test)
+import           Test.HUnit                       hiding (Test)
 ------------------------------------------------------------------------------
 
 tests :: [Test]
@@ -31,7 +33,7 @@ testBuilderStream :: Test
 testBuilderStream = testCase "builder/builderStream" $ do
     let l1 = intersperse " " ["the", "quick", "brown", "fox"]
     let l2 = intersperse " " ["jumped", "over", "the"]
-    let l  = map fromByteString l1 ++ [flush] ++ map fromByteString l2
+    let l  = map byteString l1 ++ [flush] ++ map byteString l2
 
     is          <- fromList l
     (os0, grab) <- listOutputStream
@@ -53,9 +55,9 @@ testRepeatedConnects = testCase "builder/repeatedConnects" $ do
     (os0, grab)  <- Streams.listOutputStream
     os <- Streams.builderStream os0
     is0 <- Streams.fromList ["Hello, world!\n"]
-             >>= Streams.map fromByteString
+             >>= Streams.map byteString
     is1 <- Streams.fromList ["Bye, world!\n"]
-             >>= Streams.map fromByteString
+             >>= Streams.map byteString
     Streams.connect is0 os
     Streams.connect is1 os
     Streams.write Nothing os
@@ -68,13 +70,13 @@ testUnsafeBuilderStream :: Test
 testUnsafeBuilderStream = testCase "builder/unsafeBuilderStream" $ do
     let l1 = intersperse " " ["the", "quick", "brown", "fox"]
     let l2 = intersperse " " ["jumped", "over", "the"]
-    let l  = map fromByteString l1 ++ [flush] ++ map fromByteString l2
+    let l  = map byteString l1 ++ [flush] ++ map byteString l2
 
     is          <- fromList l
     (os0, grab) <- listOutputStream
     os1         <- contramapM (return . S.copy) os0
 
-    os          <- unsafeBuilderStream (allocBuffer 1024) os1
+    os          <- unsafeBuilderStream (newBuffer 1024) os1
 
     connect is os
     output <- grab
@@ -89,11 +91,11 @@ testUnsafeBuilderStream = testCase "builder/unsafeBuilderStream" $ do
 testSmallBuffer :: Test
 testSmallBuffer = testCase "builder/smallBuffer" $ do
     (os0, grab) <- listOutputStream
-    os          <- builderStreamWith (allNewBuffersStrategy 10) os0
+    os          <- builderStreamWithBufferSize 10 os0
     let l1 = intersperse " " ["the", "quick", "brown"]
     let l2 = [" fooooooooooooooooox"]
-    let l = map fromByteString l1 ++ [flush, flush, flush]
-              ++ map fromByteString l2
+    let l = map byteString l1 ++ [flush, flush, flush]
+              ++ map byteString l2
 
     is          <- fromList l
     connect is os
@@ -108,20 +110,20 @@ testSmallBufferWithLargeOutput =
     testCase "builder/smallBufferWithLargeOutput" $ do
         (os0, grab) <- listOutputStream
         os1         <- contramapM (return . S.copy) os0
-        os          <- unsafeBuilderStream (allocBuffer 10) os1
+        os          <- unsafeBuilderStream (newBuffer 10) os1
 
         let l = take 3000 $ cycle $
-                replicate 20 (fromByteString "bloooooooort") ++ [flush]
+                replicate 20 (byteString "bloooooooort") ++ [flush]
 
         is <- fromList l
-        let s = toByteString $ mconcat l
+        let s = S.concat $ L.toChunks $ toLazyByteString $ mconcat l
 
         connect is os
         output <- liftM S.concat grab
 
         assertEqual "short buffer 2" s output
 
-        write (Just $ fromByteString "ok") os
+        write (Just $ byteString "ok") os
         write Nothing os
 
         fout <- grab
