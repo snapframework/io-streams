@@ -74,7 +74,7 @@ module System.IO.Streams.Builder
 
 ------------------------------------------------------------------------------
 import           Control.Monad                    (when)
-import           Data.ByteString.Builder.Internal (Buffer (..), BufferRange (..), Builder (Builder), byteStringFromBuffer, defaultChunkSize, fillWithBuildStep, newBuffer, runBuilder)
+import           Data.ByteString.Builder.Internal (Buffer (..), BufferRange (..), Builder, byteStringFromBuffer, defaultChunkSize, fillWithBuildStep, newBuffer, runBuilder)
 import           Data.ByteString.Char8            (ByteString)
 import qualified Data.ByteString.Char8            as S
 import           Data.IORef                       (newIORef, readIORef, writeIORef)
