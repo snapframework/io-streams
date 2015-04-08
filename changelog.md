@@ -7,8 +7,11 @@
 writeTo :: OutputStream a -> Maybe a -> IO ()
     ```
 
+# Version 1.2.1.3
+  - Dependency bump for primitive 0.6.
+
 # Version 1.2.1.2
-  - Dependency bump for deepseq 1.4
+  - Dependency bump for deepseq 1.4.
 
 # Version 1.2.1.1
   - Dependency bump for time 1.6.
