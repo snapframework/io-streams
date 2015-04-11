@@ -1,8 +1,8 @@
 # Version 1.3.0.0
-  - As long-promised, removed the direct use of the `blaze-builder` package in
+  - As long promised, removed the direct use of the `blaze-builder` package in
     favor of the new `bytestring-builder` transitional package (to be replaced
     by bytestring's native builder once it is mature enough).
-    - Added a new convenience function, a flipped version of `write`:
+  - Added a new convenience function, a flipped version of `write`:
     ```haskell
 writeTo :: OutputStream a -> Maybe a -> IO ()
     ```
