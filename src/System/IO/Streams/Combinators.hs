@@ -69,7 +69,7 @@ import           System.IO.Streams.Internal (InputStream (..), OutputStream (..)
 ------------------------------------------------------------------------------
 -- | A side-effecting fold over an 'OutputStream', as a stream transformer.
 --
--- The IO action returned by 'outputFoldM' can be used to fetch the updated
+-- The IO action returned by 'outputFoldM' can be used to fetch and reset the updated
 -- seed value. Example:
 --
 -- @
@@ -86,8 +86,8 @@ outputFoldM :: (a -> b -> IO a)           -- ^ fold function
             -> a                          -- ^ initial seed
             -> OutputStream b             -- ^ output stream
             -> IO (OutputStream b, IO a)  -- ^ returns a new stream as well as
-                                          -- an IO action to fetch the updated
-                                          -- seed value.
+                                          -- an IO action to fetch and reset the
+                                          --  updated seed value.
 outputFoldM f initial stream = do
     ref <- newIORef initial
     os  <- makeOutputStream (wr ref)
@@ -107,7 +107,7 @@ outputFoldM f initial stream = do
 ------------------------------------------------------------------------------
 -- | A side-effecting fold over an 'InputStream', as a stream transformer.
 --
--- The IO action returned by 'inputFoldM' can be used to fetch the updated seed
+-- The IO action returned by 'inputFoldM' can be used to fetch and reset the updated seed
 -- value. Example:
 --
 -- @
@@ -122,8 +122,8 @@ inputFoldM :: (a -> b -> IO a)          -- ^ fold function
            -> a                         -- ^ initial seed
            -> InputStream b             -- ^ input stream
            -> IO (InputStream b, IO a)  -- ^ returns a new stream as well as an
-                                        -- IO action to fetch the updated seed
-                                        -- value.
+                                        -- IO action to fetch and reset the
+                                        -- updated seed value.
 inputFoldM f initial stream = do
     ref <- newIORef initial
     is  <- makeInputStream (rd ref)
