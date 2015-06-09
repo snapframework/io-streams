@@ -1,3 +1,6 @@
+# Version 1.3.1.0
+  - Dependency bump for attoparsec 0.13.
+
 # Version 1.3.0.0
   - As long promised, removed the direct use of the `blaze-builder` package in
     favor of the new `bytestring-builder` transitional package (to be replaced
