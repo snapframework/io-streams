@@ -4,6 +4,7 @@
 -- Library users should use the interface provided by "System.IO.Streams"
 
 {-# LANGUAGE BangPatterns               #-}
+{-# LANGUAGE CPP                        #-}
 {-# LANGUAGE DeriveDataTypeable         #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -62,7 +63,9 @@ module System.IO.Streams.Internal
   ) where
 
 ------------------------------------------------------------------------------
+#if !MIN_VERSION_base(4,8,0)
 import           Control.Applicative      (Applicative (..), (<$>))
+#endif
 import           Control.Concurrent       (newMVar, withMVar)
 import           Control.Exception        (throwIO)
 import           Control.Monad            (when)

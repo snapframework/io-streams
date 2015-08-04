@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP          #-}
 
 -- | Stream primitives for decoding and encoding 'Text' values in UTF-8 format.
 module System.IO.Streams.Text
@@ -14,7 +15,9 @@ import           Control.Monad.IO.Class        (MonadIO (..))
 import           Data.ByteString               (ByteString)
 import qualified Data.ByteString               as S
 import qualified Data.ByteString.Unsafe        as S
+#if !MIN_VERSION_base(4,8,0)
 import           Data.Monoid                   (mappend)
+#endif
 import           Data.Text                     (Text)
 import qualified Data.Text.Encoding            as T
 import           Data.Text.Encoding.Error      (OnDecodeError)

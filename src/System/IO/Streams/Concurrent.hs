@@ -1,6 +1,7 @@
 -- | Stream utilities for working with concurrent channels.
 
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP          #-}
 
 module System.IO.Streams.Concurrent
  ( -- * Channel conversions
@@ -12,7 +13,9 @@ module System.IO.Streams.Concurrent
  ) where
 
 ------------------------------------------------------------------------------
+#if !MIN_VERSION_base(4,8,0)
 import           Control.Applicative        ((<$>), (<*>))
+#endif
 import           Control.Concurrent         (forkIO)
 import           Control.Concurrent.Chan    (Chan, newChan, readChan, writeChan)
 import           Control.Concurrent.MVar    (modifyMVar, newEmptyMVar, newMVar, putMVar, takeMVar)
