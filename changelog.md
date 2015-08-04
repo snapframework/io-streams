@@ -1,3 +1,8 @@
+# Version 1.3.2.0
+  - Dependency bump for attoparsec 0.13 (another location)
+  - Dependency bump for vector 0.11
+  - Dependency bump for zlib 0.6
+
 # Version 1.3.1.0
   - Dependency bump for attoparsec 0.13.
 
