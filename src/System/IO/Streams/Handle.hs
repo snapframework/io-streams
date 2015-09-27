@@ -84,6 +84,8 @@ handleToOutputStream h = makeOutputStream f
 -- the returned 'OutputStream':
 --
 -- > Streams.write (Just "") os
+--
+-- /Since: 1.3.3.0./
 handleToStreams :: Handle
                 -> IO (InputStream ByteString, OutputStream ByteString)
 handleToStreams h = do
