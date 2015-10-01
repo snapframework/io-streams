@@ -1,3 +1,7 @@
+# Version 1.3.3.0
+Added `System.IO.Streams.Handle.handleToStreams`, to conveniently
+create an `InputStream`/`OutputStream` pair.
+
 # Version 1.3.2.0
   - Dependency bump for attoparsec 0.13 (another location)
   - Dependency bump for vector 0.11
