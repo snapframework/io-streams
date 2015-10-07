@@ -11,6 +11,7 @@ module System.IO.Streams.List
 
    -- * Utility
  , chunkList
+ , chunkListWith
  , concatLists
  , listOutputStream
  ) where
@@ -154,6 +155,36 @@ chunkList n input = if n <= 0
         finish  = let l = dl []
                   in if null l then return $! () else yield l
         chunk x = go (k - 1) (dl . (x:))
+
+
+------------------------------------------------------------------------------
+-- | Splits an input stream into chunks whenever @p elt count@ returns true.
+--
+-- Example:
+--
+-- @
+-- ghci> 'fromList' [1..14::Int] >>= 'chunkListWith' (\x n -> n>=4) >>= 'toList'
+-- [[1,2,3,4],[5,6,7,8],[9,10,11,12],[13,14]]
+-- ghci> 'fromList' ['a'..'z'] >>= 'chunkListWith' (\x n -> n>=4 && x `elem` "aeiouy") >>= 'toList'
+-- ["abcde","fghi","jklmno","pqrstu","vwxy","z"]
+-- @
+chunkListWith :: (a -> Int -> Bool)    -- ^ break predicate
+              -> InputStream a         -- ^ stream to process
+              -> IO (InputStream [a])
+chunkListWith p input =
+  fromGenerator $ go Nothing 0 id
+  where
+    go v !k dl
+      | Just x <- v, p x k = yield (dl []) >> go Nothing 0 id
+      | otherwise = do
+          liftIO (read input) >>= maybe finish chunk
+      where
+        finish =
+          let l = dl []
+          in if null l
+               then return $! ()
+               else yield l
+        chunk x = go (Just x) (k + 1) (dl . (x :))
 
 
 ------------------------------------------------------------------------------
