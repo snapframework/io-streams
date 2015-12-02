@@ -1,3 +1,10 @@
+# Version 1.3.3.0
+  - Added a new convenience function, like `chunkList` but with a predicate for
+    when to split, taking current element and current chunk length:
+    ```haskell
+chunkListWith :: (a -> Int -> Bool) -> InputStream a -> IO (InputStream [a])
+    ```
+
 # Version 1.3.2.0
   - Dependency bump for attoparsec 0.13 (another location)
   - Dependency bump for vector 0.11
