@@ -168,6 +168,8 @@ chunkList n input = if n <= 0
 -- ghci> 'fromList' ['a'..'z'] >>= 'chunkListWith' (\x n -> n>=4 && x `elem` "aeiouy") >>= 'toList'
 -- ["abcde","fghi","jklmno","pqrstu","vwxy","z"]
 -- @
+--
+-- /Since: 1.3.3.0./
 chunkListWith :: (a -> Int -> Bool)    -- ^ break predicate
               -> InputStream a         -- ^ stream to process
               -> IO (InputStream [a])
