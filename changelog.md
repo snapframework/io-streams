@@ -1,3 +1,6 @@
+# Version 1.3.3.1
+  - Fixed a testsuite compile error on GHC >= 7.10.
+
 # Version 1.3.3.0
   - Added a new convenience function, like `chunkList` but with a predicate for
     when to split, taking current element and current chunk length:

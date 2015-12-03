@@ -39,20 +39,22 @@ testChunkWithJoin = testCase "list/chunkListWith and join" $ do
     fromList [1..10 :: Int] >>= chunkListWith (\_ n -> n>=3)
                             >>= toList
                             >>= assertEqual "chunkListWith" [ [1,2,3]
-                                                        , [4,5,6]
-                                                        , [7,8,9]
-                                                        , [10]
-                                                        ]
+                                                            , [4,5,6]
+                                                            , [7,8,9]
+                                                            , [10]
+                                                            ]
     fromList [1..12 :: Int] >>= chunkListWith (\_ n -> n>=3)
                             >>= concatLists
                             >>= toList
                             >>= assertEqual "concatlists" [1..12]
 
-    fromList ['a'..'z' :: Char] >>= chunkListWith (\x n -> n>=4 && x `elem` "aeiouy")
-                            >>= toList
-                            >>= assertEqual "chunkListWith" ["abcde"
-                                                            ,"fghi"
-                                                            ,"jklmno"
-                                                            ,"pqrstu"
-                                                            ,"vwxy"
-                                                            ,"z"]
+    fromList ['a'..'z' :: Char]
+        >>= chunkListWith (\x n -> n>=4 && x `elem` ("aeiouy" :: String))
+        >>= toList
+        >>= assertEqual "chunkListWith" [ "abcde"
+                                        , "fghi"
+                                        , "jklmno"
+                                        , "pqrstu"
+                                        , "vwxy"
+                                        , "z"
+                                        ]

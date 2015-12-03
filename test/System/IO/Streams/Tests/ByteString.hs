@@ -14,8 +14,8 @@ import           Data.List                            hiding (lines,
 import           Data.Maybe                           (isJust)
 import           Data.Monoid
 import           Prelude                              hiding (lines, read,
-                                                       takeWhile, unlines,
-                                                       unwords, unwords,
+                                                       take, takeWhile,
+                                                       unlines, unwords,
                                                        words)
 import qualified Prelude
 import           System.IO.Streams                    hiding (filter,
