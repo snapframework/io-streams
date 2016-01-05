@@ -1,3 +1,7 @@
+# Version 1.3.4.0
+Added `System.IO.Streams.Handle.handleToStreams`, to conveniently
+create an `InputStream`/`OutputStream` pair.
+
 # Version 1.3.3.1
   - Fixed a testsuite compile error on GHC >= 7.10.
 
