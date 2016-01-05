@@ -10,6 +10,7 @@ module System.IO.Streams.Handle
  ( -- * Handle conversions
    handleToInputStream
  , handleToOutputStream
+ , handleToStreams
  , inputStreamToHandle
  , outputStreamToHandle
  , streamPairToHandle
@@ -68,6 +69,29 @@ handleToOutputStream h = makeOutputStream f
     f (Just x) = if S.null x
                    then hFlush h
                    else S.hPut h x
+
+
+------------------------------------------------------------------------------
+-- | Converts a readable and writable handle into an 'InputStream'/'OutputStream'
+-- of strict 'ByteString's.
+--
+-- Note that the wrapped handle is /not/ closed when it receives
+-- end-of-stream; you can use
+-- 'System.IO.Streams.Combinators.atEndOfOutput' to close the handle
+-- if you would like this behaviour.
+--
+-- /Note/: to force the 'Handle' to be flushed, you can write a null string to
+-- the returned 'OutputStream':
+--
+-- > Streams.write (Just "") os
+--
+-- /Since: 1.3.4.0./
+handleToStreams :: Handle
+                -> IO (InputStream ByteString, OutputStream ByteString)
+handleToStreams h = do
+    is <- handleToInputStream h
+    os <- handleToOutputStream h
+    return $! (is, os)
 
 
 ------------------------------------------------------------------------------
