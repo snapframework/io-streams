@@ -1,6 +1,10 @@
+# Version 1.3.5.0
+  - Add support for latest `process`, `time`, and `transformers` releases
+    (and thereby indirectly for the upcoming GHC 8.0)
+
 # Version 1.3.4.0
-Added `System.IO.Streams.Handle.handleToStreams`, to conveniently
-create an `InputStream`/`OutputStream` pair.
+  - Added `System.IO.Streams.Handle.handleToStreams`, to conveniently
+    create an `InputStream`/`OutputStream` pair.
 
 # Version 1.3.3.1
   - Fixed a testsuite compile error on GHC >= 7.10.
