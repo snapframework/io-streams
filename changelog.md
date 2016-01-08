@@ -1,6 +1,6 @@
 # Version 1.3.5.0
   - Add support for latest `process`, `time`, and `transformers` releases
-    (and thereby indirectly for the upcoming GHC 8.0)
+    (and thereby indirectly for the upcoming GHC 8.0).
 
 # Version 1.3.4.0
   - Added `System.IO.Streams.Handle.handleToStreams`, to conveniently
