@@ -10,6 +10,8 @@ module System.IO.Streams.Combinators
  , outputFoldM
  , fold
  , foldM
+ , fold_
+ , foldM_
  , any
  , all
  , maximum
@@ -179,6 +181,44 @@ foldM :: (s -> a -> IO s)       -- ^ fold function
 foldM f seed stream = go seed
   where
     go !s = read stream >>= maybe (return s) ((go =<<) . f s)
+
+
+------------------------------------------------------------------------------
+{- | A variant of 'System.IO.Streams.fold' suitable for use with composable folds
+     from \'beautiful folding\' libraries like <http://hackage.haskell.org/package/foldl the foldl library>
+     In particular, we have
+
+>  Control.Foldl.purely fold_ :: Control.Fold.Fold a b -> InputStream a -> IO b
+-}  
+
+fold_ :: (x -> a -> x)    -- ^ accumulator update function
+      -> x                -- ^ initial seed
+      -> (x -> s)         -- ^ recover folded value
+      -> InputStream a    -- ^ input stream
+      -> IO s
+fold_ op seed done stream = liftM done (go seed)
+   where 
+     go !s = read stream >>= maybe (return s) (go . op s)
+
+------------------------------------------------------------------------------
+{- | A variant of 'System.IO.Streams.foldM' suitable for use with composable folds
+     from \'beautiful folding\' libraries like <http://hackage.haskell.org/package/foldl the foldl library>
+     In particular, we have
+
+>  Control.Foldl.impurely foldM_ :: Control.Fold.FoldM IO a b -> InputStream a -> IO b
+-}  
+foldM_ :: (x -> a -> IO x)   -- ^ accumulator update action
+       -> IO x               -- ^ initial seed
+       -> (x -> IO s)        -- ^ recover folded value
+       -> InputStream a      -- ^ input stream
+       -> IO s
+foldM_ f seed done stream = seed >>= go 
+  where
+    go !x = read stream >>= maybe (done x) ((go =<<) . f x)
+
+    -- > :t L.impurely foldM_
+    -- L.impurely foldM_ :: FoldM IO a b -> InputStream a -> IO b
+
 
 
 ------------------------------------------------------------------------------
