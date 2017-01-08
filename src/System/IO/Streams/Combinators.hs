@@ -184,13 +184,21 @@ foldM f seed stream = go seed
 
 
 ------------------------------------------------------------------------------
-{- | A variant of 'System.IO.Streams.fold' suitable for use with composable folds
-     from \'beautiful folding\' libraries like <http://hackage.haskell.org/package/foldl the foldl library>
-     In particular, we have
-
->  Control.Foldl.purely fold_ :: Control.Fold.Fold a b -> InputStream a -> IO b
--}  
-
+-- | A variant of 'System.IO.Streams.fold' suitable for use with composable folds
+-- from \'beautiful folding\' libraries like
+-- <http://hackage.haskell.org/package/foldl the foldl library>.
+-- The input stream is fully consumed. 
+--
+-- Example:
+--
+-- @
+-- ghci> let folds = liftA3 (,,) Foldl.length Foldl.mean Foldl.maximum
+-- ghci> Streams.'System.IO.Streams.fromList' [1..10::Double] >>= Foldl.purely Streams.'System.IO.Streams.fold_' folds is
+-- ghci> (10,5.5,Just 10.0)
+-- @
+--
+-- /Since 1.3.6.0/
+--
 fold_ :: (x -> a -> x)    -- ^ accumulator update function
       -> x                -- ^ initial seed
       -> (x -> s)         -- ^ recover folded value
@@ -200,13 +208,26 @@ fold_ op seed done stream = liftM done (go seed)
    where 
      go !s = read stream >>= maybe (return s) (go . op s)
 
-------------------------------------------------------------------------------
-{- | A variant of 'System.IO.Streams.foldM' suitable for use with composable folds
-     from \'beautiful folding\' libraries like <http://hackage.haskell.org/package/foldl the foldl library>
-     In particular, we have
 
->  Control.Foldl.impurely foldM_ :: Control.Fold.FoldM IO a b -> InputStream a -> IO b
--}  
+------------------------------------------------------------------------------
+-- | A variant of 'System.IO.Streams.foldM' suitable for use with composable folds
+-- from \'beautiful folding\' libraries like
+-- <http://hackage.haskell.org/package/foldl the foldl library>.
+-- The input stream is fully consumed. 
+--
+-- Example:
+--
+-- @
+-- ghci> let folds = Foldl.mapM_ print *> Foldl.generalize (liftA2 (,) Foldl.sum Foldl.mean)
+-- ghci> Streams.'System.IO.Streams.fromList' [1..3::Double] >>= Foldl.impurely Streams.'System.IO.Streams.foldM_' folds
+-- 1.0
+-- 2.0
+-- 3.0
+-- (6.0,2.0)
+-- @
+--
+-- /Since 1.3.6.0/
+--
 foldM_ :: (x -> a -> IO x)   -- ^ accumulator update action
        -> IO x               -- ^ initial seed
        -> (x -> IO s)        -- ^ recover folded value
@@ -215,10 +236,6 @@ foldM_ :: (x -> a -> IO x)   -- ^ accumulator update action
 foldM_ f seed done stream = seed >>= go 
   where
     go !x = read stream >>= maybe (done x) ((go =<<) . f x)
-
-    -- > :t L.impurely foldM_
-    -- L.impurely foldM_ :: FoldM IO a b -> InputStream a -> IO b
-
 
 
 ------------------------------------------------------------------------------
