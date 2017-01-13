@@ -2,6 +2,7 @@
 TAGS
 cabal-dev
 dist/
+dist-newstyle/
 tmp/
 *.tix
 .hpc
@@ -16,3 +17,4 @@ tmp/
 docs/templates/out
 .cabal-sandbox/
 cabal.sandbox.config
+cabal.project.local
