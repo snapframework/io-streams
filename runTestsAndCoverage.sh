@@ -2,19 +2,35 @@
 
 set -e
 
+NEWSTYLE=$(([ -d ./dist-newstyle ] && echo "1") || echo "0")
+DIST=$(if [ 1 == $NEWSTYLE ]; then
+           echo ./dist-newstyle/build/io-streams*;
+       else
+           echo ./dist
+       fi)
+
+echo HAVE DIST $DIST
+echo HAVE NEWSTYLE $NEWSTYLE
+
+TESTSUITE="./${DIST}/build/testsuite/testsuite"
+
+[ -f "${TESTSUITE}" ] || (
+    echo "No testsuite executable at $TESTSUITE."; exit 1
+)
+
 export LC_ALL=C
 export LANG=C
 
 rm -f testsuite.tix
 
-./dist/build/testsuite/testsuite -j4 -a1000 $*
+$TESTSUITE -j4 -a1000 $*
 
 # cabal test --show-details=always --test-options="-j4 -a1000 $*"
 
-DIR=dist/hpc
+HPCDIR="${DIST}/hpc"
 
-rm -Rf $DIR
-mkdir -p $DIR
+rm -Rf $HPCDIR
+mkdir -p $HPCDIR
 
 EXCLUDES='Main
 System.IO.Streams.Tests.Attoparsec
@@ -41,11 +57,11 @@ for m in $EXCLUDES; do
     EXCL="$EXCL --exclude=$m"
 done
 
-hpc markup $EXCL --destdir=$DIR testsuite >/dev/null 2>&1
+hpc markup $EXCL --destdir="$HPCDIR" testsuite >/dev/null 2>&1
 
 rm -f testsuite.tix
 
 cat <<EOF
 
-Test coverage report written to $DIR.
+Test coverage report written to $HPCDIR.
 EOF
