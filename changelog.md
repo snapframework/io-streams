@@ -1,3 +1,18 @@
+# Version 1.3.6.0
+  - Added new fold functions:
+  ```haskell
+fold_ :: (x -> a -> x)    -- ^ accumulator update function
+      -> x                -- ^ initial seed
+      -> (x -> s)         -- ^ recover folded value
+      -> InputStream a    -- ^ input stream
+      -> IO s
+foldM_ :: (x -> a -> IO x)   -- ^ accumulator update action
+       -> IO x               -- ^ initial seed
+       -> (x -> IO s)        -- ^ recover folded value
+       -> InputStream a      -- ^ input stream
+       -> IO s
+  ```
+
 # Version 1.3.5.0
   - Add support for latest `process`, `time`, and `transformers` releases
     (and thereby indirectly for the upcoming GHC 8.0).
