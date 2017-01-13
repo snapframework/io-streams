@@ -40,6 +40,8 @@ tests = [ testFilter
         , testFoldMWorksTwice
         , testFold
         , testFoldM
+        , testFold_
+        , testFoldM_
         , testUnfoldM
         , testPredicates
         , testMap
@@ -232,6 +234,19 @@ testFoldM :: Test
 testFoldM = testCase "combinators/foldM" $ do
     fromList [1..10::Int] >>= S.foldM ((return .) . (+)) 0
                           >>= assertEqual "fold2" (sum [1..10])
+
+
+------------------------------------------------------------------------------
+testFold_ :: Test
+testFold_ = testCase "combinators/fold_" $ do
+    fromList [1..10::Int] >>= S.fold_ (+) 0 id
+                          >>= assertEqual "fold_1" (sum [1..10])
+
+------------------------------------------------------------------------------
+testFoldM_ :: Test
+testFoldM_ = testCase "combinators/foldM_" $ do
+    fromList [1..10::Int] >>= S.foldM_ ((return .) . (+)) (return 0) return
+                          >>= assertEqual "fold_2" (sum [1..10])
 
 
 ------------------------------------------------------------------------------
