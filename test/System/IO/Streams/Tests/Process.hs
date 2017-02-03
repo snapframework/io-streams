@@ -40,7 +40,7 @@ testInteractiveCommand = testCase "process/interactiveCommand" $ do
 ------------------------------------------------------------------------------
 testInteractiveProcess :: Test
 testInteractiveProcess = testCase "process/interactiveProcess" $ do
-    (out, err) <- Streams.runInteractiveProcess "/usr/bin/tr" ["a-z", "A-Z"]
+    (out, err) <- Streams.runInteractiveProcess "tr" ["a-z", "A-Z"]
                                                 Nothing Nothing
                       >>= run [inputdata]
     assertEqual "interactiveProcess" expected out
