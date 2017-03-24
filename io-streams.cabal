@@ -1,5 +1,5 @@
 Name:                io-streams
-Version:             1.3.6.0
+Version:             1.3.6.1
 License:             BSD3
 License-file:        LICENSE
 Category:            Data, Network, IO-Streams
@@ -123,9 +123,9 @@ Library
                      bytestring-builder >= 0.10  && <0.11,
                      network            >= 2.3   && <2.7,
                      primitive          >= 0.2   && <0.7,
-                     process            >= 1.1   && <1.5,
+                     process            >= 1.1   && <1.7,
                      text               >= 0.10  && <1.3,
-                     time               >= 1.2   && <1.7,
+                     time               >= 1.2   && <1.9,
                      transformers       >= 0.2   && <0.6,
                      vector             >= 0.7   && <0.13,
                      zlib-bindings      >= 0.1   && <0.2
@@ -208,9 +208,9 @@ Test-suite testsuite
                      mtl                >= 2     && <3,
                      network            >= 2.3   && <2.7,
                      primitive          >= 0.2   && <0.7,
-                     process            >= 1.1   && <1.5,
+                     process            >= 1.1   && <1.7,
                      text               >= 0.10  && <1.3,
-                     time               >= 1.2   && <1.7,
+                     time               >= 1.2   && <1.9,
                      transformers       >= 0.2   && <0.6,
                      vector             >= 0.7   && <0.13,
                      zlib-bindings      >= 0.1   && <0.2,

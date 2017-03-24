@@ -1,3 +1,6 @@
+# Version 1.3.6.1
+- Bumped dependencies on `time` and `process`.
+
 # Version 1.3.6.0
   - Added new fold functions:
   ```haskell
