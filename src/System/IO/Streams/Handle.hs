@@ -15,6 +15,9 @@ module System.IO.Streams.Handle
  , outputStreamToHandle
  , streamPairToHandle
 
+    -- * Flushing
+ , flushOutputStream
+
    -- * Standard system handles
  , stdin
  , stdout
@@ -29,7 +32,7 @@ import           System.IO                  (Handle, hFlush)
 import qualified System.IO                  as IO
 import           System.IO.Unsafe           (unsafePerformIO)
 ------------------------------------------------------------------------------
-import           System.IO.Streams.Internal (InputStream, OutputStream, SP (..), lockingInputStream, lockingOutputStream, makeInputStream, makeOutputStream)
+import           System.IO.Streams.Internal (InputStream, OutputStream, SP (..), lockingInputStream, lockingOutputStream, makeInputStream, makeOutputStream, write)
 
 
 ------------------------------------------------------------------------------
@@ -148,6 +151,13 @@ streamPairToHandle is0 os0 = do
     h <- H.mkDuplexHandle (SP is os) "*stream*" Nothing $! H.noNewlineTranslation
     H.hSetBuffering h H.NoBuffering
     return $! h
+
+------------------------------------------------------------------------------
+-- | Flushes buffered data down an 'OutputStream' of 'ByteString'.
+--
+-- /Since: ????/
+flushOutputStream :: OutputStream ByteString -> IO ()
+flushOutputStream = write (Just S.empty)
 
 
 ------------------------------------------------------------------------------
