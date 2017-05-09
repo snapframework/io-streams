@@ -1,18 +1,19 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module System.IO.Streams.Tests.Attoparsec (tests) where
+module System.IO.Streams.Tests.Attoparsec.ByteString (tests) where
 
 ------------------------------------------------------------------------------
 import           Control.Monad
-import           Data.Attoparsec.ByteString.Char8      hiding (eitherResult)
-import           Data.ByteString.Char8                 (ByteString)
-import           Prelude                               hiding (takeWhile)
+import           Data.Attoparsec.ByteString.Char8        hiding (eitherResult)
+import           Data.ByteString.Char8                   (ByteString)
+import           Prelude                                 hiding (takeWhile)
 import           System.IO.Streams
-import           System.IO.Streams.Internal.Attoparsec
+import           System.IO.Streams.Attoparsec.ByteString
+import           System.IO.Streams.Internal.Attoparsec   (eitherResult, parseFromStreamInternal)
 import           System.IO.Streams.Tests.Common
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
-import           Test.HUnit                            hiding (Test)
+import           Test.HUnit                              hiding (Test)
 ------------------------------------------------------------------------------
 
 tests :: [Test]
@@ -96,7 +97,7 @@ testPartialParse = testCase "attoparsec/partialParse" $ do
 testTrivials :: Test
 testTrivials = testCase "attoparsec/trivials" $ do
     coverTypeableInstance (undefined :: ParseException)
-    let (Right x) = eitherResult $ Done undefined (4 :: Int)
+    let (Right x) = eitherResult $ Done undefined 4 :: Either (ByteString, [String], String) Int
     assertEqual "eitherResult" 4 x
 
 ------------------------------------------------------------------------------

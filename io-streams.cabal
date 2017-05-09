@@ -96,6 +96,8 @@ Library
 
   Exposed-modules:   System.IO.Streams,
                      System.IO.Streams.Attoparsec,
+                     System.IO.Streams.Attoparsec.ByteString,
+                     System.IO.Streams.Attoparsec.Text,
                      System.IO.Streams.Builder,
                      System.IO.Streams.ByteString,
                      System.IO.Streams.Combinators,
@@ -153,7 +155,8 @@ Test-suite testsuite
   Main-is:           TestSuite.hs
   Default-language:  Haskell2010
 
-  Other-modules:     System.IO.Streams.Tests.Attoparsec,
+  Other-modules:     System.IO.Streams.Tests.Attoparsec.ByteString,
+                     System.IO.Streams.Tests.Attoparsec.Text,
                      System.IO.Streams.Tests.Builder,
                      System.IO.Streams.Tests.ByteString,
                      System.IO.Streams.Tests.Combinators,
@@ -170,7 +173,8 @@ Test-suite testsuite
                      System.IO.Streams.Tests.Vector,
                      System.IO.Streams.Tests.Zlib,
                      System.IO.Streams,
-                     System.IO.Streams.Attoparsec,
+                     System.IO.Streams.Attoparsec.ByteString,
+                     System.IO.Streams.Attoparsec.Text,
                      System.IO.Streams.Builder,
                      System.IO.Streams.ByteString,
                      System.IO.Streams.Combinators,

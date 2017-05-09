@@ -33,7 +33,8 @@ rm -Rf $HPCDIR
 mkdir -p $HPCDIR
 
 EXCLUDES='Main
-System.IO.Streams.Tests.Attoparsec
+System.IO.Streams.Tests.Attoparsec.ByteString
+System.IO.Streams.Tests.Attoparsec.Text
 System.IO.Streams.Tests.Builder
 System.IO.Streams.Tests.ByteString
 System.IO.Streams.Tests.Combinators

@@ -1,5 +1,6 @@
--- | This module provides support for parsing values from 'InputStream's using
--- @attoparsec@.
+-- | This module is deprecated -- use
+-- System.IO.Streams.Attoparsec.ByteString instead (this module simply
+-- re-exports that one).
 
 module System.IO.Streams.Attoparsec
   ( -- * Parsing
@@ -9,4 +10,4 @@ module System.IO.Streams.Attoparsec
   ) where
 
 ------------------------------------------------------------------------------
-import           System.IO.Streams.Internal.Attoparsec (ParseException (..), parseFromStream, parserToInputStream)
+import           System.IO.Streams.Attoparsec.ByteString (ParseException (..), parseFromStream, parserToInputStream)
