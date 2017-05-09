@@ -1,5 +1,5 @@
 -- | This module provides support for parsing values from ByteString
--- 'InputStream's using @attoparsec@.
+-- 'InputStream's using @attoparsec@. /Since: 1.4.0.0./
 
 module System.IO.Streams.Attoparsec.ByteString
   ( -- * Parsing

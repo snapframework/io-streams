@@ -1,3 +1,9 @@
+# Version 1.4.0.0
+
+- Added support for Text with Attoparsec, courtesy Kevin Brubeck Unhammer. Adds
+  modules `System.IO.Streams.Attoparsec.{ByteString, Text}` and deprecates
+  `System.IO.Streams.Attoparsec`, which is now a thin wrapper.
+
 # Version 1.3.6.1
 - Bumped dependencies on `time` and `process`.
 
