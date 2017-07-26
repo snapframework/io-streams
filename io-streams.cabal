@@ -1,5 +1,5 @@
 Name:                io-streams
-Version:             1.4.0.0
+Version:             1.4.1.0
 License:             BSD3
 License-file:        LICENSE
 Category:            Data, Network, IO-Streams
@@ -195,7 +195,7 @@ Test-suite testsuite
                      System.IO.Streams.Internal.Search
 
 
-  ghc-options:       -Wall -fhpc -fwarn-tabs -funbox-strict-fields -threaded
+  ghc-options:       -Wall -fwarn-tabs -funbox-strict-fields -threaded
                      -fno-warn-unused-do-bind
   ghc-prof-options:  -auto-all
 

@@ -1,3 +1,8 @@
+# Version 1.4.1.0
+
+- Added `writeTo` export to the main module (forgotten when it was added to
+  `.Core`.)
+
 # Version 1.4.0.0
 
 - Added support for Text with Attoparsec, courtesy Kevin Brubeck Unhammer. Adds

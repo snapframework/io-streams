@@ -25,6 +25,8 @@ module System.IO.Streams.Core
  , connectTo
  , supply
  , supplyTo
+ , appendInputStream
+ , concatInputStreams
 
    -- * Thread safety \/ concurrency
  , lockingInputStream

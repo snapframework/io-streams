@@ -34,6 +34,7 @@ module System.IO.Streams
  , unRead
  , peek
  , write
+ , writeTo
  , atEOF
 
    -- * Connecting streams together
