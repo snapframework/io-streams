@@ -61,7 +61,7 @@ import           Data.Int                          (Int64)
 import           Data.IORef                        (IORef, newIORef, readIORef, writeIORef)
 import           Data.Time.Clock.POSIX             (getPOSIXTime)
 import           Data.Typeable                     (Typeable)
-import           Prelude                           hiding (read, lines, unlines, words, unwords)
+import           Prelude                           hiding (lines, read, unlines, unwords, words)
 ------------------------------------------------------------------------------
 import           System.IO.Streams.Combinators     (filterM, intersperse, outputFoldM)
 import           System.IO.Streams.Internal        (InputStream (..), OutputStream, makeInputStream, makeOutputStream, read, unRead, write)
@@ -272,6 +272,10 @@ takeBytes' k0 h src = do
 --
 --   * consecutive delimiters are not merged.
 --
+--   * if the input ends in the delimiter, a final empty string is /not/
+--     emitted. (/Since: 1.5.0.0. Previous versions had the opposite behaviour,
+--     which was changed to match 'Prelude.lines'./)
+--
 -- Example:
 --
 -- @
@@ -305,15 +309,9 @@ splitOn p is = do
                        else do
                          let !b' = S.unsafeDrop 1 b
                          dl <- readIORef ref
-
-                         if S.null b'
-                           then do
-                             writeIORef ref ("" :)
-                             return $ Just $! S.concat $ dl [a]
-                           else do
-                             writeIORef ref id
-                             unRead b' is
-                             return $ Just $! S.concat $ dl [a]
+                         when (not $ S.null b') $ unRead b' is
+                         writeIORef ref id
+                         return $ Just $! S.concat $ dl [a]
 
 
 ------------------------------------------------------------------------------

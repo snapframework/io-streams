@@ -8,18 +8,12 @@ import           Control.Monad
 import           Data.ByteString.Char8                (ByteString)
 import qualified Data.ByteString.Char8                as S
 import qualified Data.ByteString.Lazy.Char8           as L
-import           Data.List                            hiding (lines,
-                                                       takeWhile, unlines,
-                                                       unwords, words)
+import           Data.List                            hiding (lines, takeWhile, unlines, unwords, words)
 import           Data.Maybe                           (isJust)
 import           Data.Monoid
-import           Prelude                              hiding (lines, read,
-                                                       take, takeWhile,
-                                                       unlines, unwords,
-                                                       words)
+import           Prelude                              hiding (lines, read, take, takeWhile, unlines, unwords, words)
 import qualified Prelude
-import           System.IO.Streams                    hiding (filter,
-                                                       intersperse, mapM_)
+import           System.IO.Streams                    hiding (filter, intersperse, mapM_)
 import           System.IO.Streams.Tests.Common
 import           System.Timeout
 import           Test.Framework
@@ -625,6 +619,8 @@ testLines = testCase "bytestring/testLines" $ do
     fromList ["th", "e\nquick\nbrown", "\n", "", "fox"] >>= lines >>=
              toList >>= assertEqual "lines" ["the", "quick", "brown", "fox"]
     fromList [] >>= lines >>= toList >>= assertEqual "empty lines" []
+    fromList ["a\nb\nc\n"] >>= lines >>= toList
+       >>= assertEqual "ending in delimiter" ["a","b","c"]
 
     fromList ["ok", "cool"] >>=
       \is -> outputToList (\os -> unlines os >>= connect is) >>=
