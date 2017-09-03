@@ -1,3 +1,8 @@
+# Version 1.5.0.0
+- Changed the behaviour of `ByteString.splitOn` to not emit empty string if the
+  input ends in the delimiter; now `lines` should match Prelude's. Bumped major
+  version because this is a potentially breaking change (even if it is a bugfix.)
+
 # Version 1.4.1.0
 
 - Added `writeTo` export to the main module (forgotten when it was added to
