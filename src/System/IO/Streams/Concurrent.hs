@@ -23,7 +23,7 @@ import           Control.Exception          (SomeException, mask, throwIO, try)
 import           Control.Monad              (forM_)
 import           Prelude                    hiding (read)
 ------------------------------------------------------------------------------
-import           System.IO.Streams.Internal (InputStream, OutputStream, makeInputStream, makeOutputStream, read)
+import           System.IO.Streams.Internal (InputStream, OutputStream, makeInputStream, makeOutputStream, nullInput, read)
 
 
 ------------------------------------------------------------------------------
@@ -60,9 +60,14 @@ chanToOutput = makeOutputStream . writeChan
 -- produced stream does not yield end-of-stream until all of the input streams
 -- have finished.
 --
--- This traps exceptions in each concurrent thread and re-raises them in the
--- current thread.
+-- Any exceptions raised in one of the worker threads will be trapped and
+-- re-raised in the current thread.
+--
+-- If the supplied list is empty, `concurrentMerge` will return an empty
+-- stream. (/Since: 1.5.0.1/)
+--
 concurrentMerge :: [InputStream a] -> IO (InputStream a)
+concurrentMerge [] = nullInput
 concurrentMerge iss = do
     mv    <- newEmptyMVar
     nleft <- newMVar $! length iss

@@ -1,3 +1,7 @@
+# Version 1.5.0.1
+Bugfix: `concurrentMerge []` should not block forever, even if this case is
+pathological.
+
 # Version 1.5.0.0
 - Changed the behaviour of `ByteString.splitOn` to not emit empty string if the
   input ends in the delimiter; now `lines` should match Prelude's. Bumped major
