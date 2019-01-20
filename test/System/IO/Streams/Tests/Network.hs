@@ -39,7 +39,7 @@ testSocket = testCase "network/socket" $
   where
     -- compats
 #if MIN_VERSION_network(2,7,0)
-    mkAddr = pure . N.tupleToHostAddress
+    mkAddr = return . N.tupleToHostAddress
     defaultPort = N.defaultPort
     close = N.close
     bind = N.bind
