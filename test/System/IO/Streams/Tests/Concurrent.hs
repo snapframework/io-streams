@@ -47,7 +47,7 @@ testConcurrentMerge = testCase "concurrent/concurrentMerge" $ do
                                  chans
     inputs <- mapM Streams.chanToInput chans
     resultMVar <- newEmptyMVar
-    forkIO (Streams.concurrentMerge inputs >>= Streams.toList
+    _ <- forkIO (Streams.concurrentMerge inputs >>= Streams.toList
                                            >>= putMVar resultMVar)
     putMVar firstMVar 0
     result <- takeMVar resultMVar

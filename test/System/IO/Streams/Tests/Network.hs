@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE CPP #-}
 
 module System.IO.Streams.Tests.Network (tests) where
 
@@ -13,6 +14,10 @@ import           System.Timeout                     (timeout)
 import           Test.Framework
 import           Test.Framework.Providers.HUnit
 import           Test.HUnit                         hiding (Test)
+#if MIN_VERSION_network(2,7,0)
+#else
+import           Data.List                          (intercalate)
+#endif
 ------------------------------------------------------------------------------
 import qualified System.IO.Streams.Internal         as Streams
 import qualified System.IO.Streams.Internal.Network as Streams
@@ -32,10 +37,23 @@ testSocket = testCase "network/socket" $
     assertEqual "ok" (Just ()) x
 
   where
+    -- compats
+#if MIN_VERSION_network(2,7,0)
+    mkAddr = pure . N.tupleToHostAddress
+    defaultPort = N.defaultPort
+    close = N.close
+    bind = N.bind
+#else
+    mkAddr (o1,o2,o3,o4) = N.inet_addr . intercalate "." $ map show [o1,o2,o3,o4]
+    defaultPort = N.aNY_PORT
+    close = N.sClose
+    bind = N.bindSocket
+#endif
+
     go = do
         portMVar   <- newEmptyMVar
         resultMVar <- newEmptyMVar
-        forkIO $ client portMVar resultMVar
+        _ <- forkIO $ client portMVar resultMVar
         server portMVar
         l <- takeMVar resultMVar
         assertEqual "testSocket" l ["ok"]
@@ -43,28 +61,28 @@ testSocket = testCase "network/socket" $
     client mvar resultMVar = do
         port <- takeMVar mvar
         sock <- N.socket N.AF_INET N.Stream N.defaultProtocol
-        addr <- N.inet_addr "127.0.0.1"
+        addr <- mkAddr (127, 0, 0, 1)
         let saddr = N.SockAddrInet port addr
         N.connect sock saddr
         (is, os) <- Streams.socketToStreams sock
         Streams.fromList ["", "ok"] >>= Streams.connectTo os
         N.shutdown sock N.ShutdownSend
         Streams.toList is >>= putMVar resultMVar
-        N.sClose sock
+        close sock
 
     server mvar = do
         sock  <- N.socket N.AF_INET N.Stream N.defaultProtocol
-        addr  <- N.inet_addr "127.0.0.1"
-        let saddr = N.SockAddrInet N.aNY_PORT addr
-        N.bindSocket sock saddr
+        addr <- mkAddr (127, 0, 0, 1)
+        let saddr = N.SockAddrInet defaultPort addr
+        bind sock saddr
         N.listen sock 5
         port  <- N.socketPort sock
         putMVar mvar port
         (csock, _) <- N.accept sock
         (is, os) <- Streams.socketToStreams csock
         Streams.toList is >>= flip Streams.writeList os
-        N.sClose csock
-        N.sClose sock
+        close csock
+        close sock
 
 testSocketWithError :: Test
 testSocketWithError = testCase "network/socket-error" $ N.withSocketsDo $ do
