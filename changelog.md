@@ -1,4 +1,4 @@
-# Version 1.5.0.2
+# Version 1.5.1.0
 Fix [stackage#4312](https://github.com/commercialhaskell/stackage/issues/4312): Relax `network` upper bound
 
 # Version 1.5.0.1
