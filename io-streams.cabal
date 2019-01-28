@@ -93,8 +93,6 @@ Library
   ghc-options:       -Wall -fwarn-tabs -funbox-strict-fields
                      -fno-warn-unused-do-bind
 
-  ghc-prof-options:  -auto-all
-
   Exposed-modules:   System.IO.Streams,
                      System.IO.Streams.Attoparsec,
                      System.IO.Streams.Attoparsec.ByteString,
@@ -124,7 +122,7 @@ Library
                      attoparsec         >= 0.10  && <0.14,
                      bytestring         >= 0.9   && <0.11,
                      bytestring-builder >= 0.10  && <0.11,
-                     network            >= 2.3   && <2.9,
+                     network            >= 2.3   && <3.1,
                      primitive          >= 0.2   && <0.7,
                      process            >= 1.1   && <1.7,
                      text               >= 0.10  && <1.3,
