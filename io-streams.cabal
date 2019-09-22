@@ -1,5 +1,5 @@
 Name:                io-streams
-Version:             1.5.0.1
+Version:             1.5.1.0
 License:             BSD3
 License-file:        LICENSE
 Category:            Data, Network, IO-Streams
@@ -92,8 +92,6 @@ Library
 
   ghc-options:       -Wall -fwarn-tabs -funbox-strict-fields
                      -fno-warn-unused-do-bind
-
-  ghc-prof-options:  -auto-all
 
   Exposed-modules:   System.IO.Streams,
                      System.IO.Streams.Attoparsec,
