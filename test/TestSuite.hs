@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 module Main where
 
 import qualified System.IO.Streams.Tests.Attoparsec.ByteString as AttoparsecByteString
@@ -11,11 +13,15 @@ import qualified System.IO.Streams.Tests.File                  as File
 import qualified System.IO.Streams.Tests.Handle                as Handle
 import qualified System.IO.Streams.Tests.Internal              as Internal
 import qualified System.IO.Streams.Tests.List                  as List
+#ifdef ENABLE_NETWORK
 import qualified System.IO.Streams.Tests.Network               as Network
+#endif
 import qualified System.IO.Streams.Tests.Process               as Process
 import qualified System.IO.Streams.Tests.Text                  as Text
 import qualified System.IO.Streams.Tests.Vector                as Vector
+#ifdef ENABLE_ZLIB
 import qualified System.IO.Streams.Tests.Zlib                  as Zlib
+#endif
 import           Test.Framework                                (defaultMain, testGroup)
 
 
@@ -34,9 +40,13 @@ main = defaultMain tests
             , testGroup "Tests.Handle" Handle.tests
             , testGroup "Tests.Internal" Internal.tests
             , testGroup "Tests.List" List.tests
+#ifdef ENABLE_NETWORK
             , testGroup "Tests.Network" Network.tests
+#endif
             , testGroup "Tests.Process" Process.tests
             , testGroup "Tests.Text" Text.tests
             , testGroup "Tests.Vector" Vector.tests
+#ifdef ENABLE_ZLIB
             , testGroup "Tests.Zlib" Zlib.tests
+#endif
             ]

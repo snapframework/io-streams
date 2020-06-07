@@ -85,6 +85,16 @@ Flag NoInteractiveTests
   Description: Do not run interactive tests
   Default: False
 
+Flag Zlib
+  Description: Include zlib support
+  Default: True
+  Manual: True
+
+Flag Network
+  Description: Include network support
+  Default: True
+  Manual: True
+
 ------------------------------------------------------------------------------
 Library
   hs-source-dirs:    src
@@ -106,33 +116,39 @@ Library
                      System.IO.Streams.Handle,
                      System.IO.Streams.File,
                      System.IO.Streams.List,
-                     System.IO.Streams.Network,
                      System.IO.Streams.Process,
                      System.IO.Streams.Text,
                      System.IO.Streams.Vector,
-                     System.IO.Streams.Zlib,
                      System.IO.Streams.Internal,
                      System.IO.Streams.Tutorial
 
   Other-modules:     System.IO.Streams.Internal.Attoparsec,
-                     System.IO.Streams.Internal.Network,
                      System.IO.Streams.Internal.Search
 
   Build-depends:     base               >= 4     && <5,
                      attoparsec         >= 0.10  && <0.14,
                      bytestring         >= 0.9   && <0.11,
                      bytestring-builder >= 0.10  && <0.11,
-                     network            >= 2.3   && <3.2,
                      primitive          >= 0.2   && <0.8,
                      process            >= 1.1   && <1.7,
                      text               >= 0.10  && <1.3,
                      time               >= 1.2   && <1.10,
                      transformers       >= 0.2   && <0.6,
-                     vector             >= 0.7   && <0.13,
-                     zlib-bindings      >= 0.1   && <0.2
+                     vector             >= 0.7   && <0.13
 
   if impl(ghc >= 7.2)
     other-extensions: Trustworthy
+
+  if flag(Zlib)
+    Exposed-modules: System.IO.Streams.Zlib
+    Build-depends:   zlib-bindings      >= 0.1   && <0.2
+    cpp-options:     -DENABLE_ZLIB
+
+  if flag(Network)
+    Exposed-modules: System.IO.Streams.Network
+    Other-modules:   System.IO.Streams.Internal.Network
+    Build-depends:   network            >= 2.3   && <3.2
+    cpp-options:     -DENABLE_NETWORK
 
   other-extensions:
     BangPatterns,
@@ -166,11 +182,9 @@ Test-suite testsuite
                      System.IO.Streams.Tests.Handle,
                      System.IO.Streams.Tests.Internal,
                      System.IO.Streams.Tests.List,
-                     System.IO.Streams.Tests.Network,
                      System.IO.Streams.Tests.Process,
                      System.IO.Streams.Tests.Text,
                      System.IO.Streams.Tests.Vector,
-                     System.IO.Streams.Tests.Zlib,
                      System.IO.Streams,
                      System.IO.Streams.Attoparsec.ByteString,
                      System.IO.Streams.Attoparsec.Text,
@@ -183,14 +197,11 @@ Test-suite testsuite
                      System.IO.Streams.Handle,
                      System.IO.Streams.File,
                      System.IO.Streams.List,
-                     System.IO.Streams.Network,
                      System.IO.Streams.Process,
                      System.IO.Streams.Text,
                      System.IO.Streams.Vector,
-                     System.IO.Streams.Zlib,
                      System.IO.Streams.Internal,
                      System.IO.Streams.Internal.Attoparsec,
-                     System.IO.Streams.Internal.Network,
                      System.IO.Streams.Internal.Search
 
 
@@ -201,6 +212,20 @@ Test-suite testsuite
   if !os(windows) && !flag(NoInteractiveTests)
     cpp-options: -DENABLE_PROCESS_TESTS
 
+  if flag(Zlib)
+    Other-modules:   System.IO.Streams.Tests.Zlib,
+                     System.IO.Streams.Zlib
+    Build-depends:   zlib-bindings,
+                     zlib                       >= 0.5      && <0.7
+    cpp-options:     -DENABLE_ZLIB
+
+  if flag(Network)
+    Other-modules:   System.IO.Streams.Internal.Network,
+                     System.IO.Streams.Network,
+                     System.IO.Streams.Tests.Network
+    Build-depends:   network
+    cpp-options:     -DENABLE_NETWORK
+
   Build-depends:     base,
                      attoparsec,
                      bytestring,
@@ -209,21 +234,18 @@ Test-suite testsuite
                      directory          >= 1.1   && <2,
                      filepath           >= 1.2   && <2,
                      mtl                >= 2     && <3,
-                     network,
                      primitive,
                      process,
                      text,
                      time,
                      transformers,
                      vector,
-                     zlib-bindings,
 
                      HUnit                      >= 1.2      && <2,
                      QuickCheck                 >= 2.3.0.2  && <3,
                      test-framework             >= 0.6      && <0.9,
                      test-framework-hunit       >= 0.2.7    && <0.4,
-                     test-framework-quickcheck2 >= 0.2.12.1 && <0.4,
-                     zlib                       >= 0.5      && <0.7
+                     test-framework-quickcheck2 >= 0.2.12.1 && <0.4
 
   if impl(ghc >= 7.2)
     other-extensions: Trustworthy
