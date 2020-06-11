@@ -56,6 +56,7 @@ tests = [ testFilter
         , testZipWith
         , testZipWithM
         , testUnzip
+        , testContraunzip
         , testTake
         , testDrop
         , testGive
@@ -358,6 +359,26 @@ testUnzip = testCase "combinators/unzip" $ do
     toList is3 >>= assertEqual "unzip2-a" (fst $ Prelude.unzip l)
     read is4 >>= assertEqual "unzip2-read-b" Nothing
     read is3 >>= assertEqual "unzip2-read" Nothing
+
+
+------------------------------------------------------------------------------
+testContraunzip :: Test
+testContraunzip = testProperty "combinators/contrazip" $ monadicIO $ forAllM arbitrary prop
+  where
+    prop :: [Int] -> PropertyM IO ( )
+    prop xs = liftQ $ do
+      let ys = fmap show xs
+      xsStream <- fromList xs
+      ysStream <- fromList ys
+      (xsSink, getXs') <- listOutputStream
+      (ysSink, getYs') <- listOutputStream
+      xysStream <- zip xsStream ysStream
+      xysSink <- contraunzip xsSink ysSink
+      connect xysStream xysSink
+      xs' <- getXs'
+      ys' <- getYs'
+      assertEqual "numbers" xs xs'
+      assertEqual "strings" ys ys'
 
 
 ------------------------------------------------------------------------------

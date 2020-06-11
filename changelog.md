@@ -1,3 +1,6 @@
+# Version 1.5.2.0
+- Add `contraunzip`.
+
 # Version 1.5.1.0
 Fix [stackage#4312](https://github.com/commercialhaskell/stackage/issues/4312): Relax `network` upper bound
 

@@ -47,6 +47,7 @@ module System.IO.Streams.Combinators
  , zipWith
  , zipWithM
  , unzip
+ , contraunzip
 
    -- * Utility
  , intersperse
@@ -748,6 +749,20 @@ unzip os = do
                                     let (a, b) = proj x
                                     modifyIORef buf (. (b:))
                                     return $! Just a)
+
+
+------------------------------------------------------------------------------
+-- | Given two 'OutputStream's, returns a new stream that "unzips" the tuples
+-- being written, writing the two elements to the corresponding given streams.
+--
+-- You can use this together with @'contramap' (\\ x -> (x, x))@ to "fork" a
+-- stream into two.
+--
+-- /Since: 1.5.2.0/
+contraunzip :: OutputStream a -> OutputStream b -> IO (OutputStream (a, b))
+contraunzip sink1 sink2 = makeOutputStream $ \ tuple -> do
+    write (fmap fst tuple) sink1
+    write (fmap snd tuple) sink2
 
 
 ------------------------------------------------------------------------------
