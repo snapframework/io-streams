@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                        #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings          #-}
 
@@ -66,11 +67,15 @@ module System.IO.Streams
  , module System.IO.Streams.Handle
  , module System.IO.Streams.File
  , module System.IO.Streams.List
+#ifdef ENABLE_NETWORK
  , module System.IO.Streams.Network
+#endif
  , module System.IO.Streams.Process
  , module System.IO.Streams.Text
  , module System.IO.Streams.Vector
+#ifdef ENABLE_ZLIB
  , module System.IO.Streams.Zlib
+#endif
  ) where
 
 ------------------------------------------------------------------------------
@@ -85,11 +90,15 @@ import           System.IO.Streams.Combinators
 import           System.IO.Streams.File
 import           System.IO.Streams.Handle
 import           System.IO.Streams.List
+#ifdef ENABLE_NETWORK
 import           System.IO.Streams.Network
+#endif
 import           System.IO.Streams.Process
 import           System.IO.Streams.Text
 import           System.IO.Streams.Vector
+#ifdef ENABLE_ZLIB
 import           System.IO.Streams.Zlib
+#endif
 
 ------------------------------------------------------------------------------
 -- $generator
