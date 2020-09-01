@@ -209,7 +209,6 @@ Test-suite testsuite
 
   ghc-options:       -Wall -fwarn-tabs -funbox-strict-fields -threaded
                      -fno-warn-unused-do-bind
-  ghc-prof-options:  -auto-all
 
   if !os(windows) && !flag(NoInteractiveTests)
     cpp-options: -DENABLE_PROCESS_TESTS
