@@ -129,7 +129,7 @@ Library
 
   Build-depends:     base               >= 4     && <5,
                      attoparsec         >= 0.10  && <0.14,
-                     bytestring         >= 0.9   && <0.11,
+                     bytestring         >= 0.9   && <0.12,
                      primitive          >= 0.2   && <0.8,
                      process            >= 1.1   && <1.7,
                      text               >= 0.10  && <1.3,
