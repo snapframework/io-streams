@@ -442,37 +442,50 @@ bufferToBS buf = S.copy $! S.fromForeignPtr raw l sz
 
 
 ------------------------------------------------------------------------------
+#if MIN_VERSION_base(4,15,0)
+ignoreOffset :: (a -> ptr -> n -> ioint) -> a -> ptr -> off -> n -> ioint
+ignoreOffset f a ptr _ n = f a ptr n
+#else
+ignoreOffset :: a -> a
+ignoreOffset = id
+#endif
+{-# INLINE ignoreOffset #-}
+
+------------------------------------------------------------------------------
+-- | The offset argument is ignored if present.
 instance H.RawIO (InputStream ByteString) where
-    read is ptr n = read is >>= maybe (return 0) f
-      where
-        f s = S.unsafeUseAsCStringLen s $ \(cstr, l) -> do
+    read = ignoreOffset $ \is ptr n ->
+        let f s = S.unsafeUseAsCStringLen s $ \(cstr, l) -> do
                   let c = min n l
                   copyBytes ptr (castPtr cstr) c
                   return $! c
+         in read is >>= maybe (return 0) f
 
-    readNonBlocking  _ _ _ = unsupported
-    write            _ _ _ = unsupported
-    writeNonBlocking _ _ _ = unsupported
+    readNonBlocking  = ignoreOffset $ \_ _ _ -> unsupported
+    write            = ignoreOffset $ \_ _ _ -> unsupported
+    writeNonBlocking = ignoreOffset $ \_ _ _ -> unsupported
 
 
 ------------------------------------------------------------------------------
+-- | The offset argument is ignored if present.
 instance H.RawIO (OutputStream ByteString) where
-    read _ _ _             = unsupported
-    readNonBlocking _ _ _  = unsupported
-    write os ptr n         = S.packCStringLen (castPtr ptr, n) >>=
-                             flip write os . Just
-    writeNonBlocking _ _ _ = unsupported
+    read             = ignoreOffset $ \_ _ _ -> unsupported
+    readNonBlocking  = ignoreOffset $ \_ _ _ -> unsupported
+    write = ignoreOffset $ \os ptr n -> S.packCStringLen (castPtr ptr, n) >>=
+                                        flip write os . Just
+    writeNonBlocking = ignoreOffset $ \_ _ _ -> unsupported
 
 
 ------------------------------------------------------------------------------
 -- | Internal convenience synonym for a pair of input\/output streams.
 type StreamPair a = SP (InputStream a) (OutputStream a)
 
+-- | The offset argument is ignored if present.
 instance H.RawIO (StreamPair ByteString) where
-    read (SP is _) ptr n   = H.read is ptr n
-    readNonBlocking  _ _ _ = unsupported
-    write (SP _ os) ptr n  = H.write os ptr n
-    writeNonBlocking _ _ _ = unsupported
+    read (SP is _)   = H.read is
+    readNonBlocking  = ignoreOffset $ \_ _ _ -> unsupported
+    write (SP _ os)  = H.write os
+    writeNonBlocking = ignoreOffset $ \_ _ _ -> unsupported
 
 
 ------------------------------------------------------------------------------

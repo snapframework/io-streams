@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns      #-}
+{-# LANGUAGE CPP               #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module System.IO.Streams.Tests.Handle (tests) where
@@ -148,13 +149,13 @@ testHandleInstances = testCase "handle/ghc-instances" $ do
     is            <- Streams.fromList ["foo", "bar", "baz" :: S.ByteString]
     (os, getList) <- Streams.listOutputStream
     let sp   = Streams.SP is (os :: OutputStream S.ByteString)
-    expectExceptionH $ H.write is undefined undefined
-    expectExceptionH $ H.writeNonBlocking is undefined undefined
+    expectExceptionH $ withZeroOffset H.write is undefined undefined
+    expectExceptionH $ withZeroOffset H.writeNonBlocking is undefined undefined
     expectExceptionH $ H.flushWriteBuffer is undefined
     expectExceptionH $ H.flushWriteBuffer0 is undefined
 
-    expectExceptionH $ H.read os undefined undefined
-    expectExceptionH $ H.writeNonBlocking os undefined undefined
+    expectExceptionH $ withZeroOffset H.read os undefined undefined
+    expectExceptionH $ withZeroOffset H.writeNonBlocking os undefined undefined
 
     expectExceptionH $ H.fillReadBuffer0 is undefined
     expectExceptionH $ H.fillReadBuffer0 os undefined
@@ -168,17 +169,17 @@ testHandleInstances = testCase "handle/ghc-instances" $ do
     H.devType os >>= assertBool "devtype output" . (== H.Stream)
     H.devType sp >>= assertBool "devtype pair"   . (== H.Stream)
 
-    expectExceptionH $ H.readNonBlocking is undefined undefined
-    expectExceptionH $ H.readNonBlocking os undefined undefined
-    expectExceptionH $ H.readNonBlocking sp undefined undefined
-    expectExceptionH $ H.writeNonBlocking is undefined undefined
-    expectExceptionH $ H.writeNonBlocking os undefined undefined
-    expectExceptionH $ H.writeNonBlocking sp undefined undefined
+    expectExceptionH $ withZeroOffset H.readNonBlocking is undefined undefined
+    expectExceptionH $ withZeroOffset H.readNonBlocking os undefined undefined
+    expectExceptionH $ withZeroOffset H.readNonBlocking sp undefined undefined
+    expectExceptionH $ withZeroOffset H.writeNonBlocking is undefined undefined
+    expectExceptionH $ withZeroOffset H.writeNonBlocking os undefined undefined
+    expectExceptionH $ withZeroOffset H.writeNonBlocking sp undefined undefined
 
     S.useAsCStringLen "foo" $ \(cstr, l) -> do
-        H.write os (castPtr cstr) l
+        withZeroOffset H.write os (castPtr cstr) l
         liftM S.concat getList >>= assertEqual "H.write 1" "foo"
-        H.write sp (castPtr cstr) l
+        withZeroOffset H.write sp (castPtr cstr) l
         liftM S.concat getList >>= assertEqual "H.write 2" "foo"
         buf <- H.newBuffer sp HB.WriteBuffer
         HB.withBuffer buf $ \ptr -> copyBytes ptr (castPtr cstr) 3
@@ -189,10 +190,18 @@ testHandleInstances = testCase "handle/ghc-instances" $ do
 
 
     allocaBytes 3 $ \buf -> do
-        l <- H.read is buf 3
+        l <- withZeroOffset H.read is buf 3
         assertEqual "3 byte read" 3 l
         S.packCStringLen (castPtr buf, l) >>= assertEqual "first read" "foo"
-        l' <- H.read sp buf 3
+        l' <- withZeroOffset H.read sp buf 3
         assertEqual "3 byte read #2" 3 l'
         S.packCStringLen (castPtr buf, l') >>= assertEqual "second read" "bar"
-        expectExceptionH $ H.read os buf 3
+        expectExceptionH $ withZeroOffset H.read os buf 3
+  where
+#if MIN_VERSION_base(4,15,0)
+    withZeroOffset :: Num off => (a -> ptr -> off -> n -> ioint) -> a -> ptr -> n -> ioint
+    withZeroOffset f a ptr n = f a ptr 0 n
+#else
+    withZeroOffset :: a -> a
+    withZeroOffset = id
+#endif
