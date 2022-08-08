@@ -1,6 +1,7 @@
 {-# LANGUAGE BangPatterns          #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE CPP                   #-}
 
 -- | Vector conversions and utilities.
 
@@ -29,7 +30,7 @@ module System.IO.Streams.Vector
 import           Control.Concurrent.MVar     (modifyMVar, modifyMVar_, newMVar)
 import           Control.Monad               (liftM, (>=>))
 import           Control.Monad.IO.Class      (MonadIO (..))
-import           Control.Monad.Primitive     (PrimState (..))
+import           Control.Monad.Primitive     (PrimState (..), RealWorld)
 import           Data.IORef                  (IORef, newIORef, readIORef, writeIORef)
 import           Data.Vector.Generic         (Vector (..))
 import qualified Data.Vector.Generic         as V
@@ -38,6 +39,16 @@ import qualified Data.Vector.Generic.Mutable as VM
 import           System.IO.Streams.Internal  (InputStream, OutputStream, fromGenerator, yield)
 import qualified System.IO.Streams.Internal  as S
 
+#if MIN_VERSION_vector(0,13,0)
+import Control.Monad.ST (stToIO)
+#endif
+
+basicUnsafeFreezeCompat :: Vector v a => V.Mutable v RealWorld a -> IO (v a)
+#if MIN_VERSION_vector(0,13,0)
+basicUnsafeFreezeCompat = stToIO . V.basicUnsafeFreeze
+#else
+basicUnsafeFreezeCompat = V.basicUnsafeFreeze
+#endif
 
 ------------------------------------------------------------------------------
 -- | Transforms a vector into an 'InputStream' that yields each of the values
@@ -77,7 +88,7 @@ toVector = toVectorSized dEFAULT_BUFSIZ
 -- | Like 'toVector', but allows control over how large the vector buffer is to
 -- start with.
 toVectorSized :: Vector v a => Int -> InputStream a -> IO (v a)
-toVectorSized n = toMutableVectorSized n >=> V.basicUnsafeFreeze
+toVectorSized n = toMutableVectorSized n >=> basicUnsafeFreezeCompat
 {-# INLINE toVectorSized #-}
 
 
@@ -136,7 +147,7 @@ vectorOutputStream = vectorOutputStreamSized dEFAULT_BUFSIZ
 vectorOutputStreamSized :: Vector v c => Int -> IO (OutputStream c, IO (v c))
 vectorOutputStreamSized n = do
     (os, flush) <- mutableVectorOutputStreamSized n
-    return $! (os, flush >>= V.basicUnsafeFreeze)
+    return $! (os, flush >>= basicUnsafeFreezeCompat)
 
 
 ------------------------------------------------------------------------------
@@ -291,7 +302,7 @@ outputToVectorSized :: Vector v a =>
                        Int
                     -> (OutputStream a -> IO b)
                     -> IO (v a)
-outputToVectorSized n = outputToMutableVectorSized n >=> V.basicUnsafeFreeze
+outputToVectorSized n = outputToMutableVectorSized n >=> basicUnsafeFreezeCompat
 {-# INLINE outputToVectorSized #-}
 
 
