@@ -8,14 +8,20 @@
 #
 # For more information, see https://github.com/haskell-CI/haskell-ci
 #
-# version: 0.15.20220812
+# version: 0.15.20220808
 #
-# REGENDATA ("0.15.20220812",["github","io-streams.cabal"])
+# REGENDATA ("0.15.20220808",["github","io-streams.cabal"])
 #
 name: Haskell-CI
 on:
-  - push
-  - pull_request
+  push:
+    branches:
+      - master
+      - ci*
+  pull_request:
+    branches:
+      - master
+      - ci*
 jobs:
   linux:
     name: Haskell-CI - Linux - ${{ matrix.compiler }}
@@ -28,15 +34,20 @@ jobs:
     strategy:
       matrix:
         include:
+          - compiler: ghc-9.4.1
+            compilerKind: ghc
+            compilerVersion: 9.4.1
+            setup-method: ghcup
+            allow-failure: false
           - compiler: ghc-9.2.4
             compilerKind: ghc
             compilerVersion: 9.2.4
             setup-method: ghcup
             allow-failure: false
-          - compiler: ghc-9.0.1
+          - compiler: ghc-9.0.2
             compilerKind: ghc
-            compilerVersion: 9.0.1
-            setup-method: hvr-ppa
+            compilerVersion: 9.0.2
+            setup-method: ghcup
             allow-failure: false
           - compiler: ghc-8.10.7
             compilerKind: ghc
@@ -53,9 +64,9 @@ jobs:
             compilerVersion: 8.6.5
             setup-method: hvr-ppa
             allow-failure: false
-          - compiler: ghc-8.4.3
+          - compiler: ghc-8.4.4
             compilerKind: ghc
-            compilerVersion: 8.4.3
+            compilerVersion: 8.4.4
             setup-method: hvr-ppa
             allow-failure: false
           - compiler: ghc-8.2.2
