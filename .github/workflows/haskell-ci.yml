@@ -233,6 +233,7 @@ jobs:
           if [ $((HCNUMVER >= 80200)) -ne 0 ] ; then echo "package io-streams" >> cabal.project ; fi
           if [ $((HCNUMVER >= 80200)) -ne 0 ] ; then echo "    ghc-options: -Werror=missing-methods" >> cabal.project ; fi
           cat >> cabal.project <<EOF
+          allow-newer: bytestring
           EOF
           $HCPKG list --simple-output --names-only | perl -ne 'for (split /\s+/) { print "constraints: $_ installed\n" unless /^(io-streams)$/; }' >> cabal.project.local
           cat cabal.project
@@ -271,6 +272,14 @@ jobs:
         run: |
           rm -f cabal.project.local
           $CABAL v2-build $ARG_COMPILER --disable-tests --disable-benchmarks all
+      - name: prepare for constraint sets
+        run: |
+          rm -f cabal.project.local
+      - name: constraint set bytestring-0.12
+        run: |
+          if [ $((HCNUMVER >= 80000)) -ne 0 ] ; then $CABAL v2-build $ARG_COMPILER --enable-tests --disable-benchmarks --constraint='bytestring >= 0.12' --dependencies-only -j2 all ; fi
+          if [ $((HCNUMVER >= 80000)) -ne 0 ] ; then $CABAL v2-build $ARG_COMPILER --enable-tests --disable-benchmarks --constraint='bytestring >= 0.12' all ; fi
+          if [ $((HCNUMVER >= 80000)) -ne 0 ] ; then $CABAL v2-test $ARG_COMPILER --enable-tests --disable-benchmarks --constraint='bytestring >= 0.12' all ; fi
       - name: save cache
         uses: actions/cache/save@v3
         if: always()
