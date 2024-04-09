@@ -8,9 +8,10 @@ Maintainer:          Gregory Collins <greg@gregorycollins.net>
 Cabal-version:       >= 1.10
 Synopsis:            Simple, composable, and easy-to-use stream I/O
 Tested-With:
-  GHc == 9.8.1
-  GHc == 9.6.3
-  GHC == 9.4.7
+  GHc == 9.10.0
+  GHc == 9.8.2
+  GHc == 9.6.4
+  GHC == 9.4.8
   GHC == 9.2.8
   GHC == 9.0.2
   GHC == 8.10.7
@@ -139,7 +140,7 @@ Library
                      primitive          >= 0.2   && <0.10,
                      process            >= 1.1   && <1.7,
                      text               >=0.10   && <1.3  || >= 2.0 && <2.2,
-                     time               >= 1.2   && <1.13,
+                     time               >= 1.2   && <1.15,
                      transformers       >= 0.2   && <0.7,
                      vector             >= 0.7   && <0.14
 
@@ -225,7 +226,7 @@ Test-suite testsuite
     Other-modules:   System.IO.Streams.Tests.Zlib,
                      System.IO.Streams.Zlib
     Build-depends:   zlib-bindings,
-                     zlib                       >= 0.5      && <0.7
+                     zlib                       >= 0.5      && <0.8
     cpp-options:     -DENABLE_ZLIB
 
   if flag(Network)
