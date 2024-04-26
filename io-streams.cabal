@@ -158,7 +158,7 @@ Library
   if flag(Network)
     Exposed-modules: System.IO.Streams.Network
     Other-modules:   System.IO.Streams.Internal.Network
-    Build-depends:   network            >= 2.3   && <3.2
+    Build-depends:   network            >= 2.3   && <4
     cpp-options:     -DENABLE_NETWORK
 
   other-extensions:
