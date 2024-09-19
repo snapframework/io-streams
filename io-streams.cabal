@@ -1,5 +1,6 @@
 Name:                io-streams
 Version:             1.5.2.2
+x-revision:          4
 License:             BSD3
 License-file:        LICENSE
 Category:            Data, Network, IO-Streams
@@ -8,9 +9,9 @@ Maintainer:          Gregory Collins <greg@gregorycollins.net>
 Cabal-version:       >= 1.10
 Synopsis:            Simple, composable, and easy-to-use stream I/O
 Tested-With:
-  GHc == 9.10.0
+  GHc == 9.10.1
   GHc == 9.8.2
-  GHc == 9.6.4
+  GHc == 9.6.6
   GHC == 9.4.8
   GHC == 9.2.8
   GHC == 9.0.2
