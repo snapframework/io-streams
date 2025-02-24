@@ -211,13 +211,13 @@ import qualified "System.IO.Streams" as Streams
 import "System.IO" ('System.IO.IOMode'('System.IO.WriteMode'))
 
 main = do
-   Streams.'System.IO.Streams.withFileAsOutput' \"out.txt\" 'System.IO.WriteMode' $ \\outStream ->
-   Streams.'System.IO.Streams.withFileAsInput'  \"in1.txt\" $ \\inStream1 ->
-   Streams.'System.IO.Streams.withFileAsInput'  \"in2.txt\" $ \\inStream2 ->
-   Streams.'System.IO.Streams.withFileAsInput'  \"in3.txt\" $ \\inStream3 ->
-   Streams.'System.IO.Streams.supply'  inStream1 outStream
-   Streams.'System.IO.Streams.supply'  inStream2 outStream
-   Streams.'System.IO.Streams.connect' inStream3 outStream
+   Streams.'System.IO.Streams.withFileAsOutput' \"out.txt\" $ \\outStream ->
+       Streams.'System.IO.Streams.withFileAsInput'  \"in1.txt\" $ \\inStream1 ->
+           Streams.'System.IO.Streams.withFileAsInput'  \"in2.txt\" $ \\inStream2 ->
+               Streams.'System.IO.Streams.withFileAsInput'  \"in3.txt\" $ \\inStream3 -> do
+                   Streams.'System.IO.Streams.supply'  inStream1 outStream
+                   Streams.'System.IO.Streams.supply'  inStream2 outStream
+                   Streams.'System.IO.Streams.connect' inStream3 outStream
 @
 
 The final 'System.IO.Streams.connect' seals the
