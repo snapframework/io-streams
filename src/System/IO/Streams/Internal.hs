@@ -596,7 +596,9 @@ generatorBind (Generator m) f = Generator (m >>= either step value)
 
 ------------------------------------------------------------------------------
 instance Monad (Generator r) where
-   return = Generator . return . Right
+#if !MIN_VERSION_base(4,8,0)
+   return = pure
+#endif
    (>>=)  = generatorBind
 
 
@@ -656,7 +658,9 @@ newtype Consumer c a = Consumer {
 
 ------------------------------------------------------------------------------
 instance Monad (Consumer c) where
-    return = Consumer . return . Right
+#if !MIN_VERSION_base(4,8,0)
+    return = pure
+#endif
 
     (Consumer m) >>= f = Consumer $ m >>= either step value
       where
@@ -679,7 +683,7 @@ instance Functor (Consumer r) where
 
 ------------------------------------------------------------------------------
 instance Applicative (Consumer r) where
-    pure = return
+    pure = Consumer . pure . Right
 
     m <*> n = do
         f <- m
